@@ -25,7 +25,6 @@
         "groups": [
           {
             "group": "Getting Started",
-            "icon": "rocket",
             "pages": [
               "index",
               "getting-started/introduction"
@@ -33,17 +32,14 @@
           },
           {
             "group": "Using Jedify",
-            "icon": "message-question",
             "pages": [
               "using-jedify/ask-jedify",
-              "using-jedify/natural-language-queries",
               "using-jedify/smart-scenarios",
               "using-jedify/prompt-history"
             ]
           },
           {
             "group": "Dashboards",
-            "icon": "chart-mixed",
             "pages": [
               "using-jedify/homepage-dashboard",
               "using-jedify/analytics-dashboard"
@@ -51,7 +47,6 @@
           },
           {
             "group": "Advanced",
-            "icon": "wand-magic-sparkles",
             "pages": [
               "using-jedify/deep-research-agent",
               "using-jedify/disclaimer"
@@ -65,7 +60,6 @@
         "groups": [
           {
             "group": "Understanding",
-            "icon": "brain",
             "pages": [
               "semantic-fusion/understanding/overview",
               "semantic-fusion/understanding/semantic-entities",
@@ -78,7 +72,6 @@
           },
           {
             "group": "Editing the Model",
-            "icon": "pen-to-square",
             "pages": [
               "semantic-fusion/editing/overview",
               "semantic-fusion/editing/prerequisites",
@@ -91,7 +84,6 @@
           },
           {
             "group": "Best Practices",
-            "icon": "lightbulb",
             "pages": [
               "semantic-fusion/best-practices/overview",
               "semantic-fusion/best-practices/good-definitions",
@@ -104,7 +96,6 @@
           },
           {
             "group": "Semantic Statements",
-            "icon": "quote-left",
             "pages": [
               "semantic-fusion/statements/overview",
               "semantic-fusion/statements/business-glossary",
@@ -115,7 +106,6 @@
           },
           {
             "group": "Use Cases & Examples",
-            "icon": "flask",
             "expanded": false,
             "pages": [
               "semantic-fusion/use-cases/overview",
@@ -131,7 +121,6 @@
           },
           {
             "group": "Test Sets & Catalog",
-            "icon": "vial",
             "expanded": false,
             "pages": [
               "semantic-fusion/test-sets",
@@ -148,7 +137,6 @@
         "groups": [
           {
             "group": "MCP",
-            "icon": "circle-play",
             "pages": [
               "mcp/overview",
               "mcp/claude-setup",
@@ -160,7 +148,6 @@
           },
           {
             "group": "Data Connectors",
-            "icon": "database",
             "pages": [
               "settings/data-connectors/overview",
               "settings/data-connectors/bigquery",
@@ -177,7 +164,6 @@
           },
           {
             "group": "Slack App",
-            "icon": "slack",
             "pages": [
               "settings/slack/overview",
               "settings/slack/installation",
@@ -198,7 +184,6 @@
         "groups": [
           {
             "group": "Authentication",
-            "icon": "shield-halved",
             "pages": [
               "settings/sso-setup",
               "settings/azure-ad-sso",
@@ -207,7 +192,6 @@
           },
           {
             "group": "Access Control",
-            "icon": "users",
             "pages": [
               "settings/rbac"
             ]
@@ -224,11 +208,13 @@
     "links": [
       {
         "label": "Resources",
-        "href": "https://jedify.com/resources/"
+        "href": "https://jedify.com/resources/",
+        "icon": "newspaper"
       },
       {
         "label": "Support",
-        "href": "mailto:support@jedify.com"
+        "href": "mailto:support@jedify.com",
+        "icon": "envelope"
       }
     ],
     "primary": {
