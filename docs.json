@@ -20,8 +20,8 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "Documentation",
-        "icon": "book",
+        "tab": "Getting Started",
+        "icon": "rocket",
         "groups": [
           {
             "group": "Getting Started",
@@ -32,7 +32,39 @@
             ]
           },
           {
-            "group": "What is Semantic Fusion™?",
+            "group": "Using Jedify",
+            "icon": "message-question",
+            "pages": [
+              "using-jedify/ask-jedify",
+              "using-jedify/natural-language-queries",
+              "using-jedify/smart-scenarios",
+              "using-jedify/prompt-history"
+            ]
+          },
+          {
+            "group": "Dashboards",
+            "icon": "chart-mixed",
+            "pages": [
+              "using-jedify/homepage-dashboard",
+              "using-jedify/analytics-dashboard"
+            ]
+          },
+          {
+            "group": "Advanced",
+            "icon": "wand-magic-sparkles",
+            "pages": [
+              "using-jedify/deep-research-agent",
+              "using-jedify/disclaimer"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Semantic Fusion™",
+        "icon": "brain",
+        "groups": [
+          {
+            "group": "Understanding",
             "icon": "brain",
             "pages": [
               "semantic-fusion/understanding/overview",
@@ -111,65 +143,21 @@
         ]
       },
       {
-        "tab": "Using Jedify",
-        "icon": "message-question",
-        "groups": [
-          {
-            "group": "Querying & Insights",
-            "icon": "magnifying-glass-chart",
-            "pages": [
-              "using-jedify/ask-jedify",
-              "using-jedify/natural-language-queries",
-              "using-jedify/smart-scenarios",
-              "using-jedify/prompt-history"
-            ]
-          },
-          {
-            "group": "Dashboards",
-            "icon": "chart-mixed",
-            "pages": [
-              "using-jedify/homepage-dashboard",
-              "using-jedify/analytics-dashboard"
-            ]
-          },
-          {
-            "group": "Advanced",
-            "icon": "wand-magic-sparkles",
-            "pages": [
-              "using-jedify/deep-research-agent",
-              "using-jedify/disclaimer"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "MCP",
+        "tab": "Integrations",
         "icon": "plug",
         "groups": [
           {
-            "group": "Getting Started",
+            "group": "MCP",
             "icon": "circle-play",
             "pages": [
               "mcp/overview",
               "mcp/claude-setup",
-              "mcp/cursor-setup"
-            ]
-          },
-          {
-            "group": "Reference",
-            "icon": "book-open",
-            "pages": [
+              "mcp/cursor-setup",
               "mcp/tools-reference",
               "mcp/use-cases",
               "mcp/troubleshooting"
             ]
-          }
-        ]
-      },
-      {
-        "tab": "Settings",
-        "icon": "gear",
-        "groups": [
+          },
           {
             "group": "Data Connectors",
             "icon": "database",
@@ -188,16 +176,7 @@
             ]
           },
           {
-            "group": "Authentication",
-            "icon": "shield-halved",
-            "pages": [
-              "settings/sso-setup",
-              "settings/azure-ad-sso",
-              "settings/idp-groups"
-            ]
-          },
-          {
-            "group": "Jedify Slack App",
+            "group": "Slack App",
             "icon": "slack",
             "pages": [
               "settings/slack/overview",
@@ -210,6 +189,21 @@
               "settings/slack/support",
               "settings/slack/privacy-security"
             ]
+          }
+        ]
+      },
+      {
+        "tab": "Settings",
+        "icon": "gear",
+        "groups": [
+          {
+            "group": "Authentication",
+            "icon": "shield-halved",
+            "pages": [
+              "settings/sso-setup",
+              "settings/azure-ad-sso",
+              "settings/idp-groups"
+            ]
           },
           {
             "group": "Access Control",
@@ -220,26 +214,18 @@
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://docs.jedify.com",
-          "icon": "book-open-cover"
-        }
-      ]
-    }
+    ]
   },
   "logo": {
     "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "dark": "/logo/dark.svg",
+    "height": 32
   },
   "navbar": {
     "links": [
       {
-        "label": "Blog",
-        "href": "https://jedify.com/blog"
+        "label": "Resources",
+        "href": "https://jedify.com/resources/"
       },
       {
         "label": "Support",
