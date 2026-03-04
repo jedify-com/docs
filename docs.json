@@ -1,13 +1,25 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
+  "theme": "maple",
   "name": "Jedify",
+  "appearance": {
+    "default": "dark"
+  },
   "colors": {
     "primary": "#6E6DF2",
     "light": "#9291F2",
     "dark": "#5540D6"
   },
   "favicon": "/favicon.svg",
+  "background": {
+    "decoration": "gradient"
+  },
+  "styling": {
+    "eyebrows": "section"
+  },
+  "search": {
+    "prompt": "Ask Jedify..."
+  },
   "navigation": {
     "tabs": [
       {
@@ -228,6 +240,10 @@
   },
   "navbar": {
     "links": [
+      {
+        "label": "Blog",
+        "href": "https://jedify.com/blog"
+      },
       {
         "label": "Support",
         "href": "mailto:support@jedify.com"
