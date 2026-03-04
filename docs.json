@@ -12,9 +12,11 @@
     "tabs": [
       {
         "tab": "Documentation",
+        "icon": "book",
         "groups": [
           {
             "group": "Getting Started",
+            "icon": "rocket",
             "pages": [
               "index",
               "getting-started/introduction"
@@ -22,6 +24,7 @@
           },
           {
             "group": "What is Semantic Fusion™?",
+            "icon": "brain",
             "pages": [
               "semantic-fusion/understanding/overview",
               "semantic-fusion/understanding/semantic-entities",
@@ -33,7 +36,8 @@
             ]
           },
           {
-            "group": "Editing the Semantic Fusion™ Model",
+            "group": "Editing the Model",
+            "icon": "pen-to-square",
             "pages": [
               "semantic-fusion/editing/overview",
               "semantic-fusion/editing/prerequisites",
@@ -45,7 +49,8 @@
             ]
           },
           {
-            "group": "Best Practices & Common Pitfalls",
+            "group": "Best Practices",
+            "icon": "lightbulb",
             "pages": [
               "semantic-fusion/best-practices/overview",
               "semantic-fusion/best-practices/good-definitions",
@@ -58,6 +63,7 @@
           },
           {
             "group": "Semantic Statements",
+            "icon": "quote-left",
             "pages": [
               "semantic-fusion/statements/overview",
               "semantic-fusion/statements/business-glossary",
@@ -68,6 +74,8 @@
           },
           {
             "group": "Use Cases & Examples",
+            "icon": "flask",
+            "expanded": false,
             "pages": [
               "semantic-fusion/use-cases/overview",
               "semantic-fusion/use-cases/updating-metric-definition",
@@ -82,6 +90,8 @@
           },
           {
             "group": "Test Sets & Catalog",
+            "icon": "vial",
+            "expanded": false,
             "pages": [
               "semantic-fusion/test-sets",
               "semantic-fusion/catalog/overview",
@@ -93,31 +103,53 @@
       },
       {
         "tab": "Using Jedify",
+        "icon": "message-question",
         "groups": [
           {
-            "group": "Using Jedify",
+            "group": "Querying & Insights",
+            "icon": "magnifying-glass-chart",
             "pages": [
               "using-jedify/ask-jedify",
               "using-jedify/natural-language-queries",
               "using-jedify/smart-scenarios",
-              "using-jedify/prompt-history",
-              "using-jedify/disclaimer",
+              "using-jedify/prompt-history"
+            ]
+          },
+          {
+            "group": "Dashboards",
+            "icon": "chart-mixed",
+            "pages": [
               "using-jedify/homepage-dashboard",
-              "using-jedify/analytics-dashboard",
-              "using-jedify/deep-research-agent"
+              "using-jedify/analytics-dashboard"
+            ]
+          },
+          {
+            "group": "Advanced",
+            "icon": "wand-magic-sparkles",
+            "pages": [
+              "using-jedify/deep-research-agent",
+              "using-jedify/disclaimer"
             ]
           }
         ]
       },
       {
         "tab": "MCP",
+        "icon": "plug",
         "groups": [
           {
-            "group": "MCP Integration",
+            "group": "Getting Started",
+            "icon": "circle-play",
             "pages": [
               "mcp/overview",
               "mcp/claude-setup",
-              "mcp/cursor-setup",
+              "mcp/cursor-setup"
+            ]
+          },
+          {
+            "group": "Reference",
+            "icon": "book-open",
+            "pages": [
               "mcp/tools-reference",
               "mcp/use-cases",
               "mcp/troubleshooting"
@@ -127,9 +159,11 @@
       },
       {
         "tab": "Settings",
+        "icon": "gear",
         "groups": [
           {
             "group": "Data Connectors",
+            "icon": "database",
             "pages": [
               "settings/data-connectors/overview",
               "settings/data-connectors/bigquery",
@@ -146,6 +180,7 @@
           },
           {
             "group": "Authentication",
+            "icon": "shield-halved",
             "pages": [
               "settings/sso-setup",
               "settings/azure-ad-sso",
@@ -154,6 +189,7 @@
           },
           {
             "group": "Jedify Slack App",
+            "icon": "slack",
             "pages": [
               "settings/slack/overview",
               "settings/slack/installation",
@@ -168,6 +204,7 @@
           },
           {
             "group": "Access Control",
+            "icon": "users",
             "pages": [
               "settings/rbac"
             ]
