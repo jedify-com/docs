@@ -1,0 +1,213 @@
+---
+title: "MCP Overview"
+---
+
+## What is MCP?
+
+
+The Model Context Protocol (MCP) is an open standard that enables AI assistants like Claude to securely connect to external data sources and tools. Jedify's MCP server provides two distinct interfaces for different workflows:
+
+
+- **Asker Mode**: Natural language data analysis for data analysts and business users
+- **Builder Mode**: Programmatic dashboard development for application developers
+
+
+## Choose Your Mode
+
+
+|  | Asker Mode | Builder Mode |
+| --- | --- | --- |
+| **Best For** | Data analysts, business users, executives | Developers, data engineers, app builders |
+| **Primary Use** | Ad-hoc data exploration via questions | Building dashboards and data applications |
+| **Interface** | Natural language questions | Semantic functions + TypeScript SDK |
+| **Execution** | LLM generates SQL (2-5s) | Pre-built queries (under 500ms) |
+| **Tools** | 18+ questioning and analysis tools | 6+ function management and SDK tools |
+| **Setup** | Claude Desktop setup guide | Cursor IDE setup guide |
+
+
+## Key Features
+
+
+### For All Users
+
+
+**Secure Authentication**: Multiple authentication methods including JWT tokens, API keys, and OAuth 2.1 support for seamless integration.
+
+
+**Semantic Layer Access**: Explore your organization's custom data model using business-friendly terminology and metrics rather than technical language.
+
+
+**Real-time Results**: Query results and status updates stream with progress monitoring capabilities.
+
+
+**Role-Based Access Control**: Data security with appropriate permission enforcement based on your user role.
+
+
+### Asker Mode Features
+
+
+**Natural Language Querying**: Ask questions about your business data in plain English without requiring SQL knowledge or complex query languages.
+
+
+**Multi-Phase Analysis**: Support for complex investigations through parallel data collection, enabling faster insight generation.
+
+
+**Guided Workflows**: Analysis patterns for executive reporting, performance investigation, trend analysis, and data exploration.
+
+
+### Builder Mode Features
+
+
+**Semantic Functions**: Pre-built, parameterized SQL queries exposed as reusable API endpoints with deterministic execution (under 500ms).
+
+
+**TypeScript SDK**: Programmatic access to semantic functions via @jedify/sdk for building custom dashboards and applications.
+
+
+**AI-Assisted Code Generation**: Use Cursor IDE with MCP to generate React dashboard code using your organization's semantic functions.
+
+
+**Fast Execution**: No LLM latency - semantic functions execute directly against your data warehouse for consistent performance.
+
+
+## Available Tool Categories
+
+
+### Asker Mode Tools
+
+
+**Initial Context**
+
+
+- **contextualize**: Get an overview of available data and capabilities
+- **get_account_info**: Retrieve company metadata and business glossary
+
+
+**Data Analysis**
+
+
+- **ask_a_single_question**: Quick queries with automatic session creation
+- **ask_questions**: Submit multiple questions for parallel processing
+- **wait_for_completion**: Monitor progress of multiple queries
+
+
+**Session Management**
+
+
+- **create_a_thread**: Start a new analysis session
+- **ask_a_question**: Continue analysis within existing session
+- **get_thread_data**: Retrieve complete session data
+- **get_recent_threads**: List your recent analysis sessions
+
+
+**Data Discovery**
+
+
+- **get_semantic_layer_summary**: Overview of all data entities
+- **get_semantic_layer_entity**: Detailed information about specific entities
+- **search_semantic_layer**: Find entities by keyword
+
+
+**Query Monitoring**
+
+
+- **check_question_status**: Monitor individual query progress
+- **get_questions_data**: Retrieve results from multiple queries
+
+
+**Advanced Features**
+
+
+- **data_collection_strategy**: Plan complex multi-step analyses
+- **run_sql_query**: Execute direct SQL queries (advanced users)
+
+
+### Builder Mode Tools
+
+
+**Function Management**
+
+
+- **list_semantic_functions**: Browse all available semantic functions
+- **get_function_schema**: Get detailed function specification
+- **call_semantic_function**: Test function execution
+- **create_semantic_function**: Convert inquiry to reusable function
+
+
+**Development**
+
+
+- **get_sdk_info**: SDK documentation and usage examples
+- **process_verification**: Review and approve semantic functions
+
+
+## Common Use Cases
+
+
+### Asker Mode Use Cases
+
+
+**Executive Reporting**: Generate comprehensive business reports combining financial, operational, and customer metrics.
+
+
+**Performance Investigation**: Analyze declining metrics, identify root causes, and discover improvement opportunities.
+
+
+**Trend Analysis**: Track business performance over time with comparative analysis across periods.
+
+
+**Data Exploration**: Discover insights in your data through natural language conversations with your business intelligence platform.
+
+
+### Builder Mode Use Cases
+
+
+**Custom Dashboards**: Build React/Next.js dashboards using semantic functions with deterministic data fetching.
+
+
+**Embedded Analytics**: Integrate Jedify data into your applications using the TypeScript SDK.
+
+
+**Automated Reporting**: Create scheduled reports that call semantic functions programmatically.
+
+
+**Multi-Tenant Applications**: Build SaaS products with embedded analytics powered by Jedify's semantic layer.
+
+
+## Prerequisites
+
+
+### For Asker Mode
+
+
+- **Active Jedify Account**: Access to your organization's Jedify platform
+- **Claude Desktop**: Latest version installed
+- **Node.js 18+**: Required for the authentication system
+
+
+### For Builder Mode
+
+
+- **Active Jedify Account**: Access to your organization's Jedify platform
+- **Cursor IDE or Claude Desktop**: Latest version
+- **Node.js 18+**: Required for the authentication system
+- **TypeScript/JavaScript environment**: For dashboard development
+
+
+## Getting Started
+
+
+### Asker Mode (Data Analysis)
+
+
+1. Set up Claude Desktop - Configure your MCP server connection
+2. Explore Tools - Learn about available analysis capabilities
+3. See Use Cases - Discover analysis patterns and workflows
+
+
+### Builder Mode (Dashboard Development)
+
+
+1. Set up Cursor - Configure Cursor IDE for Builder mode
+2. Explore Semantic Functions - Learn about available functions
+3. See Examples - Dashboard code examples

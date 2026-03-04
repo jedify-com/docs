@@ -1,0 +1,44 @@
+---
+title: "Version Control & Collboration"
+---
+
+There is **one Production model** (the only version visible to business users) and a **single shared Staging model** (where all Data Experts collaborate).
+
+
+There are no personal branches: every Data Expert sees everyone else’s in‑progress changes in Staging. When a change set is ready, it’s published (promoted) to Production.
+
+
+### Collaboration Practices
+
+
+- One shared Staging = communicate early.
+- Announce large or impactful changes in the team channel/ticket.
+- Small, incremental publishes is recommended over big-bang releases.
+- Test well before publishing.
+
+
+## Environments
+
+
+### Production
+
+
+**Audience:** Business users (read-only), Data Experts (read + historical diffs).
+
+
+**State:** Always stable and verified.
+
+
+**Goal:** Trustworthy, org-wide analytics.
+
+
+### Staging (shared)
+
+
+**Audience:** Data Experts only.
+
+
+**State:** Mutable, continuously evolving.
+
+
+**Goal:** Fast iteration, testing, and collaboration before publish.

@@ -1,0 +1,192 @@
+---
+title: "Jedify Azure AD SSO setup guide"
+---
+
+This guide will help you configure SAML SSO between your Azure Active Directory and our application using the SSO Setup Wizard.
+
+
+### STEP 1: Start the SSO Setup Wizard
+
+
+1. Access the SSO Setup Wizard link provided by Jedify.
+2. On the Identity Provider (IdP) Selection screen, select "Azure Entra ID"
+3. Click Continue
+
+
+![](/images/docs/image-28.png)
+
+
+### STEP 2: Copy Service Provider Information
+
+
+The wizard displays three values you'll need for Azure configuration:
+
+
+1. SP Metadata URL (XML) - Optional, not needed for manual configuration
+2. SP ACS URL - Copy this URL (example: `https://api.descope.com/v1/auth/saml/acs?projectid=.`..)
+3. SP Entity ID - Copy this value (example: `P2elfCFOKeJZmUUew3cnaeXe4bE4-Ascentive-5XQRv`)
+
+
+Keep this wizard page open - you'll return to it after configuring Azure.
+
+
+![](/images/docs/image-29.png)
+
+
+### STEP 3: Configure Azure AD
+
+
+1. **Create Enterprise Application**
+  1. Open **Azure Portal**
+  2. Navigate to **Microsoft Entra ID** (formerly Azure Active Directory)
+  3. Click** Enterprise applications** in the left sidebar
+  4. Click + **New application**
+  5. Click + **Create your own application**
+  6. Enter application name
+  7. Select: **"Integrate any other application you don't find in the gallery (Non-gallery)"**
+  8. Click **Create**
+2. **Configure SAML Single Sign-On**
+  1. In your Enterprise Application, click Single sign-on in the left sidebar
+  2. Click the **SAML** tile
+  3. In **Section 1: Basic SAML Configuration**, click **Edit**
+  4. Enter the values you copied from the wizard:
+    1. **Identifier (Entity ID):** Paste the SP Entity ID from the wizard
+    2. **Reply URL (Assertion Consumer Service URL):** Paste the SP ACS URL from the wizard
+  5. Click Save
+3. **Configure Groups Claim**
+  1. In Section 2:** Attributes & Claims**, click Edit
+  2. Click + **Add a group claim**
+  3. Configure:
+    1. **Which groups associated with the user should be returned in the claim?** Select: **"Groups assigned to the application"**
+    2. **Source attribute: **Select: **"Cloud-only group display names" **(sends readable names like "Admins" instead of UUIDs)
+    3. Check:** "Customize the name of the group claim"**
+    4. **Name**: Enter `groups`
+    5. **Namespace**: Leave empty
+  4. Click **Save**
+4. **Copy Azure SAML Information**
+  1. You'll need three pieces of information from Azure to enter back into the wizard:
+  2. In **Section 4**: Set up [Your Application], locate and copy:
+    1. **Login URL** (example: `https://login.microsoftonline.com/[tenant-id]/saml2`)
+    2. **Azure AD Identifier** (example: `https://sts.windows.net/[tenant-id]/`)
+  3. In Section 3: **SAML Certificates:**
+  4. Click **Download** next to **Certificate (Base64)**
+  5. Open the downloaded `.cer` file in a text editor
+  6. Copy the entire certificate content (including `----BEGIN CERTIFICATE----- `and `----END CERTIFICATE-----`)
+  7. **Keep these three values ready** - you'll paste them into the wizard next.
+5. **Create Azure AD Security Groups (OPTIONAL)**
+  1. Go back to **Microsoft Entra ID** (use breadcrumb or search)
+  2. Click **Groups** in the left sidebar
+  3. Click **+ New group**
+  4. Configure:
+    1. **Group type:** Security
+    2. **Group name:** Enter a role name (e.g., "Admins", "Users", "Viewers")
+    3. **Members**: Add users who should have this role
+  5. Click **Create**
+  6. **Repeat** for each role you need in your application
+6. **Assign Users and Groups to Application**
+  1. Go to **Enterprise applications** → Your application
+  2. Click **Users and groups** in the left sidebar
+  3. **Assign individual users:**
+    1. Click **+ Add user/group**
+    2. Click **Users** → Click **None Selected**
+    3. Search for and select your users
+    4. Click **Select** → Click **Assign**
+  4. **Assign groups:**
+    1. Click **+ Add user/group** again
+    2. Click **Groups** → Click **None Selected**
+    3. Search for and select the security groups you created
+    4. Click **Select** → Click **Assign**
+
+
+### STEP 4: Return to SSO Setup Wizard
+
+
+Go back to the wizard (should still be open) and click Continue to proceed to the Identity Provider Information screen.
+
+
+#### Enter Azure SAML Details
+
+
+1. **Skip the "IdP Metadata URL" field** - leave it empty
+2. **Enter the following details manually:**
+  1. **Single Sign On (SSO) URL:** Paste the Login URL from Azure
+  2. **Identity Provider Issuer:** Paste the Azure AD Identifier from Azure
+  3. **X.509 Certificate:** Paste the entire certificate content you copied from the downloaded file
+3. Click **Continue**
+
+
+![](/images/docs/image-30.png)
+
+
+### STEP 5: Configure Attribute Mapping
+
+
+#### Map User Attributes
+
+
+You should see default mappings. Verify or configure:
+
+
+| IdP Attribute Name | User Attribute |
+| --- | --- |
+| [http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress](http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress) | Email |
+| [http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname](http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname) | Given Name (or Display Name) |
+| [http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname](http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname) | Family Name |
+
+
+*These are Azure AD's default SAML claim names - they may be different in your caase*
+
+
+#### Map Groups to Roles
+
+
+1. **Groups attribute name:** Verify it shows `groups` (should be pre-filled)
+2. **Add group mappings:** For each Azure AD group you created, map it to an application role:
+
+
+| IdP Group Name | Role Name |
+| --- | --- |
+| Admins | Admin |
+| Users | User |
+| Viewers | Viewer |
+
+
+1. Use the exact group names from Azure (e.g., "Admins", "Users") - these are case-sensitive
+2. If you need additional mappings, click + **Add group mapping**
+3. Click Continue
+
+
+![](/images/docs/image-31.png)
+
+
+### STEP 6: Configure SSO Domains
+
+
+1. Enter your organization's email domains (e.g., `yourcompany.com`)
+2. Users with emails from these domains will automatically be routed to Azure AD SSO
+3. Click **Continue**
+
+
+### STEP 7: Test the Configuration
+
+
+1. Click **Test** button
+2. You will be redirected to the Microsoft login page
+3. Sign in with an Azure AD account that:
+  1. Is assigned to the application
+  2. Is a member of at least one assigned group
+4. After successful authentication, you should be redirected back to the application
+
+
+### Verify the Configuration
+
+
+After a successful test:
+
+
+1. Check that you can access the application
+2. Verify your user has the correct role(s) based on Azure AD group membership
+3. Try logging in with different users from different groups to verify role mapping
+
+
+![](/images/docs/image-32.png)

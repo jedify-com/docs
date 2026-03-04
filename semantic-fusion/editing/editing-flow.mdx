@@ -1,0 +1,118 @@
+---
+title: "Semantic Editing Flow"
+---
+
+When business needs evolve, you may need to update your semantic entities (both concepts and metrics) in the Semantic Fusion™ Model. Each modification serves a different purpose and impacts how the agentic flow interprets and retrieves data. This section covers the process to edit, approve and publish a modification.
+
+
+The Jedify platform provides a structured workflow for safely modifying semantic entities. This flow ensures changes are properly validated, tested, and reviewed before being made available to all users.
+
+
+This workflow enables safe, iterative development of your semantic model without disrupting other users until changes are fully validated.
+
+
+Here's how the process works:
+
+
+# Editing Steps
+
+
+**Before** making any changes to the semantic model, it's important to plan what you plan on changing and what is the correct place to make that change. **Best practices and examples on semantic editing can be found[here](https://docs.jedify.com/v1.1/docs/best-practices-and-common-pitfalls#/).**
+
+
+These are the steps to make changes to your semantic model:
+
+
+## Step 1: Make the change and save
+
+
+**Action:** Make any changes to the semantic objects you wish to modify and save those changes.
+
+
+**Impact:** The revised entity's status will change to 'Pending Verification'
+
+
+![](/images/docs/Screenshot_2025-07-23_at_4.56.33_PM.png)
+
+
+![](/images/docs/image-3.png)
+
+
+**Note**: you can modify multiple entities before moving on to step 2. For example, adding two new attributes to an existing concept or modifying several completely separate objects.
+
+
+## Step 2: Analyze changes
+
+
+Action:
+
+
+- Any revised entity will appear under the Pending Changes button as shows below.
+- By clicking on it, it will open the list of modified entities to perform the 'Analyze changes'.
+
+
+![](/images/docs/image-4.png)
+
+
+- After selecting 'Analyze changes', Jedify will perform an analysis of the changes made and assess any impact on related objects or components. For example, adding columns to the base query will trigger a creation of additional attributes within the entity.
+
+
+![](/images/docs/image-5.png)
+
+
+Impact: The revised entity's status will remain as 'Pending Verification'. At this point the object cannot be further edited until the changes made are either approved or declines (step 3 and 4).
+
+
+## Step 3: Review changes
+
+
+Review changes allows to compare between the previous and new version of the entity, highlighting the specific component within the entity that was revised as shown in the images below.
+
+
+![](/images/docs/image-6.png)
+
+
+![](/images/docs/image-7.png)
+
+
+## Step 4:ApproveorDeclinechanges
+
+
+If approved:
+
+
+- The changes made will create a new version of the semantic model that is **only visible and accessible to Data Experts**.
+- The revised entity status will remain as '**Pending Verification**' until it is verified (step 6).
+- Business users can continue executing questions that rely on this entity and those will be executing the **previously verified version of this entity**.
+
+
+![](/images/docs/Screenshot_2025-07-18_at_5.15.48_PM.png)
+
+
+## Step 5: Test your changes
+
+
+After approving the changes, it is important to test the change made:
+
+
+- Ask questions, perform analysis to ensure the change(s) made produce the expected results.
+- Once you're ready to publish the changes to the entire organization, move on to step 6.
+- If needed, you can revert the changes made and go back to the previous version (also shown in step 6).
+
+
+## Step 6: Verify changes (Publish)
+
+
+Verifying the changes is done through the 'Semantic Entities' page as shown below.
+
+
+![](/images/docs/Screenshot_2025-07-18_at_5.07.32_PM.png)
+
+
+![](/images/docs/Screenshot_2025-07-18_at_5.10.48_PM.png)
+
+
+**If Verified:** The entity's status will change to Verified (Green) and business users will have access to see the revised entity.
+
+
+**If Reverted:** The changes made to the entity will be reverted.

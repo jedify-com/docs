@@ -1,0 +1,22 @@
+---
+title: "Renamed Columns for Clarity"
+---
+
+### Scenario
+
+
+Your data team renamed a column in the source table (e.g., from cust_id to customer_id) for clarity and consistency. To avoid confusion or broken logic, you'll need to update the semantic layer to reflect the new column name.
+
+
+### Steps to solve
+
+
+1. Go to a relevant concept or metric
+2. Click "Modify" → "Edit base query SQL"
+3. Replace the column’s name in the base query CTE
+4. Save your changes
+5. Once all changes have been made, click "Submit changes". Jedify will notify you when the new entity is ready for review.
+6. Review the new entity: Make sure that the column was successfully renamed in the base query and all underlying attributes and dimensions. Then, approve or decline the changes.
+7. Verify the new entity: Ask Jedify questions about the renamed column and make sure it successfully refers to the new column name.
+8. Ready to go live? Click ‘Verify’ to publish.
+9. Repeat this process for each entity that refers to this column

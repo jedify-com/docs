@@ -1,0 +1,41 @@
+---
+title: "Concept"
+---
+
+## What is a Concept?
+
+
+Concepts represent the fundamental building blocks of your data ecosystem. In the Semantic Fusion™ Model, a concept corresponds to a core business entity or domain object that users commonly analyze and query. As shown in the image, concepts in this sales platform include Opportunity, Account, Asset, Quote, License, Contract, etc.
+
+
+Each concept has a rich contextual definition that explains its business meaning and characteristics. For example, the Opportunity concept (as seen in the image) is defined as "A potential sale or business transaction, created from an approved quote and associated with a specific Nimbus contract and asset. It includes details such as the unique identifier, associated account and asset, contract reference, classification (e.g., New, Expansion), sale type (e.g., Acquisition, Expansion), current stage in the sales process, potential value, expected or actual close date, and win status (where a closed opportunity is considered 'won' if successful or 'lost' if unsuccessful)."
+
+
+## Key Characteristic of a Concept
+
+
+Key characteristics of concepts include:
+
+
+- Multiple concepts can be defined on a single table, providing different perspectives, examples include: User, Account, Product
+- Concepts encapsulate the essential characteristics and behaviors of business objects
+- They maintain relationships with other concepts and other metrics (as represented by the connecting lines in the visual graph view)
+- They contain SQL definitions that determine how data is retrieved from your data sources
+
+
+When working with concepts, you're establishing the semantic foundation that enables natural language understanding within your data model. Properly defined concepts make it possible for users to ask questions using familiar business terminology rather than technical database language.
+
+
+## Concept Definition
+
+
+The structure of a concept includes:
+
+
+1. A base query that defines the data scope of that entity
+2. Attributes that define key properties and characteristics, encompassing both basic data points and more complex relationships to provide comprehensive and enriched information.
+3. Dimensions that allow the metric to be sliced and analyzed in different ways
+4. Relations that connect the concept to other concepts or relevant metrics
+
+
+![](/images/docs/Screenshot_2025-05-15_at_10.44.06_AM.png)

@@ -1,0 +1,429 @@
+---
+title: "Editing Semantic Entities"
+---
+
+Within each entity of the semantic model, there are a few components that can be added and edited.
+
+
+### Base query
+
+
+The base query defines the fundamental data scope for an entity, establishing which records are included and how they're structured. It serves as the foundation for all attributes, dimensions, and relationships.
+
+
+#### How to modify
+
+
+1. Navigate to the entity in the Semantic Fusion™ Mode
+2. Click "Modify" then select "Edit base query SQL"
+3. Update the SQL to correctly identify the relevant records or calculation
+4. Save changes and validate results
+
+
+![](/images/docs/Screenshot_2025-05-15_at_12.33.25_PM.png)
+
+
+#### When to modify
+
+
+- When the underlying data schema changes (e.g., new fields added to the Salesforce Opportunity object)
+- When business definitions of what constitutes a valid opportunity change (e.g., only including opportunities above a certain threshold) or a filter that is applicable for every time this entity is used.
+- When performance optimizations are needed for frequently queried data
+
+
+**Example for Concepts:**
+
+ In the Opportunity concept, the base query includes timezone conversions and calculated fields:
+
+
+```sql
+WITH OPP AS (SELECT NIMBUS_EDITION_name__C AS nimbus_edition,
+       ID,
+       NAME AS Opportunity_Name,
+       OPPORTUNITY_FAMILY__C AS Opp_Family,
+       (AMOUNT_USD1__C / CURRENCY_RATE__C) AS AMOUNT_USD,
+       CONVERT_TIMEZONE('America/Los_Angeles', 'UTC', CLOSEDATE) AS CLOSE_DATE,
+       CONVERT_TIMEZONE('America/Los_Angeles', 'UTC', CREATEDDATE) AS CREATEDATE,
+       ISWON,
+       EMPLOYEE_COUNT__C,
+       STAGENAME AS STAGE_NAME,
+       ACCOUNTID AS ACCOUNT_ID,
+       OWNERID AS OWNER_ID,
+       CONVERT_TIMEZONE('America/Los_Angeles', 'UTC', ORDER_DATE1__C) AS Order_Date,
+       CASE
+           WHEN ISWON = TRUE THEN 1
+           ELSE 0
+       END AS Is_Won
+FROM SALESFORCE.RAW.OPPORTUNITY)
+```
+
+
+A business might modify this to exclude demo or test opportunities::
+
+
+```sql
+WITH OPP AS (SELECT NIMBUS_EDITION_name__C AS nimbus_edition,
+       ID,
+       NAME AS Opportunity_Name,
+       OPPORTUNITY_FAMILY__C AS Opp_Family,
+       (AMOUNT_USD1__C / CURRENCY_RATE__C) AS AMOUNT_USD,
+       CONVERT_TIMEZONE('America/Los_Angeles', 'UTC', CLOSEDATE) AS CLOSE_DATE,
+       CONVERT_TIMEZONE('America/Los_Angeles', 'UTC', CREATEDDATE) AS CREATEDATE,
+       ISWON,
+       EMPLOYEE_COUNT__C,
+       STAGENAME AS STAGE_NAME,
+       ACCOUNTID AS ACCOUNT_ID,
+       OWNERID AS OWNER_ID,
+       CONVERT_TIMEZONE('America/Los_Angeles', 'UTC', ORDER_DATE1__C) AS Order_Date,
+       CASE
+           WHEN ISWON = TRUE THEN 1
+           ELSE 0
+       END AS Is_Won
+FROM SALESFORCE.RAW.OPPORTUNITY
+WHERE IS_TEST__C = FALSE
+AND AMOUNT_USD1__C > 0)
+```
+
+
+**Example for Metrics:**
+
+ For a "Win Rate" metric, the base query defines the calculation methodology:
+
+
+```sql
+WITH Opportunity_Outcomes AS (
+    SELECT 
+        CONVERT_TIMEZONE('America/Los_Angeles', 'UTC', CLOSEDATE) AS close_date,
+        CASE 
+            WHEN STAGENAME = 'Closed Won' THEN 1
+            WHEN STAGENAME = 'Closed Lost' THEN 0
+            ELSE NULL
+        END AS is_won,
+        OWNERID AS sales_rep_id,
+        OPPORTUNITY_FAMILY__C AS product_line
+    FROM SALESFORCE.RAW.OPPORTUNITY
+    WHERE STAGENAME IN ('Closed Won', 'Closed Lost')
+    AND IS_TEST__C = FALSE
+)
+SELECT 
+    close_date,
+    sales_rep_id,
+    product_line,
+    SUM(is_won) AS won_count,
+    COUNT(*) AS total_count,
+    SUM(is_won) / NULLIF(COUNT(*), 0) AS win_rate
+FROM Opportunity_Outcomes
+GROUP BY close_date, sales_rep_id, product_line
+```
+
+
+If the business changes how they define "closed" opportunities, the query might need updating:
+
+
+```sql
+WITH Opportunity_Outcomes AS (
+    SELECT 
+        CONVERT_TIMEZONE('America/Los_Angeles', 'UTC', CLOSEDATE) AS close_date,
+        CASE 
+            WHEN STAGENAME = 'Closed Won' THEN 1
+            WHEN STAGENAME IN ('Closed Lost', 'Disqualified', 'No Decision') THEN 0
+            ELSE NULL
+        END AS is_won,
+        OWNERID AS sales_rep_id,
+        OPPORTUNITY_FAMILY__C AS product_line
+    FROM SALESFORCE.RAW.OPPORTUNITY
+    WHERE STAGENAME IN ('Closed Won', 'Closed Lost', 'Disqualified', 'No Decision')
+    AND IS_TEST__C = FALSE
+    AND AMOUNT_USD1__C >= 5000  -- Only count significant opportunities
+)
+SELECT 
+    close_date,
+    sales_rep_id,
+    product_line,
+    SUM(is_won) AS won_count,
+    COUNT(*) AS total_count,
+    SUM(is_won) / NULLIF(COUNT(*), 0) AS win_rate
+FROM Opportunity_Outcomes
+GROUP BY close_date, sales_rep_id, product_line
+```
+
+
+### Editing Contextual Definitions
+
+
+The contextual definition of an entity is crucial for the agentic flow to understand when to retrieve this entity in response to natural language questions. A rich, detailed definition helps the system correctly interpret and respond to user queries.
+
+
+#### How to modify
+
+
+1. Navigate to the concept (as shown in Image below)
+2. Click "Modify" then select "Edit context"
+3. Update the contextual definition with clear, business-relevant terminology
+4. Include synonyms and alternative phrases users might use
+
+
+![](/images/docs/Screenshot_2025-05-15_at_12.33.35_PM.png)
+
+
+#### When to modify
+
+
+- When users frequently ask questions about a concept but the concept does not appear in the Data Entities section of the thinking
+
+
+![](/images/docs/Screenshot_2025-05-15_at_12.03.17_PM.png)
+
+
+- When business terminology changes or there are synonyms used internally to reference this entity
+- When additional detail is needed to distinguish between similar concepts
+- When expanding the types of questions users can ask about the concept
+
+
+**Example for Concepts:** The Opportunity definition might read:
+
+ "An Opportunity represents a potential sale or business transaction, created from an approved quote and associated with a specific Nimbus contract and asset. It includes details such as the unique identifier, associated account and asset, contract reference, classification (e.g., New, Expansion), sale type (e.g., Acquisition, Expansion), current stage in the sales process, potential value, expected or actual close date, and win status (where a closed opportunity is considered "won" if successful or "lost" if unsuccessful)."
+
+
+If the sales team starts using new terminology, the definition might be updated:
+
+ "An Opportunity represents a potential revenue event in the Nimbus sales pipeline. It encompasses both new business (first-time customers) and expansion revenue (existing customers purchasing additional products or services). Opportunities progress through multiple sales stages from qualification to closed-won or closed-lost. Each opportunity has an associated sales rep (owner), target account, estimated revenue value, product line, expected close date, and probability of closing. Opportunities serve as the foundation for revenue forecasting, sales performance measurement, and pipeline health analysis."
+
+
+**Example for Metrics:** The Win Rate metric definition might initially be:
+
+ "Win Rate is the percentage of closed opportunities that resulted in a win."
+
+
+A more detailed definition that would help the agentic flow better understand when and how to use this metric might be:
+
+ "Win Rate represents the sales team's effectiveness at closing deals, measured as the percentage of opportunities marked as 'won' out of all closed opportunities (both won and lost). It's a key performance indicator for sales teams, individuals, and product lines. Win Rate can be analyzed by time period, sales representative, territory, product line, or customer segment. A higher win rate indicates greater sales effectiveness. This metric excludes open opportunities and helps identify which sales strategies, markets, or product offerings are most successful."
+
+
+This expanded definition helps the system understand additional contexts where opportunities are relevant, especially for pipeline analysis and forecasting questions.
+
+
+### Attributes
+
+
+Attributes represent key properties of the entity that users frequently query. Each attribute has both a definition and an SQL implementation. Importantly, attributes can only reference data from the Common Table Expression (CTE) defined in the entity's base query. They cannot access data outside this scope.
+
+
+An attribute can be:
+
+
+1. A direct column selection from the base query CTE
+2. A simple transformation of a column from the base query CTE
+3. A calculated value derived from multiple columns within the base query CTE
+
+
+This scope limitation ensures data consistency and maintains the semantic integrity of the concept.
+
+
+#### How to modify
+
+
+1. To edit an existing attribute: Click the edit icon next to the attribute
+
+
+![](/images/docs/Screenshot_2025-05-15_at_12.33.46_PM.png)
+
+
+1. To add a new attribute: Click "Add attribute"
+
+
+![](/images/docs/Screenshot_2025-05-15_at_12.26.51_PM.png)
+
+
+1. Provide a clear attribute name and definition
+2. Define the SQL snippet that retrieves this attribute
+
+
+#### When to modify
+
+
+- When business users need additional information about the concept
+- When existing attribute calculations need correction
+- When new data fields become available
+- When attribute definitions need clarification
+
+
+**Example for Concepts:**
+
+ For the Opportunity Family attribute ("Family or category of the opportunity"):
+
+
+```sql
+SELECT OPPORTUNITY_FAMILY__C
+FROM OPP
+```
+
+
+A business might enhance this to include company size categorization:
+
+
+```sql
+SELECT 
+  o.OPPORTUNITY_FAMILY__C,
+  CASE 
+    WHEN a.EMPLOYEE_COUNT__C < 50 THEN 'Small'
+    WHEN a.EMPLOYEE_COUNT__C BETWEEN 50 AND 1000 THEN 'Mid-market'
+    WHEN a.EMPLOYEE_COUNT__C > 1000 THEN 'Enterprise'
+    ELSE 'Unknown'
+  END AS company_size_segment,
+  CONCAT(o.OPPORTUNITY_FAMILY__C, ' - ', 
+    CASE 
+      WHEN a.EMPLOYEE_COUNT__C < 50 THEN 'Small'
+      WHEN a.EMPLOYEE_COUNT__C BETWEEN 50 AND 1000 THEN 'Mid-market'
+      WHEN a.EMPLOYEE_COUNT__C > 1000 THEN 'Enterprise'
+      ELSE 'Unknown'
+    END) AS family_by_segment
+FROM OPP
+```
+
+
+This enhanced attribute would allow users to ask questions like:
+
+
+"Which opportunity families perform best in the enterprise segment?"
+
+ "Show me win rates by product family and company size"
+"Compare average deal size across opportunity families for mid-market companies"
+
+
+The modification leverages data already available in the base query CTE, adhering to the scope constraint while providing richer analytical capabilities.
+
+
+### Relations (Connections)
+
+
+Relations, as shown in Image below, define how the concept connects to other entities in the semantic model. Unlike attributes and dimensions that work within a single concept's CTE, relations establish connections between two different CTEs - the source concept's CTE and the target concept's CTE. Relations contain the SQL join logic needed to bridge these two data scopes, enabling questions that span multiple business entities.
+
+
+![](/images/docs/Screenshot_2025-05-15_at_12.58.17_PM.png)
+
+
+#### How to modify
+
+
+1. Navigate to the relations section
+2. View existing relations or add new ones
+3. Define the SQL that establishes the join conditions
+4. Document the cardinality (e.g., "Many to one" as shown for Account)
+
+
+#### When to modify
+
+
+- When creating new connections between business entities
+- When join logic needs to be optimized
+- When new related entities are added to the model
+- When relationship cardinality changes
+
+
+**Example for concepts**
+
+
+The relation between Opportunity to Account is defined as:
+
+
+```sql
+SELECT o.ID,
+       o.ACCOUNTID
+FROM OPP o
+JOIN ACCOUNT aON o.ACCOUNTID = a.ID
+```
+
+
+This basic relation might need enhancement to support more sophisticated sales territory analysis. For example, a business might want to create a more comprehensive relationship that includes the account's geographic hierarchy and assigned territory:
+
+
+```sql
+SELECT 
+  o.ID AS opportunity_id,
+  a.ID AS account_id,
+  a.NAME AS account_name,
+  a.REGION__C,
+  a.COUNTRY,
+  a.STATE_PROVINCE__C,
+  a.CITY,
+  t.ID AS territory_id,
+  t.NAME AS territory_name,
+  t.TERRITORY_MANAGER__C AS territory_manager_id
+FROM OPP o
+JOIN ACCOUNT a ON o.ACCOUNTID = a.ID
+LEFT JOIN TERRITORY t ON a.TERRITORY_ID__C = t.ID
+```
+
+
+This enhanced relation allows the semantic model to correctly answer questions like:
+
+
+"Show me pipeline by territory"
+
+ "What's the average deal size in the EMEA region?"
+"Which territory manager has the highest win rate?"
+"Compare close rates between East Coast and West Coast accounts"
+
+
+Without this enhanced relationship, the system wouldn't be able to connect opportunities to geographic territories, making these types of regional analyses impossible. The enhancement bridges the conceptual gap between opportunities, accounts, and territories, expanding the semantic understanding to include geographic sales organization concepts.
+
+
+### Dimensions
+
+
+Dimensions, as shown in image below, allow opportunities to be analyzed across different categorical or temporal breakdowns. Like attributes, dimensions must work within the scope of data available in the base query CTE. However, dimensions specifically focus on grouping, categorizing, and slicing data. They typically include aggregations and GROUP BY clauses to enable analytical views of the concept data.
+
+
+![](/images/docs/Screenshot_2025-05-15_at_12.49.47_PM.png)
+
+
+#### How to modify
+
+
+1. Navigate to the dimensions section
+2. Click "Add dimension" or edit an existing dimension
+3. Define the dimension name, definition, and SQL implementation
+4. Ensure the SQL includes appropriate grouping and categorization
+
+
+#### When to modify
+
+
+- When new ways of analyzing the concept are needed
+- When temporal analysis requirements change
+- When new categorization hierarchies emerge
+- When business users request different data slicing capabilities
+
+
+**Example for concepts**
+
+
+In the image above there's a Time dimension that "Slices opportunities by close date month":
+
+
+```sql
+SELECT COUNT(DISTINCT ID) AS opportunity_count,
+DATE_TRUNC('month', CONVERT\_TIMEZONE('America/Los_Angeles', 'UTC', CLOSEDATE)) AS MONTH
+FROM OPP
+GROUP BY DATE_TRUNC('month', CLOSEDATE)
+```
+
+
+A business might need to add a fiscal quarter view instead of calendar months, which is formatted in a unique way that adheres to their current reporting:
+
+
+"Slices opportunities by close date fiscal quarter in the format of 2025FYQ2":
+
+
+```sql
+SELECT COUNT(DISTINCT ID) AS opportunity_count,
+       CASE
+           WHEN MONTH(CLOSEDATE) BETWEEN 2 AND 4 THEN YEAR(CLOSEDATE) || 'FYQ1'
+           WHEN MONTH(CLOSEDATE) BETWEEN 5 AND 7 THEN YEAR(CLOSEDATE) || 'FYQ2'
+           WHEN MONTH(CLOSEDATE) BETWEEN 8 AND 10 THEN YEAR(CLOSEDATE) || 'FYQ3'
+           ELSE YEAR(CLOSEDATE) || 'FYQ4'
+       END AS fiscal_quarter
+FROM OPP
+GROUP BY fiscal_quarter
+```

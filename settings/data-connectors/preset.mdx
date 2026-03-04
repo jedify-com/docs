@@ -1,0 +1,121 @@
+---
+title: "Preset Connection"
+---
+
+This guide walks you through generating the credentials Jedify needs to connect to your Preset environment.
+
+
+## What Jedify Needs
+
+
+| Credential | Description | Example |
+| --- | --- | --- |
+| API Token | Unique identifier for API access | `a1b2c3d4-e5f6-7890-abcd-ef1234567890` |
+| API Secret | Private key (shown only once) | `aBcDeFgHiJkLmNoPqRsTuVwXyZ123456` |
+| Team Slug | Your team identifier from the URL | `acme-corp` |
+| Workspace Hostname | Full workspace URL subdomain | `abc123def.us1a.app.preset.io` |
+
+
+## Step 1: Generate an API Token
+
+
+1. Log into **Preset Manager** at [manage.app.preset.io](https://manage.app.preset.io/)
+2. Click on your **profile avatar** (initials) in the top-right corner
+3. Select **Manage User Settings**
+4. Scroll to the **API Keys** section
+5. Click **+ Generate New API Key**
+6. Fill in the details:
+  - **Key Title**: `Jedify Integration`
+  - **Key Description**: `API access for Jedify`
+7. Click **Submit**
+8. **Copy both values immediately:**
+  - ✅ **Token** - can be viewed again later
+  - ⚠️ **Secret** - shown only once, store securely
+
+
+## Step 2: Find Your Team Slug
+
+
+Your team slug is in the Preset Manager URL.
+
+
+1. From Preset Manager, look at your browser's address bar
+2. The URL follows this pattern:
+
+
+```
+https://manage.app.preset.io/app/teams/YOUR_TEAM_SLUG/...
+```
+3. Copy the value after `/teams/`  this is your **Team Slug**
+
+
+**Example:**
+
+
+```
+URL: https://manage.app.preset.io/app/teams/acme-corp/workspaces
+Team Slug:  acme-corp
+```
+
+
+## Step 3: Find Your Workspace Hostname
+
+
+1. From Preset Manager, click on the **workspace** you want to connect
+2. A new tab opens with your workspace, look at the URL:
+
+
+```
+https://WORKSPACE_ID.REGION.app.preset.io/
+```
+3. Copy everything before `.app.preset.io` including the region — this is your **Workspace Hostname**
+
+
+**Example:**
+
+
+```
+URL:  https://abc123def.us1a.app.preset.io/superset/dashboard/1/
+Workspace Hostname:  abc123def.us1a.app.preset.io
+```
+
+
+## Step 4: Share Credentials Securely
+
+
+Please share the following with your Jedify contact:
+
+
+```
+API Token:          [paste token here]
+API Secret:         [paste secret here]
+Team Slug:          [paste team slug here]
+Workspace Hostname: [paste hostname here]
+
+```
+
+
+> 🔒
+> #### Security Note: Use a secure channel (encrypted email, password manager share, or 1Password/LastPass secure note) to transmit these credentials. Never send via plain email or Slack.
+
+
+---
+
+
+## What Jedify Does With This Access
+
+
+With these credentials, Jedify will:
+
+
+- ✅ **Read** dashboard and chart metadata
+- ✅ **Extract** metric definitions and calculations
+- ✅ **Import** business logic into your semantic layer
+
+
+Jedify does **not**:
+
+
+- ❌ Modify or delete any dashboards or charts
+- ❌ Access underlying database credentials
+- ❌ Store raw query results or customer data

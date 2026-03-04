@@ -1,0 +1,37 @@
+---
+title: "Difference Between Editing Definitions and SQL Components"
+---
+
+When modifying a concept, it's important to understand the distinct roles of definitions versus SQL components:
+
+
+### Contextual Definitions:
+
+
+- Impact how the agentic flow understands and retrieves the concept
+- Help translate natural language queries to the right entities
+- Provide business context and meaning
+- Should include relevant terminology, synonyms, and use cases
+- Affect which questions will surface this concept as relevant
+
+
+### SQL Components:
+
+
+- Determine the actual data retrieval logic
+- Control which records and fields are included
+- Define calculations, transformations, and aggregations
+- Impact query performance and accuracy
+- Determine how data is structured and joined
+
+
+**Real-World Example:**
+
+ Imagine users asking "Show me winning deals by product line" but getting no results. There could be two different issues:
+
+
+1. **Definition Issue:** The Opportunity concept definition doesn't mention that opportunities can be filtered by product line, so the agentic flow doesn't recognize this as a relevant entity for the question. Solution: Update the contextual definition to include terms like "product line," "product category," and "winning deals."
+2. **SQL Issue:** The concept correctly matches the query, but the base query doesn't include product line information or doesn't properly identify winning deals. Solution: Modify the SQL to include product line fields and ensure the logic for identifying winning deals is correct.
+
+
+Making effective changes to your semantic model often requires addressing both the semantic understanding (definitions) and the technical implementation (SQL) to ensure questions are both correctly interpreted and accurately answered.

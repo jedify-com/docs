@@ -1,0 +1,46 @@
+---
+title: "Metric"
+---
+
+## What is a Metric?
+
+
+Metrics represent quantifiable business measurements that users analyze to evaluate performance, track progress, and make data-driven decisions. In the Semantic Fusion™ Model, a metric is a specialized entity that calculates and returns numerical values, typically aggregating or analyzing data across concepts.
+
+
+Each metric has a detailed contextual definition that explains its business significance, calculation methodology, and appropriate use cases. For example, a "Win Rate" metric might be defined as "The percentage of closed opportunities that were won within a specified time period. This metric reflects sales effectiveness and is calculated by dividing the number of won opportunities by the total number of closed opportunities (both won and lost). It excludes open opportunities and is typically analyzed by time period, sales team, product line, or territory to identify performance patterns."
+
+
+## Key Characteristic of a Metric
+
+
+Key characteristics of metrics include:
+
+
+- They quantify business performance or activity
+- They often involve calculations across multiple records (SUM, COUNT, AVG, etc.)
+- Examples include Revenue, Conversion Rate, Customer Lifetime Value, and Churn Rate
+- Metrics can be analyzed across various dimensions (time, geography, product category)
+- They may have targets, benchmarks, or thresholds for evaluation
+- They contain SQL definitions that implement the precise calculation logic
+
+
+Metrics make it possible for users to ask questions about business performance and trends using natural language. Well-defined metrics ensure consistent calculation methodologies across the organization, eliminating the "multiple versions of the truth" problem that plagues many analytics environments.
+
+
+## Metric Definition
+
+
+The structure of a metric mirrors that of a concept, with:
+
+
+1. A base query that defines the data scope and fundamental calculation
+2. Attributes that provide additional context or component calculations
+3. Dimensions that allow the metric to be sliced and analyzed in different ways
+4. Relations that connect the metric to relevant concepts or other metrics
+
+
+This consistent structure makes it easy for data experts to maintain and extend both concepts and metrics within the Semantic Fusion™ Model.
+
+
+![](/images/docs/Screenshot_2025-05-15_at_1.13.41_PM.png)

@@ -1,0 +1,198 @@
+---
+title: "Troubleshooting"
+description: "Common issues and solutions for the Jedify MCP Server integration."
+---
+
+## Quick Test
+
+
+To check if everything is working correctly, ask Claude:
+
+
+*"What data entities are available in our Jedify platform?"*
+
+
+**✅ Success**: Claude responds with information about your organization's data entities.
+**❌ Problem**: See troubleshooting sections below.
+
+
+---
+
+
+## Setup Issues
+
+
+### Jedify Tools Not Available in Claude
+
+
+**Symptoms**: Claude doesn't recognize Jedify tools or says they're not available.
+
+
+**Solutions**:
+
+
+1. **Check configuration file location**:
+  - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+  - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+2. **Verify JSON format**: Make sure your configuration file has proper JSON formatting with no extra commas or missing quotes.
+3. **Restart Claude Desktop**: Close completely and reopen Claude Desktop.
+4. **Check Node.js**: Ensure Node.js 18+ is installed by running `node --version` in your terminal.
+
+
+### Authentication Keeps Failing
+
+
+**Symptoms**: Browser opens for login but authentication doesn't complete, or you get "authentication failed" messages.
+
+
+**Solutions**:
+
+
+1. **Clear browser data**: Clear cookies and try authentication in a private/incognito browser window.
+2. **Check account access**: Verify you can log into your organization's Jedify platform directly.
+3. **Contact administrator**: Your Jedify administrator may need to verify your account access.
+4. **Force logout**: Ask Claude to use the logout tool, then try authenticating again.
+
+
+### Browser Doesn't Open for Authentication
+
+
+**Symptoms**: Authentication is required but browser doesn't launch automatically.
+
+
+**Solutions**:
+
+
+1. **Manual browser**: Look for the authentication URL in Claude's interface and open it manually in your browser.
+2. **Check default browser**: Make sure you have a default browser set in your system settings.
+3. **Security software**: Check if antivirus or security software is blocking the browser launch.
+
+
+---
+
+
+## Data Access Issues
+
+
+### "No Data Available" Messages
+
+
+**Symptoms**: Tools work but return no data or "no entities found" messages.
+
+
+**Solutions**:
+
+
+1. **Check data permissions**: Contact your Jedify administrator to verify you have access to the data you're trying to query.
+2. **Verify data setup**: Confirm your organization has data sources connected and configured in Jedify.
+3. **Test basic access**: Try asking Claude to use the "contextualize" tool to see what data is available.
+
+
+### Slow or Incomplete Results
+
+
+**Symptoms**: Queries take a long time or don't complete.
+
+
+**Solutions**:
+
+
+1. **Be more specific**: Use exact date ranges and specific filters instead of broad queries like "all time data".
+2. **Break down large requests**: Split complex analysis into smaller, more focused questions.
+3. **Check query scope**: Very large data requests may take longer or hit system limits.
+
+
+---
+
+
+## Connection Issues
+
+
+### Connection Timeouts
+
+
+**Symptoms**: "Connection timeout" or "request failed" errors.
+
+
+**Solutions**:
+
+
+1. **Check internet connection**: Ensure you have stable internet connectivity.
+2. **Restart Claude Desktop**: Close and reopen Claude Desktop to reset the connection.
+3. **Try again later**: Temporary network issues may resolve themselves.
+
+
+### Configuration Errors
+
+
+**Symptoms**: Error messages about configuration when starting Claude Desktop.
+
+
+**Solutions**:
+
+
+1. **Validate JSON**: Use a JSON validator to check your configuration file format.
+2. **Check file path**: Ensure the configuration file is in the correct location.
+3. **Reset configuration**: Try with a minimal configuration and add complexity gradually.
+
+
+---
+
+
+## Getting Help
+
+
+### Before Contacting Support
+
+
+Collect this information:
+
+
+- Your operating system (Mac/Windows)
+- What you were trying to do when the problem occurred
+- The exact error message you saw
+- Whether authentication completed successfully
+
+
+### Who to Contact
+
+
+1. **Jedify Administrator**: For data access issues, account problems, or permissions
+2. **IT Support**: For network, firewall, or system configuration issues
+3. **Claude Desktop Support**: For Claude Desktop application problems
+
+
+### Self-Service Options
+
+
+- **[Installation Guide](installation)**: Complete setup instructions
+- **[Tools Reference](tools-reference)**: Understanding available tools
+- **[Use Cases](use-cases)**: Examples and workflows
+
+
+---
+
+
+## Prevention Tips
+
+
+### Regular Maintenance
+
+
+- Keep Claude Desktop updated to the latest version
+- Update Node.js periodically
+- Test your setup occasionally with a simple query
+
+
+### Best Practices
+
+
+- Use the logout tool when switching between different user accounts
+- Don't modify configuration files while Claude Desktop is running
+- Keep backup copies of working configurations
+
+
+---
+
+
+**Still having issues?** Contact your Jedify administrator for assistance.

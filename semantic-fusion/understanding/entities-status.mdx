@@ -1,0 +1,52 @@
+---
+title: "Semantic Entities Status"
+---
+
+Each entity in the semantic model falls into one of three life‑cycle statuses:
+
+
+## Verified
+
+
+![](/images/docs/image.png)
+
+
+A green dot beside the object name signals that the entity is verified and ready for organization‑wide querying
+
+
+### Visibility and usage of the entity:
+
+
+Both **Data Experts** and **Business Users** can access and query this entity to ask questions and perform analyses.
+
+
+## Unverified
+
+
+![](/images/docs/image-1.png)
+
+
+A gray dot beside the object name means the entity is new and not yet verified; it remains hidden from business users until validated.
+
+
+### Visibility and usage of the entity:
+
+
+- **Data Experts** can view the entity, and any queries they run will use its current definition.
+- **Business Users** cannot access the entity; queries that depend on it will not execute.
+
+
+## Pending Review
+
+
+![](/images/docs/image-2.png)
+
+
+An orange dot beside the object name indicates that recent changes to the entity are still pending verification.
+
+
+### Visibility and usage of the entity:
+
+
+- **Data Experts** see the updated entity, and their queries use its revised definition.
+- **Business Users** continue to see the last verified version, and their queries run against that stable definition.

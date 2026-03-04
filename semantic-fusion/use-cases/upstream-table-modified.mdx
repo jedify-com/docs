@@ -1,0 +1,22 @@
+---
+title: "Upstream Table Was Modified"
+description: "(e.g., New Column Added)"
+---
+
+### Scenario
+
+
+A data engineer added a new column to an existing source table; For example, a region_type field was added to support segmentation by store type (urban, suburban, rural). Since the table structure changed, and this new column is relevant to end-user analysis, you’ll want to expose it in the semantic layer and add it as a new attribute.
+
+
+### Steps to solve
+
+
+1. Go to “Store” concept
+2. Click "Modify" → "Edit base query SQL"
+3. Add “region_type” field to the base query CTE
+4. Save your changes
+5. Once all changes have been made, click "Submit changes". Jedify will notify you when the new concept is ready for review.
+6. Review the new base query and attributes: Approve or decline changes
+7. Verify the new concept: Ask Jedify questions about store types to make sure it correctly uses the new field
+8. Ready to go live? Click ‘Verify’ to publish.

@@ -1,0 +1,44 @@
+---
+title: "Check Chnages in the Semantic Catalog"
+---
+
+# Check Changes
+
+
+The **Check Changes** feature detects structural drift between your live data warehouse and the existing semantic catalog.
+
+
+When triggered, Jedify scans for changes at:
+
+
+### Table Level
+
+
+- New or removed columns
+- Changes to partitioning keys
+- Changes to clustering keys
+
+
+### Column Level
+
+
+- Columns added or removed
+- Column type changes
+
+
+### What Happens After the Scan
+
+
+Once the scan completes:
+
+
+- Visual indicators and notifications highlight where changes were detected
+- Affected items in the UI show icons or markers
+- The catalog updates static metadata needed for accurate modeling
+- New columns, if detected, are automatically added into the catalog structure
+
+
+Check Changes **does not update semantic logic, labels, grounding, or entity links**—it updates only the structural metadata used by the catalog.
+
+
+This ensures your semantic view stays in sync with the warehouse, even as schemas evolve.

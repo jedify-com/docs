@@ -1,68 +1,175 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Jedify",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#6E6DF2",
+    "light": "#9291F2",
+    "dark": "#5540D6"
   },
   "favicon": "/favicon.svg",
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Getting Started",
             "pages": [
               "index",
-              "quickstart",
-              "development"
+              "getting-started/introduction"
             ]
           },
           {
-            "group": "Customization",
+            "group": "What is Semantic Fusion™?",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "semantic-fusion/understanding/overview",
+              "semantic-fusion/understanding/semantic-entities",
+              "semantic-fusion/understanding/concept",
+              "semantic-fusion/understanding/metric",
+              "semantic-fusion/understanding/concepts-vs-metrics",
+              "semantic-fusion/understanding/entities-status",
+              "semantic-fusion/understanding/how-jedify-uses-it"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "Editing the Semantic Fusion™ Model",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
+              "semantic-fusion/editing/overview",
+              "semantic-fusion/editing/prerequisites",
+              "semantic-fusion/editing/what-can-be-edited",
+              "semantic-fusion/editing/editing-flow",
+              "semantic-fusion/editing/editing-entities",
+              "semantic-fusion/editing/definitions-vs-sql",
+              "semantic-fusion/editing/version-control"
             ]
           },
           {
-            "group": "AI tools",
+            "group": "Best Practices & Common Pitfalls",
             "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "semantic-fusion/best-practices/overview",
+              "semantic-fusion/best-practices/good-definitions",
+              "semantic-fusion/best-practices/choosing-entity-type",
+              "semantic-fusion/best-practices/column-aliases",
+              "semantic-fusion/best-practices/writing-style",
+              "semantic-fusion/best-practices/data-onboarding",
+              "semantic-fusion/best-practices/validation-tuning"
+            ]
+          },
+          {
+            "group": "Semantic Statements",
+            "pages": [
+              "semantic-fusion/statements/overview",
+              "semantic-fusion/statements/business-glossary",
+              "semantic-fusion/statements/synonyms",
+              "semantic-fusion/statements/time-analysis",
+              "semantic-fusion/statements/answer-guidance"
+            ]
+          },
+          {
+            "group": "Use Cases & Examples",
+            "pages": [
+              "semantic-fusion/use-cases/overview",
+              "semantic-fusion/use-cases/updating-metric-definition",
+              "semantic-fusion/use-cases/upstream-table-modified",
+              "semantic-fusion/use-cases/upstream-column-removed",
+              "semantic-fusion/use-cases/renamed-columns",
+              "semantic-fusion/use-cases/changing-join-logic",
+              "semantic-fusion/use-cases/fixing-incorrect-response",
+              "semantic-fusion/use-cases/improving-performance",
+              "semantic-fusion/use-cases/aligning-definitions"
+            ]
+          },
+          {
+            "group": "Test Sets & Catalog",
+            "pages": [
+              "semantic-fusion/test-sets",
+              "semantic-fusion/catalog/overview",
+              "semantic-fusion/catalog/check-changes",
+              "semantic-fusion/catalog/adding-tables"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "Using Jedify",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Using Jedify",
             "pages": [
-              "api-reference/introduction"
+              "using-jedify/ask-jedify",
+              "using-jedify/natural-language-queries",
+              "using-jedify/smart-scenarios",
+              "using-jedify/prompt-history",
+              "using-jedify/disclaimer",
+              "using-jedify/homepage-dashboard",
+              "using-jedify/analytics-dashboard",
+              "using-jedify/deep-research-agent"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "MCP",
+        "groups": [
+          {
+            "group": "MCP Integration",
+            "pages": [
+              "mcp/overview",
+              "mcp/claude-setup",
+              "mcp/cursor-setup",
+              "mcp/tools-reference",
+              "mcp/use-cases",
+              "mcp/troubleshooting"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Settings",
+        "groups": [
+          {
+            "group": "Data Connectors",
+            "pages": [
+              "settings/data-connectors/overview",
+              "settings/data-connectors/bigquery",
+              "settings/data-connectors/databricks",
+              "settings/data-connectors/redshift",
+              "settings/data-connectors/sigma",
+              "settings/data-connectors/looker",
+              "settings/data-connectors/tableau",
+              "settings/data-connectors/redash",
+              "settings/data-connectors/dbt",
+              "settings/data-connectors/aws-athena",
+              "settings/data-connectors/preset"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Authentication",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "settings/sso-setup",
+              "settings/azure-ad-sso",
+              "settings/idp-groups"
+            ]
+          },
+          {
+            "group": "Jedify Slack App",
+            "pages": [
+              "settings/slack/overview",
+              "settings/slack/installation",
+              "settings/slack/how-it-works",
+              "settings/slack/usage-guide",
+              "settings/slack/communication-patterns",
+              "settings/slack/features",
+              "settings/slack/limitations",
+              "settings/slack/support",
+              "settings/slack/privacy-security"
+            ]
+          },
+          {
+            "group": "Access Control",
+            "pages": [
+              "settings/rbac"
             ]
           }
         ]
@@ -72,13 +179,8 @@
       "anchors": [
         {
           "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
+          "href": "https://docs.jedify.com",
           "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
         }
       ]
     }
@@ -91,32 +193,26 @@
     "links": [
       {
         "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "href": "mailto:support@jedify.com"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
+      "label": "Go to Jedify",
+      "href": "https://app.jedify.com"
     }
   },
   "contextual": {
     "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
+      "copy",
+      "view",
+      "claude",
+      "cursor"
+    ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "linkedin": "https://linkedin.com/company/jedify"
     }
   }
 }

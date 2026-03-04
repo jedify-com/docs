@@ -1,0 +1,264 @@
+---
+title: "AWS Athena Connection"
+---
+
+Jedify's Semantic Fusion™ platform seamlessly integrates with AWS Athena to bring natural language analytics to your Iceberg data lake. This enables processing millions of queries monthly on Iceberg tables while optimizing cost and performance through intelligent query planning.
+
+
+## Prerequisites
+
+
+Before connecting Jedify to your Athena environment, ensure you have:
+
+
+- ✅ AWS account with Athena enabled
+- ✅ Iceberg tables registered in AWS Glue Data Catalog
+- ✅ S3 bucket for Athena query results (staging directory)
+- ✅ AWS credentials with appropriate permissions (see **Required AWS Permissions**)
+
+
+## Authentication Method
+
+
+Jedify supports **programmatic access via IAM Access Keys** for connecting to your Athena environment. This approach aligns with AWS Athena best practices and provides a simple, secure, and auditable setup.
+
+
+### 1. Create IAM Policy for S3 Data Lake Access
+
+
+Create a custom IAM policy that allows read access to the S3 bucket(s) containing your Iceberg data.
+
+
+> Note: Bucket-level and object-level permissions must both be included. You may include multiple data lake buckets if needed.
+
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject"],
+      "Resource": ["arn:aws:s3:::your-data-lake-bucket/*"]
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetBucketLocation", "s3:ListBucket"],
+      "Resource": ["arn:aws:s3:::your-data-lake-bucket"]
+    }
+  ]
+}
+```
+
+
+### 2. Create IAM User with Programmatic Access
+
+
+1. Go to **AWS Console → IAM → Users → Add user**
+2. User name: `jedify-athena-user`
+3. Select **Programmatic access**
+4. Attach the following policies:
+  - `AWSQuicksightAthenaAccess`
+  - Custom S3 policy for data lake access (above)
+  - Custom S3 policy for query results bucket (below)
+5. Create the user and save the **Access Key ID** and **Secret Access Key**
+
+
+---
+
+
+### 3. Create / Identify S3 Bucket for Athena Query Results
+
+
+Athena requires a staging bucket for query results.
+
+
+- Create a new bucket (e.g. `my-athena-results`) or reuse an existing one
+- Ensure the bucket is in the **same AWS region** as Athena
+- Staging directory format:
+
+
+```
+s3://my-athena-results/jedify/
+
+```
+
+
+---
+
+
+### 4. Update IAM Policy for Query Results Bucket
+
+
+The managed policy `AWSQuicksightAthenaAccess` only covers buckets named:
+
+
+```
+arn:aws:s3:::aws-athena-query-results-*
+
+```
+
+
+If you use a custom bucket, add the following permissions:
+
+
+```json
+{
+  "Effect": "Allow",
+  "Action": [
+    "s3:GetBucketLocation",
+    "s3:GetObject",
+    "s3:ListBucket",
+    "s3:ListBucketMultipartUploads",
+    "s3:ListMultipartUploadParts",
+    "s3:AbortMultipartUpload",
+    "s3:CreateBucket",
+    "s3:PutObject"
+  ],
+  "Resource": [
+    "arn:aws:s3:::your-query-results-bucket",
+    "arn:aws:s3:::your-query-results-bucket/*"
+  ]
+}
+
+```
+
+
+---
+
+
+### 5. Add Glue Data Catalog Permissions
+
+
+If your Athena tables are registered in AWS Glue (recommended), add:
+
+
+```json
+{
+  "Effect": "Allow",
+  "Action": [
+    "glue:GetDatabase",
+    "glue:GetDatabases",
+    "glue:GetTable",
+    "glue:GetTables",
+    "glue:GetPartition",
+    "glue:GetPartitions"
+  ],
+  "Resource": "*"
+}
+
+```
+
+
+## Required AWS Permissions (Consolidated)
+
+
+Jedify requires the following logical permission groups:
+
+
+### Athena
+
+
+- Start, monitor, and retrieve query results
+
+
+### S3 (Data Lake)
+
+
+- Read-only access to Iceberg table buckets
+
+
+### S3 (Query Results)
+
+
+- Read/write access to Athena staging bucket
+
+
+### AWS Glue
+
+
+- Read access to databases, tables, and partitions
+
+
+## Connection Configuration
+
+
+Provide the following to Jedify:
+
+
+### Required
+
+
+| Parameter | Description | Example |
+| --- | --- | --- |
+| AWS Region | Athena region | us-east-1 |
+| S3 Staging Directory | Athena query results path | s3://my-athena-results/jedify/ |
+
+
+### Authentication
+
+
+**IAM Access Keys**
+
+
+- Access Key ID
+- Secret Access Key
+
+
+### Optional
+
+
+- Workgroup (default: `primary`)
+- Catalog Name (default: `AwsDataCatalog`)
+
+
+---
+
+
+## Iceberg Tables in Jedify
+
+
+Jedify automatically discovers:
+
+
+- Databases in Glue
+- Tables (Iceberg and non-Iceberg)
+- Column schemas and types
+- Partition columns
+- Table statistics
+
+
+Iceberg tables are queried like standard SQL tables. No special syntax is required.
+
+
+---
+
+
+## Semantic Models and Query Optimization
+
+
+Jedify translates semantic models into Athena-compatible SQL and automatically adds **partition filters** when applicable.
+
+
+### Optimization Example
+
+
+If `day` is a partition column, Jedify:
+
+
+- Detects it from Iceberg metadata
+- Adds default date filters (for example, last 30 or 90 days)
+- Reduces scanned data and query cost by 10–100x
+
+
+---
+
+
+## Pro Tips
+
+
+- Athena charges per TB scanned. Use partitioning and columnar formats (Parquet)
+- Ensure S3 buckets and Athena are in the same region
+- Use lifecycle policies to clean up old query results
+- Always include partition filters on Iceberg tables
+- The S3 staging directory must end with a trailing slash

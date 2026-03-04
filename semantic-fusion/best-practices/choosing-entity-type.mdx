@@ -1,0 +1,43 @@
+---
+title: "Choosing The Right Entity Type"
+---
+
+Tables sometimes include both characteristics and measurements. Use the following rules of thumb:
+
+
+### Choose Concept when…
+
+
+- It represents a business object/actor (e.g., User, Subscription, Lead).
+- Columns primarily describe what it is: owner, name, created date, category, status, etc.
+
+
+### Choose Metric when…
+
+
+- It primarily measures “how many” or “how much” for trends/KPIs.
+- Characteristics exist mainly as dimensions to slice the measure (e.g., by date, country, segment).
+
+
+### The Dual‑Entity Pattern
+
+
+When a table truly contains both:
+
+
+Create a Concept for the business object and its attributes.
+
+
+Create a Metric for time‑series or performance measures.
+
+
+#### Example: User (Concept: user_id, signup_date, country) + Active Users (Metric: counts by activity level over time).
+
+
+Example: Leads Table
+
+
+If the table holds Lead attributes (owner, created timestamp, account name, division, status), model it as a Concept: Lead.
+
+
+If you also need time‑series KPIs (total leads created, conversion rate), add a Metric entity: Lead Performance.

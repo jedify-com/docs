@@ -1,0 +1,39 @@
+---
+title: "Best Practices and Common Pitfalls"
+---
+
+### When to Edit your Model
+
+
+You can fine-tune the taxonomy's internal structure to optimize the system's accuracy and align it with specific business needs.
+
+
+- If the model is incomplete, such that core entities are missing - **Adding**
+- If the fundamental base sql is not wide enough, and core properties from the underlying tables are missing, you can expand the scope of the entity - **Add-Edit**
+- If the SQL are not accurate enough - and does not capture your internal business logic - **Editing**
+- One can also sharpen the textual definitions when needed - **Editing**
+
+
+### Best Practices
+
+
+1. **Base Query Manipulation**
+  1. Keep base queries as simple as possible
+2. **Entity Context Definition**
+  1. Any attribute mapped under the entity needs to be included in the entity's textual context
+3. **Attribute Definition**
+  1. Define commonly used attributes
+  2. Give clear, business-friendly descriptions
+  3. Use consistent naming conventions
+4. **Dimension Planning**
+  1. Create dimensions that align with common analysis patterns
+  2. Consider performance implications of different grouping levels
+  3. Document any special handling requirements
+5. **Relation Management**
+  1. Define commonly used relations
+  2. Make sure to perform the join operation between 2 base queries (of the source and the target entities of the relation)
+  3. Document cardinality (one-to-one, one-to-many, etc.)
+  4. Consider join performance
+  5. Handle null values appropriately
+6. **Ensure SQL validity**
+  1. Test any SQL statement to ensure correct syntax and column or table names

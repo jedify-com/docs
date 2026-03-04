@@ -1,0 +1,168 @@
+---
+title: "Semantic Catalog"
+---
+
+## Overview
+
+
+The **Semantic Catalog** is the central place where Jedify interprets, organizes, and displays the customer's data warehouse schema as part of the semantic modeling workflow.
+It helps data experts understand how tables, columns, labels, and semantic entities connect to one another, and provides the foundation for grounding, semantic reasoning, and question interpretation.
+
+
+The catalog automatically extracts structural metadata from the connected data warehouse, enriches it with semantic signals (labels, entity matches, grounding potential), and exposes it in a clean, navigable interface.
+
+
+## Audience
+
+
+This page is designed for:
+
+
+- **Data experts** – maintain and grow the semantic model, add tables, validate metadata.
+- **Administrators** – govern catalog structure and approve changes.
+- **Business users** – explore semantics, understand entities, and validate interpretation paths.
+
+
+## Benefits
+
+
+- Provides a **unified inventory** of all schemas, tables, and columns Jedify has interpreted.
+- Surfaces **automatic semantic signals**, including PII, financial tags, and linked entities.
+- Helps identify **structural drift** using Check Changes.
+- Enables fast onboarding of new assets through **Add Tables**.
+- Enhances question-answering accuracy through **groundable columns**.
+- Offers easy navigation and clear previews to support semantic modeling decisions.
+
+
+---
+
+
+# Key Concepts
+
+
+### Schemas, Tables, and Columns
+
+
+The catalog mirrors your warehouse structure.
+Each level can be explored directly through the left-hand navigation pane.
+
+
+### Labels
+
+
+Jedify automatically evaluates columns and tags them with labels such as `pii` or `financial`.
+These labels help guide compliance decisions and semantic prioritization.
+
+
+### Related Entities
+
+
+Tables and columns may be linked to entities from the **Semantic Fusion Model**.
+These links help the system understand which semantic concepts your data represents.
+You can read more in the [Semantic Fusion Model](https://docs.jedify.com/docs/understanding-jedifys-semantic-fusiontm) page.
+
+
+### Sample Data
+
+
+Both tables and columns may show **sample values**, providing a quick sense of the kind of data stored.
+This is intentionally a **small preview**, not a full dataset.
+
+
+### Grounding
+
+
+Grounding indicates that a column's values are **categorial and query-mappable**—meaning that phrases users write in natural-language questions can be reliably mapped back to values found in that column (e.g., "AMZ" → "Amazon").
+
+
+Only **columns** can be enabled for grounding.
+
+
+### Filters
+
+
+The top of the catalog includes filters:
+
+
+- **Type:** All, Schema, Table, Column
+- **Grounding:** All, Enabled, Not Enabled
+
+
+These help narrow down exploration based on modeling needs.
+
+
+---
+
+
+# Using the Semantic Catalog
+
+
+## Navigating the Catalog
+
+
+The catalog is organized in a left-hand hierarchy:
+
+
+**Schema → Tables → Columns**
+
+
+Selecting a table or column reveals a detailed drawer on the right.
+
+
+### Table Drawer
+
+
+Each table exposes:
+
+
+- **Name**
+- **Description**
+- **Labels** (e.g., financial, pii)
+- **Related entities** from the Semantic Fusion Model
+- **Sample data preview** (tabular snippet)
+
+
+This view helps analysts quickly understand what the table represents and how it connects to semantic entities across the system.
+
+
+### Column Drawer
+
+
+Each column exposes:
+
+
+- **Name**
+- **Description**
+- **Type** (e.g., STRING)
+- **Labels**
+- **Related entities**
+- **Data sample** (list of representative values)
+- **Grounding toggle** (enable/disable)
+
+
+Columns carry the richest semantic signals and are central to downstream modeling and grounding decisions.
+
+
+---
+
+
+# Permissions
+
+
+- **Business users** can explore the catalog
+- **Data experts and administrators** can:
+- Run **Check Changes**
+- Add tables
+- Manage semantic modeling assets
+
+
+---
+
+
+# Best Practices
+
+
+- Use **Check Changes** regularly to ensure the catalog stays aligned with the warehouse.
+- Review labels and related entities as part of your semantic modeling workflow.
+- Enable grounding only when column values represent clear, categorial concepts.
+- Use table and column previews to validate interpretation before building Semantic Statements.

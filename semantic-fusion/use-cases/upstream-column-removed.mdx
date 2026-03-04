@@ -1,0 +1,22 @@
+---
+title: "Upstream Column Removed"
+---
+
+### Scenario
+
+
+An outdated column was removed from the underlying table. It’s still referenced in one of the semantic model entities, which now causes errors. You'll need to update the entity definition to remove or replace references to this column to prevent broken queries.
+
+
+### Steps to solve
+
+
+1. Go to a relevant concept or metric
+2. Click "Modify" → "Edit base query SQL"
+3. Remove references to this column from base query CTE
+4. Save your changes
+5. Once all changes have been made, click "Submit changes". Jedify will notify you when the new entity is ready for review.
+6. Review the new entity: Make sure that the column was successfully removed from the base query and all underlying attributes and dimensions. Then, approve or decline changes.
+7. Verify the new entity: Ask Jedify questions about the removed column and make sure it doesn’t refer to it anymore.
+8. Ready to go live? Click ‘Verify’ to publish.
+9. Repeat this process for each entity that refers to this column.

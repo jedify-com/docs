@@ -1,0 +1,23 @@
+---
+title: "Changing Join Logic Due to Updated Relationships"
+---
+
+### Scenario
+
+
+You’ve discovered that your current join between two tables isn’t giving accurate results - perhaps because a new surrogate key is now required to correctly connect product and sales data. You’ll need to update the join condition in the semantic layer to reflect the new relationship logic.
+
+
+### Steps to solve
+
+
+1. Go to a relevant concept or metric
+2. Click "Modify" → "Edit base query SQL"
+3. Edit the join condition in the base query CTE based on the new surrogate key
+4. Save your changes
+5. Once all changes have been made, click "Submit changes". Jedify will notify you when the new entity is ready for review.
+6. Review the new entity: Make sure that the new join condition was successfully implemented, and that all
+7. related attributes and dimensions have been updated correspondingly. Then, approve or decline the changes.
+8. Verify the new entity: Ask Jedify questions about the edited entity to make sure it successfully uses the new join key.
+9. Ready to go live? Click ‘Verify’ to publish.
+10.

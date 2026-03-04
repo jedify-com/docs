@@ -1,0 +1,22 @@
+---
+title: "Fixing an Incorrect Response"
+---
+
+### Scenario
+
+
+You're running a question through Ask Jedify and get an answer, but something feels off - maybe the numbers are too high, or a category is missing. After reviewing the data, you realize the issue lies in how a metric or dimension was defined in the semantic layer. For example, a revenue metric may be summing a deprecated column. You’ll need to update the logic behind the metric to ensure future queries return the correct results.
+
+
+### Steps to solve
+
+
+1. Go to the relevant metric
+2. Click "Modify" → "Edit base query SQL"
+3. Update the base query SQL to reflect the correct business logic
+4. Save your changes
+5. Once all changes have been made, click "Submit changes". Jedify will notify you when the new entity is ready for review.
+6. Review the new metric: Make sure that the changes were successfully implemented, and that all related
+7. attributes and dimensions have been updated correspondingly. Then, approve or decline changes.
+8. Verify the new metric: Ask Jedify questions about the edited metric to make sure it successfully reflects  correct business logic.
+9. Ready to go live? Click ‘Verify’ to publish.

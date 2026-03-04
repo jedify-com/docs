@@ -1,0 +1,40 @@
+---
+title: "IdP Groups Configuration"
+---
+
+This page allows administrators to map Identity Provider (IdP) groups to specific roles within **Jedify**. This allows to define customized permissions across different groups and restricting the semantic entities that are visible and usable for each grouo.
+
+
+---
+
+
+### Overview
+
+
+The **IdP Groups** section is located under the **Settings** sidebar menu. Use this interface to create, manage, and prioritize how external group memberships translate into internal system access.
+
+
+### Adding a New Group Mapping
+
+
+To create a new mapping, click the **+ Add Group** button in the top right corner. A modal will appear with the following fields:
+
+
+| Field | Description |
+| --- | --- |
+| **Group** | Enter the exact name of the group as it appears in your Identity Provider (e.g., `Engineering-Team` or `Admins`). |
+| **Priority** | Select a priority level. If a user belongs to multiple IdP groups, the mapping with the highest priority will determine their final role. |
+| **Jedify Role** | Choose the internal role you wish to assign to members of this group. |
+| **Excluded Entities** | Select specific entities that should be exempt from this group's permissions. |
+
+
+![](/images/docs/Screenshot_2025-12-17_at_1.00.30_PM.png)
+
+
+Click **Save Group** after filling in the modal to apply the changes.
+
+
+---
+
+
+**Would you like me to help you draft the technical requirements for the "Excluded Entities" logic?**

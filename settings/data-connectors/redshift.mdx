@@ -1,0 +1,22 @@
+---
+title: "Redshift Data Connector"
+---
+
+Connect to Redshift by following the instructions and filling out the fields as shown below:
+
+
+1. Get your Redshift cluster endpoint (host)
+
+
+```
+Go to AWS Console > Amazon Redshift > Clusters
+Click on your cluster name
+Copy the "Endpoint" (without :5439 port) For Example:    "my-cluster.abc123.us-east-1.redshift.amazonaws.com"
+```
+
+
+1. Configure Security Group inbound rules (In AWS Console, go to EC2 > Security Groups)
+2. Create a user and grant permissions as shown directly in the Redshift data connector page.
+
+
+![](/images/docs/image-22.png)

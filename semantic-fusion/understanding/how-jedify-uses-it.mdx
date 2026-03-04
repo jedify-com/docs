@@ -1,0 +1,33 @@
+---
+title: "How Jedify Uses the Semantic Fusion™ Model"
+---
+
+The Jedify platform leverages the Semantic Fusion™ Model through an agentic flow system. This process seamlessly transforms natural language questions into structured data responses:
+
+
+![](/images/docs/architecture.png)
+
+
+**Question Intake:** User submits a natural language question
+
+**Profiler Agent:** Analyzes the question using several components:
+
+
+- **Timeframe Analyzer:** Identifies temporal aspects
+- **Question Classifier:** Categorizes the query type
+- **Scope:** Extracts the scope needed to answer the question
+
+
+**Entities Retrieval:** Determines what information is required to answer
+
+**SQL Compilation:** Transforms requirements into executable SQL leveraging the semantic model
+
+
+**Answer Composition:** Assembles the various components of the response
+
+
+- **Data Normalizer:** Ensures consistent formatting and units
+- **Output Generation:** Produces charts, insights, and explanations
+
+
+The Semantic Fusion™ Model serves as the infrastructure layer that enables this entire process, providing the semantic understanding necessary to interpret questions and compose appropriate SQL.
