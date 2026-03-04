@@ -1,6 +1,6 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "maple",
+  "theme": "mint",
   "name": "Jedify",
   "appearance": {
     "default": "dark"
@@ -11,9 +11,6 @@
     "dark": "#5540D6"
   },
   "favicon": "/favicon.svg",
-  "background": {
-    "decoration": "gradient"
-  },
   "styling": {
     "eyebrows": "section"
   },
