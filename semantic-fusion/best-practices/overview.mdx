@@ -18,23 +18,28 @@ You can fine-tune the taxonomy's internal structure to optimize the system's acc
 ### Best Practices
 
 
-1. **Base Query Manipulation**
-  1. Keep base queries as simple as possible
-2. **Entity Context Definition**
-  1. Any attribute mapped under the entity needs to be included in the entity's textual context
-3. **Attribute Definition**
-  1. Define commonly used attributes
-  2. Give clear, business-friendly descriptions
-  3. Use consistent naming conventions
-4. **Dimension Planning**
-  1. Create dimensions that align with common analysis patterns
-  2. Consider performance implications of different grouping levels
-  3. Document any special handling requirements
-5. **Relation Management**
-  1. Define commonly used relations
-  2. Make sure to perform the join operation between 2 base queries (of the source and the target entities of the relation)
-  3. Document cardinality (one-to-one, one-to-many, etc.)
-  4. Consider join performance
-  5. Handle null values appropriately
-6. **Ensure SQL validity**
-  1. Test any SQL statement to ensure correct syntax and column or table names
+**Base Query Manipulation**
+- Keep base queries as simple as possible
+
+**Entity Context Definition**
+- Any attribute mapped under the entity needs to be included in the entity's textual context
+
+**Attribute Definition**
+- Define commonly used attributes
+- Give clear, business-friendly descriptions
+- Use consistent naming conventions
+
+**Dimension Planning**
+- Create dimensions that align with common analysis patterns
+- Consider performance implications of different grouping levels
+- Document any special handling requirements
+
+**Relation Management**
+- Define commonly used relations
+- Make sure to perform the join operation between 2 base queries (of the source and the target entities of the relation)
+- Document cardinality (one-to-one, one-to-many, etc.)
+- Consider join performance
+- Handle null values appropriately
+
+**Ensure SQL validity**
+- Test any SQL statement to ensure correct syntax and column or table names
