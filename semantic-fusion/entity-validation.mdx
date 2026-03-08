@@ -1,0 +1,150 @@
+---
+title: "Entity Validation"
+icon: "shield-check"
+---
+
+## Overview
+
+
+Entity Validation is an AI-powered quality assurance system that automatically validates your semantic entities (concepts and metrics) every time you apply changes to staging. By analyzing SQL queries, entity relationships, and data modeling patterns, it provides immediate feedback on entity quality — helping you catch issues before they affect your queries.
+
+
+## Purpose & Objectives
+
+
+- **Catch Errors Early:** Validation runs automatically after each entity edit, identifying structural and semantic issues before they reach production.
+- **Ensure Consistency:** A standardized set of rules enforces best practices across all semantic entities in your model.
+- **Clear Guidance:** Each validation result includes a plain-English explanation of what was checked and why it passed or failed.
+- **Two-Tier Validation:** Separates "must fix" structural issues from "should review" semantic recommendations, so you can prioritize effectively.
+
+
+## How It Works
+
+
+Entity Validation is fully automatic — no extra steps required on your part.
+
+
+1. **Edit** any entity (concept or metric) in the Semantic Fusion Model.
+2. **Apply to Staging** as usual through the editing flow.
+3. **View validation results** directly in the entity detail panel.
+
+
+Once you apply changes to staging, all 9 validation rules run against the entity and results appear in the entity view. Validation is informational — it does not block your changes from being applied.
+
+
+## What We Check
+
+
+Jedify runs **9 validation rules** organized into two categories: **Structural Checks** that catch SQL issues, and **Data Modeling Checks** that ensure your semantic layer follows best practices.
+
+
+### Structural Checks (4 Rules)
+
+
+Structural rules validate SQL syntax and format. Failures indicate technical issues that may break query execution.
+
+
+| Check | What It Means |
+|-------|---------------|
+| **Valid SQL** | Your base query is properly formatted as a valid SELECT or CTE statement |
+| **No ORDER BY** | Base queries should not contain ORDER BY clauses — ordering is applied at the final query level |
+| **Partition Key** | If your table is partitioned, the required partition key columns are included in the SELECT |
+| **Clean Aliases** | No redundant self-aliasing like `col AS col`, which typically indicates copy-paste errors |
+
+
+### Data Modeling Checks (5 Rules)
+
+
+Semantic rules validate data modeling best practices and ensure the semantic layer accurately represents your business logic.
+
+
+| Check | What It Means |
+|-------|---------------|
+| **Column Usage** | Columns appear in either attributes OR semantic dimensions, not both — preventing ambiguity |
+| **Unique Attributes** | No duplicate attribute definitions within the same entity |
+| **Valid Attributes** | All attributes reference columns that actually exist in your base query |
+| **Relation Direction** | Concepts should not point to metrics — metrics should point to concepts (warning only) |
+| **Metric Relations** | Direct metric-to-metric relations are flagged for review as they may indicate modeling issues (warning only) |
+
+
+## Understanding Results
+
+
+After validation completes, each rule will show one of three statuses:
+
+
+| Status | Meaning |
+|--------|---------|
+| **Passed** | The check completed successfully — everything looks good |
+| **Failed** | An issue was found that should be addressed |
+| **Warning** | A potential concern worth reviewing, but not necessarily an error |
+
+
+Each result includes a **plain-English explanation** describing what was checked and why the entity passed or failed that specific rule. If all rules pass, you'll see a single confirmation message. If any rules fail, only the failures are highlighted so you can focus on what needs attention.
+
+
+## Rule Details
+
+
+### Structural Rules
+
+
+**Valid SQL (Base Query Executable)**
+
+Ensures the entity's SQL foundation is valid and can execute. The base query must be a properly formatted SELECT statement or CTE (Common Table Expression). Incomplete queries, missing keywords, or syntax errors will cause this rule to fail.
+
+
+**No ORDER BY in Base Query**
+
+ORDER BY clauses in base queries break CTE composition, since ordering should be applied at the final query level by Jedify — not within individual entity definitions. This rule fails if any ORDER BY clause is found in the base query.
+
+
+**Partition Key Present**
+
+For data warehouses like BigQuery or Snowflake that use table partitioning, queries must include the partition key column in the SELECT clause for proper performance. This rule automatically passes if the referenced table has no partitioning configured.
+
+
+**Proper Aliasing (Clean Aliases)**
+
+Catches meaningless self-aliases such as `user_id AS user_id`, which typically indicate copy-paste errors. Valid aliases that rename columns (e.g., `lookback_date_id AS activity_date`) pass this check.
+
+
+### Semantic Rules
+
+
+**Column Usage**
+
+Prevents ambiguity by ensuring no column appears in both attributes and semantic dimensions. When a column is used for both aggregation (attribute) and filtering (dimension), it creates conflicting interpretations. Each column should serve one purpose.
+
+
+**Attribute Uniqueness**
+
+Ensures each column appears only once in the entity's attribute definitions. Duplicate attributes or meaningless re-definitions are flagged. Genuinely different calculations referencing the same column (e.g., `SUM(amount)` and `AVG(amount)`) are understood and allowed.
+
+
+**Attribute Source (Valid Attributes)**
+
+Verifies that all attributes reference columns that actually exist in the entity's base query SELECT clause. If an attribute references a column not produced by the base query, it cannot be computed and this rule will fail.
+
+
+**Relation Direction**
+
+Enforces the star schema pattern where metrics should point to concepts, not the other way around. If a concept entity points to a metric entity, this rule raises a warning. This is a modeling best practice, not a hard requirement.
+
+
+**Metric to Metric Relations**
+
+Flags direct metric-to-metric relations for review, as they may indicate data modeling issues. Relations from metrics to concepts are the expected pattern. This rule produces a warning rather than a failure.
+
+
+## Good to Know
+
+
+- Validation runs **automatically** every time you apply changes to staging — no extra action needed.
+- Results are **informational only** — they do not block your changes from being applied or verified.
+- **Warnings** are suggestions for review, not hard requirements. You may choose to keep your current setup.
+- Validation runs **per entity** — each entity is validated independently based on its own definition and direct relations.
+- Even if nothing changed, validation **re-runs on every apply** to ensure the current state is always validated.
+
+
+> **Pro Tip:** Focus on resolving **Failed** checks first, as they indicate structural or modeling issues that are most likely to affect query accuracy. **Warnings** can be reviewed at your discretion and often reflect edge cases in your specific data model.
