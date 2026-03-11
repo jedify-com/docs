@@ -91,7 +91,8 @@
               "semantic-fusion/best-practices/column-aliases",
               "semantic-fusion/best-practices/writing-style",
               "semantic-fusion/best-practices/data-onboarding",
-              "semantic-fusion/best-practices/validation-tuning"
+              "semantic-fusion/best-practices/validation-tuning",
+              "semantic-fusion/entity-validation"
             ]
           },
           {
@@ -193,7 +194,8 @@
           {
             "group": "Access Control",
             "pages": [
-              "settings/rbac"
+              "settings/rbac",
+              "settings/user-management-guide"
             ]
           }
         ]
