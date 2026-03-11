@@ -91,7 +91,8 @@
               "semantic-fusion/best-practices/column-aliases",
               "semantic-fusion/best-practices/writing-style",
               "semantic-fusion/best-practices/data-onboarding",
-              "semantic-fusion/best-practices/validation-tuning"
+              "semantic-fusion/best-practices/validation-tuning",
+              "semantic-fusion/entity-validation"
             ]
           },
           {
@@ -123,8 +124,7 @@
             "group": "Test Sets & Catalog",
             "expanded": false,
             "pages": [
-              "semantic-fusion/test-sets",
-              "semantic-fusion/entity-validation",
+              "semantic-fusion/new-test-set",
               "semantic-fusion/catalog/overview",
               "semantic-fusion/catalog/check-changes",
               "semantic-fusion/catalog/adding-tables"
@@ -194,7 +194,8 @@
           {
             "group": "Access Control",
             "pages": [
-              "settings/rbac"
+              "settings/rbac",
+              "settings/user-management-guide"
             ]
           }
         ]
