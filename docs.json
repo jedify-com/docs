@@ -124,7 +124,7 @@
             "group": "Test Sets & Catalog",
             "expanded": false,
             "pages": [
-              "semantic-fusion/new-test-set",
+              "semantic-fusion/test-sets",
               "semantic-fusion/catalog/overview",
               "semantic-fusion/catalog/check-changes",
               "semantic-fusion/catalog/adding-tables"
