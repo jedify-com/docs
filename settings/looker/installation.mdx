@@ -1,0 +1,109 @@
+---
+title: "Installation"
+icon: "download"
+---
+
+# Prerequisites
+
+<Note>
+  Admin permission required — Only Looker Admins can install extensions and configure user attributes.
+</Note>
+
+- A Looker instance with the **Extension Framework** enabled
+- A Jedify account with an **API key** (generated from Jedify Settings > API Keys)
+
+# Step 1: Create the User Attribute
+
+The extension reads your Jedify API key from a Looker user attribute. This allows admins to configure it once for all users.
+
+1. Go to **Admin > Users > User Attributes**
+2. Click **Create User Attribute**
+3. Fill in:
+
+| Field | Value |
+|-------|-------|
+| **Name** | `jedify_api_key` |
+| **Label** | Jedify API Key |
+| **Type** | String |
+| **Default Value** | Your Jedify API key |
+| **User Access** | View |
+| **Hide Values** | No |
+
+4. Click **Save**
+
+{/* TODO: Screenshot of Looker Admin > User Attributes with jedify_api_key configured */}
+<img src="/images/looker/user-attribute-setup.png" alt="Configuring the jedify_api_key user attribute in Looker Admin" />
+
+# Step 2: Create the LookML Project
+
+1. Go to **Develop > Projects**
+2. Click **New Model**
+3. Choose a connection (doesn't matter which one) > **Create a new LookML Project `JedifyExtensionProj`**
+4. Select at least a single **Schema** (we dont really need. It's just mandatory when creating a new project)
+5. Click **Next** until requested to enter model name and enter `jedify_extension`> **Complete and view model**
+6. In the project file browser click the **+** > **Create project manifest**
+7. Keep the `project_name: "JedifyExtensionProj"` and paste the following content:
+
+#### manifest.lkml
+
+```lkml
+application: jedify_chat {
+  label: "Jedify Chat"
+  url: "https://jedify-looker-extension.s3.us-east-1.amazonaws.com/bundle.js"
+
+  mount_points: {
+    dashboard_tile: yes
+    standalone: yes
+  }
+
+  entitlements: {
+    core_api_methods: ["dashboard", "query","run_query", "me","all_user_attributes", "user_attribute_user_values"]
+    local_storage: yes
+    new_window: yes
+    external_api_urls: [
+      "https://be.jedify.com"
+    ]
+    new_window_external_urls: [
+      "https://app.jedify.com/"
+    ]
+    global_user_attributes: ["jedify_api_key"]  }
+}
+```
+
+8. Click **Save Changes**, then **Validate LookML**, then **Commit Changes & Deploy**
+
+{/* TODO: Screenshot of Looker IDE with manifest.lkml open */}
+<img src="/images/looker/lookml-project-setup.png" alt="LookML project with manifest.lkml in Looker IDE" />
+
+# Step 3: Add Jedify to a Dashboard
+
+1. Open any Looker dashboard and enter edit mode
+2. Click **+ Add** > **Extension** > And add the Jedify extension tile from the right side panel.
+3. Drag it onto the dashboard and resize as needed
+4. Click **Save**
+
+The chat tile is now live — users can start asking questions about the **current dashboard** immediately.
+
+{/* TODO: Screenshot of the dashboard edit view showing the Jedify Chat extension tile being added */}
+{/* <img src="/images/looker/add-tile-to-dashboard.png" alt="Adding the Jedify Chat tile to a Looker dashboard" /> */}
+
+# Step 4: Access the Standalone App
+
+After installation, Jedify also appears in the Looker navigation:
+
+1. Click the **Applications** menu (or navigate via the hamburger menu)
+2. Select **Jedify Chat**
+
+This opens a full-page chat interface with more screen space.
+
+{/* TODO: Screenshot of the standalone Jedify Chat app from the Looker Applications menu */}
+<img src="/images/looker/standalone-app-menu.png" alt="Accessing Jedify Chat from Looker Applications menu" />
+
+<Tip>
+  In the standalone mode Jedfiy will answer questions solely based on the Semantic Fusion™
+</Tip>
+
+# User Requirements
+
+- **Jedify account required**: The API key must be bound to a Jedify user. All queries run under that user's permissions.
+- **No individual login needed**: Users interact through the shared API key configured in the user attribute. They don't need individual Jedify accounts to ask questions from Looker.

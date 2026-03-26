@@ -176,6 +176,14 @@
               "settings/slack/support",
               "settings/slack/privacy-security"
             ]
+          },
+          {
+            "group": "Looker Extension",
+            "pages": [
+              "settings/looker/overview",
+              "settings/looker/installation",
+              "settings/looker/usage-guide"
+            ]
           }
         ]
       },
