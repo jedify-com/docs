@@ -60,11 +60,12 @@ application: jedify_chat {
     core_api_methods: ["dashboard", "query","run_query", "me","all_user_attributes", "user_attribute_user_values"]
     local_storage: yes
     new_window: yes
+    use_embeds: yes
     external_api_urls: [
       "https://be.jedify.com"
     ]
     new_window_external_urls: [
-      "https://app.jedify.com/"
+      "https://app.jedify.com/*"
     ]
     global_user_attributes: ["jedify_api_key"]  }
 }
