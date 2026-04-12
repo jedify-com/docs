@@ -22,31 +22,31 @@ The extension reads your Jedify API key from a Looker user attribute. This allow
 
 | Field | Value |
 |-------|-------|
-| **Name** | `jedify_api_key` |
-| **Label** | Jedify API Key |
+| **Name** | `jedify_extension_jedify_chat_jedify_api_key` |
 | **Type** | String |
+| **User Access** | None |
+| **Hide Values** | Yes |
+| **Domain Allowlist** | be.jedify.com/*
 | **Default Value** | Your Jedify API key |
-| **User Access** | View |
-| **Hide Values** | No |
 
 4. Click **Save**
 
-{/* TODO: Screenshot of Looker Admin > User Attributes with jedify_api_key configured */}
 <img src="/images/looker/user-attribute-setup.png" alt="Configuring the jedify_api_key user attribute in Looker Admin" />
 
 # Step 2: Create the LookML Project
 
 1. Go to **Develop > Projects**
 2. Click **New Model**
-3. Choose a connection (doesn't matter which one) > **Create a new LookML Project `JedifyExtensionProj`**
-4. Select at least a single **Schema** (we dont really need. It's just mandatory when creating a new project)
+3. Choose a connection (doesn't matter which one) > **Create a new LookML Project with this exact name `jedify_extension`**
+4. Select at least a single **Schema** (we don't really need. It's just mandatory when creating a new project)
 5. Click **Next** until requested to enter model name and enter `jedify_extension`> **Complete and view model**
 6. In the project file browser click the **+** > **Create project manifest**
-7. Keep the `project_name: "JedifyExtensionProj"` and paste the following content:
 
-#### manifest.lkml
+#### `manifest.lkml`
 
 ```lkml
+project_name: "jedify_extension"
+
 application: jedify_chat {
   label: "Jedify Chat"
   url: "https://jedify-looker-extension.s3.us-east-1.amazonaws.com/bundle.js"
@@ -57,7 +57,7 @@ application: jedify_chat {
   }
 
   entitlements: {
-    core_api_methods: ["dashboard", "query","run_query", "me","all_user_attributes", "user_attribute_user_values"]
+    core_api_methods: ["dashboard", "query","run_query", "me"]
     local_storage: yes
     new_window: yes
     use_embeds: yes
@@ -67,7 +67,6 @@ application: jedify_chat {
     new_window_external_urls: [
       "https://app.jedify.com/*"
     ]
-    global_user_attributes: ["jedify_api_key"]  }
 }
 ```
 
