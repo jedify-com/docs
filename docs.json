@@ -137,6 +137,13 @@
         "icon": "plug",
         "groups": [
           {
+            "group": "REST API",
+            "pages": [
+              "api-reference/overview",
+              "api-reference/endpoints"
+            ]
+          },
+          {
             "group": "MCP",
             "pages": [
               "mcp/overview",

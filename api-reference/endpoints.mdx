@@ -1,0 +1,220 @@
+---
+title: "Endpoints Reference"
+icon: "rectangle-terminal"
+description: "Complete reference for all Jedify REST API endpoints."
+---
+
+## Quick Reference
+
+| Endpoint | Method | Purpose |
+| --- | --- | --- |
+| [`/session/new`](#create-session) | POST | Create a new conversation session |
+| [`/session/{session_id}/inquiry/agent`](#submit-query) | POST | Submit a question to a session |
+| [`/inquiry/{inquiry_id}/status`](#get-inquiry-status) | GET | Get current status and answer |
+| [`/inquiry/{inquiry_id}/result`](#wait-for-result) | GET | Wait for completion (long-poll) |
+
+All endpoints are prefixed with `/api` (full URL: `https://be.jedify.com/api/session/new`).
+
+All endpoints require the `X-API-Key` header. See [Authentication](/api-reference/overview#authentication).
+
+---
+
+## Create Session
+
+Create a new conversation session. Sessions group related questions together, enabling follow-up queries with shared context.
+
+```
+POST /api/session/new
+```
+
+**Request Body**: None required
+
+**Example**:
+
+```bash
+curl -X POST https://be.jedify.com/api/session/new \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_API_KEY"
+```
+
+**Response** (`200`):
+
+```json
+{
+  "session_id": "session_abc123"
+}
+```
+
+---
+
+## Submit Query
+
+Submit a natural language question to a session. Returns immediately with an `inquiry_id` — the query processes asynchronously in the background.
+
+```
+POST /api/session/{session_id}/inquiry/agent
+```
+
+**Path Parameters**:
+- `session_id` (required): From [Create Session](#create-session)
+
+**Request Body**:
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `query` | string | Yes | The natural language question |
+| `dimensions` | object | No | Dimension filters to scope the query |
+
+**Example**:
+
+```bash
+curl -X POST https://be.jedify.com/api/session/session_abc123/inquiry/agent \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -d '{"query": "What were total sales last month?"}'
+```
+
+**Response** (`200`):
+
+```json
+{
+  "inquiry_id": "inquiry_xyz789"
+}
+```
+
+---
+
+## Get Inquiry Status
+
+Get the current status and answer for an inquiry. Use this for manual polling, or use [Wait for Result](#wait-for-result) instead.
+
+```
+GET /api/inquiry/{inquiry_id}/status
+```
+
+**Path Parameters**:
+- `inquiry_id` (required): From [Submit Query](#submit-query)
+
+**Example**:
+
+```bash
+curl https://be.jedify.com/api/inquiry/inquiry_xyz789/status \
+  -H "X-API-Key: YOUR_API_KEY"
+```
+
+**Response** (`200`):
+
+The response is the full `QueryStatusResponse`. Key fields:
+
+```json
+{
+  "status": {
+    "general": "done",
+    "answer": "ready",
+    "chart": "ready"
+  },
+  "inquiry_type": "agent",
+  "user_input": "What were total sales last month?",
+  "answer": "Total sales last month were $1,234,567.",
+  "sql_query": "SELECT SUM(amount) AS total_sales FROM sales WHERE ...",
+  "data": {
+    "title": "Total Sales",
+    "data": [{"TOTAL_SALES": 1234567}],
+    "symbols": {"TOTAL_SALES": "$"},
+    "semantic_types": {}
+  },
+  "chart": {
+    "chart_type": "bar",
+    "chart_metadata": { ... },
+    "chart_data": [ ... ]
+  },
+  "explanation": "...",
+  "time_frame": "last_month",
+  "answer_explanation": { ... },
+  "thinking": { "title": "...", "messages": [ ... ] }
+}
+```
+
+The response includes additional fields (`follow_up_type`, `pin_data`, `chart_view_items`, `selected_view`, etc.) used by the Jedify UI. You can safely ignore fields you don't need.
+
+**While processing**, `status.general` is `"processing"` and `answer`, `sql_query`, and `data.data` will be empty.
+
+### Polling Example (Python)
+
+```python
+import time, requests
+
+def poll_until_done(inquiry_id, api_key, interval=5, max_wait=300):
+    headers = {"X-API-Key": api_key}
+    elapsed = 0
+    while elapsed < max_wait:
+        resp = requests.get(
+            f"https://be.jedify.com/api/inquiry/{inquiry_id}/status",
+            headers=headers,
+        )
+        data = resp.json()
+        status = data["status"]["general"]
+        if status != "processing":
+            return data  # Terminal — done, failed, no_data, etc.
+        time.sleep(interval)
+        elapsed += interval
+    raise TimeoutError(f"Inquiry did not complete within {max_wait}s")
+```
+
+### Status Values
+
+Check `status.general` to determine inquiry state:
+
+| Value | Terminal? | Meaning |
+| --- | --- | --- |
+| `processing` | No | Query is being processed |
+| `done` | Yes | Completed successfully — answer and data available |
+| `failed` | Yes | Processing failed |
+| `timeout` | Yes | Processing timed out server-side |
+| `stopped` | Yes | Query was stopped by the user |
+| `out_of_domain` | Yes | Question is outside your data domain |
+| `out_of_scope` | Yes | Question cannot be answered with available data |
+| `no_data` | Yes | Query executed but returned no results |
+
+---
+
+## Wait for Result
+
+Long-polling endpoint that waits for an inquiry to complete before returning. The server holds the HTTP connection open, polling internally until the inquiry reaches a terminal status or the timeout is reached.
+
+This is the recommended way to get results — simpler than polling `/status` yourself.
+
+```
+GET /api/inquiry/{inquiry_id}/result
+```
+
+**Path Parameters**:
+- `inquiry_id` (required): From [Submit Query](#submit-query)
+
+**Query Parameters**:
+
+| Parameter | Type | Default | Range | Description |
+| --- | --- | --- | --- | --- |
+| `timeout` | integer | 300 | 10–900 | Max seconds to wait |
+| `poll_interval` | integer | 5 | 2–30 | Seconds between internal status checks |
+
+**Example**:
+
+```bash
+curl "https://be.jedify.com/api/inquiry/inquiry_xyz789/result?timeout=120" \
+  -H "X-API-Key: YOUR_API_KEY"
+```
+
+**Response** (`200`): Same shape as [Get Inquiry Status](#get-inquiry-status). Only returned once the inquiry reaches a terminal status.
+
+**Timeout Response** (`408`):
+
+```json
+{
+  "detail": "Inquiry inquiry_xyz789 did not complete within 120 seconds"
+}
+```
+
+**Handling 408**: The inquiry is still processing — it wasn't cancelled. Call `/result` again to keep waiting, or switch to [polling `/status`](#get-inquiry-status) for more control.
+
+**Important**: Set your HTTP client timeout to exceed the `timeout` parameter. If you request `timeout=120`, your client should wait at least 130 seconds.
