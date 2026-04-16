@@ -1,0 +1,180 @@
+---
+title: "REST API"
+icon: "code"
+description: "Access Jedify programmatically with a simple REST API. Ask questions, get answers, and integrate business intelligence into your applications."
+---
+
+## Overview
+
+The Jedify REST API lets you query your business data programmatically. Submit natural language questions, and Jedify translates them to SQL, executes them against your data warehouse, and returns structured answers with data.
+
+**Base URL**: `https://be.jedify.com/api`
+
+## Authentication
+
+All API requests require an API key passed in the `X-API-Key` header.
+
+### Getting an API Key
+
+1. Log in to the [Jedify app](https://app.jedify.com)
+2. Navigate to **Settings > API Keys**
+3. Click **Create API Key** and give it a name
+4. Copy the key immediately — it is only shown once
+
+### Using the API Key
+
+Include it as a header in every request:
+
+```
+X-API-Key: YOUR_API_KEY
+```
+
+## How It Works
+
+The API is asynchronous. You submit a question and it processes in the background (typically 10-30 seconds). There are two ways to get the result:
+
+### Option A: Server-side wait (recommended)
+
+The `/result` endpoint holds the connection open until the inquiry completes. Simplest approach — one call, one response.
+
+```
+1. POST /session/new                          → Create a session
+2. POST /session/{session_id}/inquiry/agent   → Submit a question (returns immediately)
+3. GET  /inquiry/{inquiry_id}/result          → Server waits, returns when done
+```
+
+The server polls internally and returns the full result once ready. If the inquiry doesn't complete within the `timeout` (default 300s, max 900s), you get a `408` response — retry with a fresh `/result` call.
+
+### Option B: Client-side polling
+
+Poll the `/status` endpoint yourself. Useful when you need progress updates or want control over retry logic.
+
+```
+1. POST /session/new                          → Create a session
+2. POST /session/{session_id}/inquiry/agent   → Submit a question (returns immediately)
+3. GET  /inquiry/{inquiry_id}/status          → Check status (repeat until done)
+```
+
+Poll every 3-5 seconds. Check `status.general` — when it's no longer `"processing"`, the inquiry is complete. See [Status Values](/api-reference/endpoints#status-values) for all terminal states.
+
+### Key concepts
+
+**Sessions** group related questions together, enabling follow-up queries with shared context. Create a new session for each independent question, or reuse one for follow-ups.
+
+**Inquiries** are individual questions within a session. After submitting, the pipeline runs in the background. The `inquiry_id` is your handle to track it.
+
+## Quick Start
+
+### Python
+
+```python
+import requests
+
+API_KEY = "YOUR_API_KEY"
+BASE = "https://be.jedify.com/api"
+HEADERS = {"Content-Type": "application/json", "X-API-Key": API_KEY}
+
+# 1. Create session
+session = requests.post(f"{BASE}/session/new", headers=HEADERS)
+session.raise_for_status()
+session_id = session.json()["session_id"]
+
+# 2. Submit question
+inquiry = requests.post(
+    f"{BASE}/session/{session_id}/inquiry/agent",
+    headers=HEADERS,
+    json={"query": "What were total sales last month?"},
+)
+inquiry.raise_for_status()
+inquiry_id = inquiry.json()["inquiry_id"]
+
+# 3. Wait for result (server holds connection until done, up to 120s)
+result = requests.get(
+    f"{BASE}/inquiry/{inquiry_id}/result",
+    headers=HEADERS,
+    params={"timeout": 120},
+    timeout=130,  # HTTP client timeout should exceed the server timeout
+)
+result.raise_for_status()
+data = result.json()
+
+print(f"Status: {data['status']['general']}")
+print(f"Answer: {data['answer']}")
+print(f"SQL: {data.get('sql_query')}")
+print(f"Rows: {len(data.get('data', {}).get('data', []))}")
+```
+
+### curl
+
+```bash
+API_KEY="YOUR_API_KEY"
+BASE="https://be.jedify.com/api"
+
+# 1. Create session
+SESSION_ID=$(curl -s -X POST "$BASE/session/new" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY" | jq -r '.session_id')
+
+# 2. Submit question
+INQUIRY_ID=$(curl -s -X POST "$BASE/session/$SESSION_ID/inquiry/agent" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY" \
+  -d '{"query": "What were total sales last month?"}' | jq -r '.inquiry_id')
+
+# 3. Wait for result
+curl -s "$BASE/inquiry/$INQUIRY_ID/result?timeout=120" \
+  -H "X-API-Key: $API_KEY" | jq .
+```
+
+Requires [jq](https://jqlang.org/) for JSON parsing.
+
+### JavaScript
+
+```javascript
+const API_KEY = "YOUR_API_KEY";
+const BASE = "https://be.jedify.com/api";
+const headers = { "Content-Type": "application/json", "X-API-Key": API_KEY };
+
+// 1. Create session
+const session = await fetch(`${BASE}/session/new`, { method: "POST", headers });
+const { session_id } = await session.json();
+
+// 2. Submit question
+const inquiry = await fetch(`${BASE}/session/${session_id}/inquiry/agent`, {
+  method: "POST",
+  headers,
+  body: JSON.stringify({ query: "What were total sales last month?" }),
+});
+const { inquiry_id } = await inquiry.json();
+
+// 3. Wait for result (long-poll — set a generous timeout)
+const result = await fetch(
+  `${BASE}/inquiry/${inquiry_id}/result?timeout=120`,
+  { headers, signal: AbortSignal.timeout(130_000) }
+);
+const data = await result.json();
+console.log(data.status.general, data.answer);
+```
+
+## Important Notes
+
+- **Answers may contain HTML** (e.g., `<b>bold</b>` tags). Strip HTML if you need plain text.
+- **Set your HTTP client timeout** to exceed the server `timeout` parameter on `/result`. If you request `timeout=120`, set your client timeout to at least 130 seconds.
+- **Sessions created via API key** don't appear in the Jedify UI session history.
+
+## Error Handling
+
+| HTTP Code | Meaning | When |
+| --- | --- | --- |
+| `403` | No authentication provided | Missing `X-API-Key` header |
+| `401` | Invalid API key | Key is malformed, expired, or revoked |
+| `403` | Access denied | Trying to access another account's resource |
+| `404` | Resource not found | Invalid session_id or inquiry_id |
+| `408` | Request timeout | `/result` endpoint: inquiry didn't complete in time |
+| `429` | Rate limit exceeded | Too many requests |
+| `500` | Internal server error | Unexpected failure |
+
+All error responses have the shape:
+```json
+{"detail": "Error description"}
+```
