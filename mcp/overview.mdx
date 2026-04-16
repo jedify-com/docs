@@ -22,7 +22,7 @@ The Model Context Protocol (MCP) is an open standard that enables AI assistants 
 | **Primary Use** | Ad-hoc data exploration via questions | Building dashboards and data applications |
 | **Interface** | Natural language questions | Semantic functions + TypeScript SDK |
 | **Execution** | LLM generates SQL (2-5s) | Pre-built queries (under 500ms) |
-| **Tools** | 18+ questioning and analysis tools | 6+ function management and SDK tools |
+| **Tools** | 19+ questioning and analysis tools | 6+ function management and SDK tools |
 | **Setup** | Claude Desktop setup guide | Cursor IDE setup guide |
 
 
@@ -88,8 +88,9 @@ The Model Context Protocol (MCP) is an open standard that enables AI assistants 
 
 
 - **ask_a_single_question**: Quick queries with automatic session creation
+- **ask_a_research_question**: Deep multi-step research investigations
 - **ask_questions**: Submit multiple questions for parallel processing
-- **wait_for_completion**: Monitor progress of multiple queries
+- **wait_for_completion**: Monitor progress of multiple queries (supports both regular and research inquiries)
 
 
 **Session Management**

@@ -15,6 +15,7 @@ description: "Complete reference for all available Jedify MCP server tools. Each
 | [create_a_thread](#create_a_thread) | Session Management | Start new analysis session |
 | [ask_a_question](#ask_a_question) | Data Analysis | Continue analysis within existing session |
 | [ask_a_single_question](#ask_a_single_question) | Data Analysis | Quick standalone questions |
+| [ask_a_research_question](#ask_a_research_question) | Data Analysis | Deep multi-step research investigations |
 | [ask_questions](#ask_questions) | Data Analysis | Submit multiple questions in parallel |
 | [wait_for_completion](#wait_for_completion) | Query Monitoring | Monitor progress of multiple queries |
 | [check_question_status](#check_question_status) | Query Monitoring | Check status of individual inquiry |
@@ -418,6 +419,63 @@ Quick question that auto-creates a thread.
 - Simple data lookups
 
 
+### ask_a_research_question
+
+
+Submit a research question that triggers a multi-step autonomous investigation.
+
+
+**Purpose**: Launch the Research Agent to autonomously plan and execute multiple queries, analyze results across data points, and produce a comprehensive research report. Unlike `ask_a_single_question` which runs a single SQL query, this tool performs deep, multi-step analysis.
+
+
+**Parameters**:
+
+
+- `question` (string, required): The research question to investigate
+- `dimensions` (object, optional): Filtering dimensions
+
+
+**Example Request**:
+
+
+```json
+{
+  "name": "ask_a_research_question",
+  "arguments": {
+    "question": "Why did our revenue decline last quarter? Identify the key contributing factors and affected segments."
+  }
+}
+```
+
+
+**Example Response**:
+
+
+```json
+{
+  "session_id": "session_abc123",
+  "inquiry_id": "inquiry_xyz789",
+  "status": "submitted",
+  "message": "Research question submitted. Use wait_for_completion with inquiry_id 'inquiry_xyz789' and inquiry_type='research' to get results."
+}
+```
+
+
+**When to Use**:
+
+
+- Questions requiring deep, multi-step analysis across multiple data points
+- Root cause investigations (e.g., "Why did churn increase?")
+- Exploratory analysis where a single query won't suffice
+- Complex trend analysis or cross-dimensional investigations
+
+
+**Important**: Research questions take longer than regular questions (typically 3-10 minutes). Use `wait_for_completion` with `inquiry_type="research"` to monitor progress and retrieve results.
+
+
+---
+
+
 ### ask_questions
 
 
@@ -503,7 +561,7 @@ Submit multiple questions in parallel (each gets its own session).
 Wait for multiple inquiries to complete.
 
 
-**Purpose**: Monitor progress and retrieve results from multiple parallel queries.
+**Purpose**: Monitor progress and retrieve results from multiple parallel queries. Supports both regular agent inquiries and research agent inquiries.
 
 
 **Parameters**:
@@ -511,9 +569,10 @@ Wait for multiple inquiries to complete.
 
 - `inquiry_ids` (array, required): Array of inquiry identifiers
 - `return_partial_results` (boolean, optional): Return results even if some queries fail
+- `inquiry_type` (string, optional): Type of inquiry - `"agent"` (default) or `"research"`. Use `"research"` when waiting for `ask_a_research_question` results.
 
 
-**Example Request**:
+**Example Request** (regular):
 
 
 ```json
@@ -527,10 +586,28 @@ Wait for multiple inquiries to complete.
 ```
 
 
+**Example Request** (research):
+
+
+```json
+{
+  "name": "wait_for_completion",
+  "arguments": {
+    "inquiry_ids": ["inq_research_001"],
+    "inquiry_type": "research"
+  }
+}
+```
+
+
+For research inquiries, the response includes `final_answer`, `progress`, and `operations` instead of `answer`, `sql_query`, and `data`. If the research is still running after 3 minutes, it returns an `in_progress` status with current progress so you can re-call.
+
+
 **When to Use**:
 
 
-- After using ask_questions
+- After using `ask_questions` or `ask_a_single_question`
+- After using `ask_a_research_question` (with `inquiry_type="research"`)
 - When monitoring multiple parallel queries
 - For comprehensive result collection
 
@@ -919,6 +996,16 @@ Clear authentication and trigger re-authentication.
 3. ask_questions (parallel)
 4. wait_for_completion
 5. get_questions_data
+```
+
+
+### Deep Research Pattern
+
+
+```
+1. contextualize
+2. ask_a_research_question
+3. wait_for_completion (inquiry_type="research")
 ```
 
 
