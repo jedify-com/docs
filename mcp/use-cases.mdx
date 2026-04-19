@@ -83,6 +83,52 @@ Claude will:
 ---
 
 
+## Deep Research Investigation
+
+
+**When to use**: Complex questions requiring autonomous multi-step analysis that goes beyond a single query. Uses the `ask_a_research_question` tool to launch the Research Agent.
+
+
+**Best for**:
+
+
+- Root cause analysis ("Why did revenue decline?")
+- Multi-dimensional investigations
+- Questions requiring data from multiple entities
+- Exploratory analysis where the path isn't clear upfront
+
+
+**How it works**:
+
+
+Ask Claude: *"Use the research tool to investigate why our churn rate increased last month compared to the previous month."*
+
+
+Claude will:
+
+
+- Submit a research question via `ask_a_research_question`
+- The Research Agent autonomously plans its investigation strategy
+- Executes multiple queries across different data entities
+- Analyzes correlations and patterns across results
+- Produces a comprehensive research report with findings
+
+
+**What you get**:
+
+
+- Data-backed root cause analysis
+- Multi-step investigation trail showing the research process
+- Cross-dimensional insights the agent discovered
+- Actionable recommendations
+
+
+**Time required**: 3-10 minutes (research runs autonomously)
+
+
+---
+
+
 ## Performance Investigation
 
 
