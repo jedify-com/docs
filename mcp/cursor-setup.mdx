@@ -72,32 +72,29 @@ Add the following to your `mcp.json`:
 ```json
 {
   "mcpServers": {
-    "jedify-builder": {
+    "jedify": {
       "command": "npx",
       "args": [
         "-y",
-        "@jedify/mcp-auth@latest"
-      ],
-      "env": {
-        "JEDIFY_REMOTE_MCP_URL": "https://be.jedify.com/mcp?mode=builder",
-        "DESCOPE_PROJECT_ID": "P2fGtsAm5ziAZr0swDyMDO7Tce87"
-      }
+        "@jedify/mcp-auth@latest",
+        "--builder"
+      ]
     }
   }
 }
 ```
 
 
-**Critical Configuration Details:**
+### Why `--builder`?
 
 
-| Parameter | Value | Description |
+Jedify MCP defaults to **Asker mode** (natural language Q&A). Adding `--builder` switches the proxy to **Builder mode**, which exposes semantic function tools and the TypeScript SDK instead of questioning tools.
+
+
+| Flag | Mode | Tools Exposed |
 | --- | --- | --- |
-| `JEDIFY_REMOTE_MCP_URL` | `https://be.jedify.com/mcp?mode=builder` | **Note the `?mode=builder` parameter - this is critical!** |
-| `DESCOPE_PROJECT_ID` | P2fGtsAm5ziAZr0swDyMDO7Tce87 | Provided by your Jedify administrator |
-
-
-> **Important:** The `?mode=builder` query parameter is **required** - it switches the MCP server to Builder mode, providing semantic function tools instead of questioning tools.
+| *(none)* | Asker *(default)* | `ask_a_question`, `search_semantic_layer`, etc. |
+| `--builder` | Builder | `list_semantic_functions`, `call_semantic_function`, SDK helpers |
 
 
 ### Step 3: Restart Cursor

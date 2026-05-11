@@ -63,11 +63,32 @@ Add the following configuration to your `claude_desktop_config.json` file:
   "mcpServers": {
     "jedify": {
       "command": "npx",
-      "args": ["@jedify/mcp-auth"],
-      "env": {
-        "REMOTE_MCP_URL": "https://be.jedify.com/mcp/sse",
-        "DESCOPE_PROJECT_ID": "P2fGtsAm5ziAZr0swDyMDO7Tce87"
-      }
+      "args": ["-y", "@jedify/mcp-auth@latest"]
+    }
+  }
+}
+```
+
+
+### Choosing a Mode
+
+
+Jedify MCP supports two modes:
+
+
+- **Asker** *(default)* — Natural language data analysis. Ask questions, get answers and charts. Best for analysts and business users.
+- **Builder** — Programmatic access to semantic functions and the TypeScript SDK. Best for building dashboards and apps in Cursor. See the [Cursor Setup](cursor-setup) guide.
+
+
+No flag is needed for Asker mode. To enable Builder mode, add `--builder` to `args`:
+
+
+```json
+{
+  "mcpServers": {
+    "jedify": {
+      "command": "npx",
+      "args": ["-y", "@jedify/mcp-auth@latest", "--builder"]
     }
   }
 }
@@ -140,15 +161,6 @@ Ask Claude: *"What data entities are available in our Jedify platform?"*
 
 
 Claude should respond with information about your organization's data entities and semantic layer, confirming successful authentication and connection.
-
-
-## Configuration Details
-
-
-| Parameter | Description | Value |
-| --- | --- | --- |
-| `REMOTE_MCP_URL` | Jedify MCP server endpoint | `https://be.jedify.com/mcp/sse` |
-| `DESCOPE_PROJECT_ID` | Authentication project identifier | `P2abc123def456gh789` |
 
 
 ## Security
