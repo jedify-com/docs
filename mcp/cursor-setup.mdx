@@ -5,18 +5,13 @@ icon: "code"
 
 for Jedify (Builder Mode)
 
-
 This guide covers setting up Jedify MCP with Cursor IDE for **Builder Mode** - dashboard development with semantic functions and the TypeScript SDK.
-
 
 > **Note:** For data analysis (Asker Mode), see the Claude Desktop Installation guide.
 
-
 ## Prerequisites
 
-
 Before beginning, ensure you have:
-
 
 - **Cursor IDE** installed (latest version) - [Download Cursor](https://cursor.sh)
 - **Node.js** v18.0.0 or higher
@@ -24,12 +19,9 @@ Before beginning, ensure you have:
 - **Active Jedify account** with Builder access permissions
 - **TypeScript/JavaScript development environment** (for dashboard development)
 
-
 ## What You'll Build
 
-
-With Cursor + Jedify MCP Builder Mode:
-
+With Cursor \+ Jedify MCP Builder Mode:
 
 - Browse semantic functions - Explore your organization's data functions
 - Generate dashboard code - AI-assisted React/Next.js dashboard creation
@@ -37,78 +29,56 @@ With Cursor + Jedify MCP Builder Mode:
 - Type-safe development - Full TypeScript SDK with schemas
 - Production-ready - Deterministic execution for deployed apps
 
-
 ## Installation Steps
-
 
 ### Step 1: Locate Cursor Configuration
 
-
 Cursor's MCP configuration is stored in:
-
 
 - **macOS/Linux**: `~/.cursor/mcp.json`
 - **Windows**: `%APPDATA%\Cursor\mcp.json`
 
-
 **Access via Cursor:**
-
 
 1. Open Cursor
 2. Press `Cmd+Shift+P` (macOS) or `Ctrl+Shift+P` (Windows/Linux)
 3. Type "MCP Settings"
 4. Select **"Open MCP Settings"**
 
-
 If the file doesn't exist, create it.
-
 
 ### Step 2: Add Jedify MCP Configuration
 
-
 Add the following to your `mcp.json`:
-
 
 ```json
 {
   "mcpServers": {
     "jedify": {
       "command": "npx",
-      "args": [
-        "-y",
-        "@jedify/mcp-auth@latest",
-        "--builder"
-      ]
+      "args": ["-y", "@jedify/mcp-auth", "--builder"]
     }
   }
 }
 ```
 
-
 ### Why `--builder`?
-
 
 Jedify MCP defaults to **Asker mode** (natural language Q&A). Adding `--builder` switches the proxy to **Builder mode**, which exposes semantic function tools and the TypeScript SDK instead of questioning tools.
 
-
 | Flag | Mode | Tools Exposed |
 | --- | --- | --- |
-| *(none)* | Asker *(default)* | `ask_a_question`, `search_semantic_layer`, etc. |
+| _(none)_ | Asker _(default)_ | `ask_a_question`, `search_semantic_layer`, etc. |
 | `--builder` | Builder | `list_semantic_functions`, `call_semantic_function`, SDK helpers |
 
-
 ### Step 3: Restart Cursor
-
 
 1. Completely quit Cursor (`Cmd+Q` on macOS, `Alt+F4` on Windows)
 2. Relaunch Cursor
 
-
 ### Step 4: First-Time Authentication
 
-
 On first use with Jedify MCP:
-
 
 1. **Trigger MCP** - Open Cursor chat and mention Jedify
 2. **Browser opens automatically** to your organization's login page
@@ -116,53 +86,39 @@ On first use with Jedify MCP:
 4. **Success confirmation** appears in browser
 5. **Return to Cursor** - now authenticated
 
-
 Authentication persists across sessions with automatic refresh.
-
 
 ### Step 5: Verify Installation
 
-
 In Cursor's chat interface, ask:
 
-
-```
+```text
 List available semantic functions in Jedify
 ```
 
-
 **Expected Response:** Cursor should return a list of your organization's semantic functions with names, descriptions, and parameters.
-
 
 ## Using Builder Mode
 
-
 ### Phase 1: Explore Semantic Functions
-
 
 **Discover available functions:**
 
-
-```
+```text
 Show me all available semantic functions related to sales
 ```
 
-
 **Get function details:**
 
-
-```
+```text
 What are the parameters and output schema for _REVENUE_BY_PRODUCT?
 ```
 
-
 ### Phase 2: Generate Dashboard Code
-
 
 **Request dashboard generation:**
 
-
-```
+```text
 Create a React dashboard that shows revenue by product over time using _REVENUE_BY_PRODUCT.
 Include:
 - Date range selector
@@ -171,9 +127,7 @@ Include:
 - Export to CSV button
 ```
 
-
 Cursor will generate:
-
 
 - React component code
 - TypeScript SDK integration
@@ -181,20 +135,15 @@ Cursor will generate:
 - Visualization components
 - Error handling
 
-
 ### Phase 3: Install SDK and Deploy
 
-
 **Install Jedify SDK:**
-
 
 ```bash
 npm install @jedify/sdk
 ```
 
-
 **Configure environment:**
-
 
 ```bash
 # .env.local
@@ -202,9 +151,7 @@ JEDIFY_API_KEY=your-api-key-here
 JEDIFY_BASE_URL=https://be-prod.jedify.com
 ```
 
-
 **Example generated code:**
-
 
 ```typescript
 import { Jedify } from '@jedify/sdk';
@@ -240,34 +187,25 @@ export default function RevenueDashboard() {
 }
 ```
 
-
 ## Available Tools in Builder Mode
-
 
 Once connected, you have access to Builder-specific tools:
 
-
 **Function Management:**
-
 
 - `list_semantic_functions` - Browse all available functions
 - `get_function_schema` - Get detailed function specification
 - `call_semantic_function` - Test function execution
 - `create_semantic_function` - Convert inquiry to function
 
-
 **Development:**
-
 
 - `get_sdk_info` - SDK documentation and examples
 - `process_verification` - Review and approve functions
 
-
 **Shared Tools:**
-
 
 - Semantic layer tools (entity discovery)
 - Account information
-
 
 See the Tools Reference for complete documentation.
