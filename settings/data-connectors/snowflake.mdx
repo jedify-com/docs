@@ -1,0 +1,157 @@
+---
+title: "Snowflake Data Connector"
+icon: "snowflake"
+---
+
+Connect Jedify to Snowflake using key-pair authentication with a dedicated service user, role, and warehouse. The steps below walk through every command you need to run in Snowflake and in your terminal.
+
+
+## Setup steps
+
+
+### 1. Get your Snowflake account identifier
+
+
+Run this query in Snowflake. You'll paste the result into the Jedify connector form at the end.
+
+
+```sql
+SELECT CURRENT_ORGANIZATION_NAME() || '-' || CURRENT_ACCOUNT_NAME();
+```
+
+
+### 2. Generate a private and public key pair
+
+
+Run the following commands in your terminal. They write two files to your current directory: `rsa_key.p8` (private) and `rsa_key.pub` (public).
+
+
+```bash
+# Generate the private key (unencrypted)
+openssl genrsa 2048 | openssl pkcs8 -topk8 -inform PEM -out rsa_key.p8 -nocrypt
+
+# Or, generate the private key with a passphrase
+openssl genrsa 2048 | openssl pkcs8 -topk8 -inform PEM -v2 aes256 -out rsa_key.p8
+
+# Generate the public key
+openssl rsa -in rsa_key.p8 -pubout -out rsa_key.pub
+```
+
+
+### 3. Create a service user, role, and dedicated warehouse
+
+
+Start the warehouse at size **XS** — Jedify uses it for lightweight metadata queries, and you can resize later if needed.
+
+
+```sql
+CREATE ROLE IF NOT EXISTS JEDIFY_ROLE;
+CREATE WAREHOUSE IF NOT EXISTS JEDIFY_WH;
+CREATE USER IF NOT EXISTS JEDIFY_USER
+  default_role = JEDIFY_ROLE
+  default_warehouse = JEDIFY_WH
+  type = SERVICE;
+```
+
+
+### 4. Set the public key on the user
+
+
+Snowflake expects the public key as a single line, with the `-----BEGIN PUBLIC KEY-----` and `-----END PUBLIC KEY-----` lines removed and all newlines stripped. Run this in your terminal to print the key in the right format:
+
+
+```bash
+grep -v -- '----' rsa_key.pub | tr -d '\n'
+```
+
+
+Then run the following in Snowflake, pasting the output above between the quotes:
+
+
+```sql
+ALTER USER JEDIFY_USER SET RSA_PUBLIC_KEY = '<PASTE FORMATTED PUBLIC KEY HERE>';
+```
+
+
+<Note>
+Using `ALTER USER` (rather than setting `rsa_public_key` inside `CREATE USER`) makes this step safe to re-run and ensures the key is updated even when `JEDIFY_USER` already exists.
+</Note>
+
+
+### 5. Grant the role to the user
+
+
+```sql
+GRANT ROLE JEDIFY_ROLE TO USER JEDIFY_USER;
+```
+
+
+### 6. Grant warehouse and query monitor privileges
+
+
+```sql
+GRANT USAGE ON WAREHOUSE JEDIFY_WH TO ROLE JEDIFY_ROLE;
+GRANT IMPORTED PRIVILEGES ON DATABASE SNOWFLAKE TO ROLE JEDIFY_ROLE;
+GRANT MONITOR USAGE ON ACCOUNT TO ROLE JEDIFY_ROLE;
+```
+
+
+### 7. Grant access to your data
+
+
+Replace `<DB>` and `<SCHEMA>` with the database and schema you want Jedify to read from.
+
+
+```sql
+GRANT USAGE ON DATABASE <DB> TO ROLE JEDIFY_ROLE;
+GRANT USAGE ON SCHEMA <DB>.<SCHEMA> TO ROLE JEDIFY_ROLE;
+GRANT SELECT ON ALL TABLES IN DATABASE <DB> TO ROLE JEDIFY_ROLE;
+```
+
+
+### 8. Verify permissions
+
+
+```sql
+SHOW GRANTS TO ROLE JEDIFY_ROLE;
+```
+
+
+### 9. Whitelist Jedify's IP addresses (if applicable)
+
+
+If your Snowflake account uses network policies, add Jedify's IPs to your allowlist. See **Pro Tips** below for the current list.
+
+
+### 10. Configure the connector in Jedify
+
+
+In the Jedify Snowflake connector form, provide:
+
+
+- **Account identifier** — the value from step 1.
+- **User** — `JEDIFY_USER`.
+- **Role** — `JEDIFY_ROLE`.
+- **Warehouse** — `JEDIFY_WH`.
+- **Private key** — paste the contents of `rsa_key.p8` **as-is**, including the `-----BEGIN PRIVATE KEY-----` and `-----END PRIVATE KEY-----` lines and all line breaks. To copy it, run:
+
+
+```bash
+cat rsa_key.p8
+```
+
+
+## Next steps
+
+
+- To restrict which rows each Jedify end-user can see, see [Snowflake Row-Level Security](./snowflake-row-level-security).
+
+
+## Pro Tips
+
+
+- If you see errors like **"JWT token is invalid"**, the `JEDIFY_USER` public key is not set correctly. Re-run step 4 and make sure the header, trailer, and newlines are stripped.
+- If you use IP allowlisting, whitelist the following Jedify IPs: `52.204.197.134`, `18.214.105.237`, `3.221.71.32`, `54.146.39.101`, `44.223.227.241`, `34.232.100.157`, `18.205.143.126`, `3.225.6.155`, `3.93.123.244`, `44.209.198.167`, `54.209.19.14`, `52.6.210.170`.
+- Use `type = SERVICE` when creating the Jedify user to ensure programmatic-only access.
+- Use `CREATE IF NOT EXISTS` in setup scripts to make them safe to re-run.
+- Grant `SELECT ON FUTURE TABLES` (or `VIEWS`) so Jedify keeps access as new objects are added.
