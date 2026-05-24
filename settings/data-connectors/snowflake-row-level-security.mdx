@@ -12,7 +12,7 @@ Restrict which rows each Jedify end-user can see in a Snowflake table using Snow
 Jedify supports two complementary mechanisms for passing the end-user's identity to a row access policy:
 
 
-1. **Session variables.** Custom user attributes (for example `USER_ROLE` or `USER_DEPARTMENT`) are forwarded to Snowflake as session variables on every query. The policy reads them via `SESSION_CONTEXT('<name>')`. **Requires SSO**, since attribute values are picked up from the SSO sign-in.
+1. **Session variables.** Jedify forwards a fixed set of session variables identifying the requester (`JEDIFY_USER_EMAIL`, `JEDIFY_USER_NAME`, `JEDIFY_USER_ROLE`, `JEDIFY_USER_SNOWFLAKE_ROLE`) on every query. The policy reads them via `SESSION_CONTEXT('<NAME>')`. **Requires SSO**, since the values are picked up from the SSO sign-in. See [Session context](#session-context) for the full reference.
 2. **Snowflake role.** Each Jedify user is mapped to a specific Snowflake role, and Jedify switches the session to that role before each query. The policy reads `CURRENT_ROLE()`. **Works with or without SSO** — with SSO, Jedify maps your IdP groups to Snowflake roles automatically; without SSO, an admin assigns the role per user.
 
 
@@ -22,20 +22,14 @@ You can use either approach in isolation or combine them in a single policy.
 ### Session variables and user attributes
 
 
-You can define per-user custom attributes (for example `USER_ROLE`, `USER_DEPARTMENT`) in Jedify. As long as these attributes are sent through during SSO sign-in, Jedify forwards them — along with the user's email — to Snowflake as session variables at the start of each query session:
+For every query run on behalf of a signed-in end-user, Jedify sets a fixed set of session variables in Snowflake that identify the requester. Row access policies read them via `SESSION_CONTEXT('<NAME>')` and use them to filter rows.
 
 
-```sql
-SET email = 'user@example.com';
-SET USER_ROLE = 'analyst';
-```
-
-
-Inside a row access policy, read these with `SESSION_CONTEXT('EMAIL')`, `SESSION_CONTEXT('USER_ROLE')`, and so on.
+See [Session context](#session-context) below for the full list of variables Jedify sets.
 
 
 <Note>
-**Variable names are case-sensitive when read.** Snowflake stores session variables uppercased, so `SESSION_CONTEXT('EMAIL')` returns the value while `SESSION_CONTEXT('email')` returns `NULL`. The same applies to `GETVARIABLE`. The `SET` statement itself is case-insensitive.
+**Variable names are case-sensitive when read.** Snowflake stores session variables uppercased, so `SESSION_CONTEXT('JEDIFY_USER_EMAIL')` returns the value while `SESSION_CONTEXT('jedify_user_email')` returns `NULL`. The same applies to `GETVARIABLE`. The `SET` statement itself is case-insensitive.
 </Note>
 
 
@@ -44,7 +38,7 @@ This mechanism relies on values supplied at SSO sign-in. If your users don't sig
 </Note>
 
 
-If the user attribute you want to filter on isn't a column on the protected table — for example, a separate table maps users to the allowed values — see [Option 3](#option-3-filter-via-a-user-to-row-mapping-table) below for the lookup pattern.
+If the value you want to filter on isn't a column on the protected table — for example, a separate table maps users to the allowed values — see [Option 3](#option-3-filter-via-a-user-to-row-mapping-table) below for the lookup pattern.
 
 
 ### Per-user Snowflake role
@@ -58,6 +52,29 @@ The mapping is configured either:
 
 - **Via SSO** — Jedify maps identity-provider groups to Snowflake roles, and each user automatically gets the role corresponding to their group membership at sign-in.
 - **Without SSO** — an admin assigns a Snowflake role to each user directly in user management.
+
+
+## Session context
+
+
+Before each query, Jedify sets the following session variables in Snowflake. Reference them inside row access policies via `SESSION_CONTEXT('<NAME>')` — names must match exactly (uppercase).
+
+
+| Variable | Description |
+| --- | --- |
+| `JEDIFY_USER_EMAIL` | The signed-in user's email address. |
+| `JEDIFY_USER_NAME` | The signed-in user's display name. |
+| `JEDIFY_USER_ROLE` | The user's organizational role (for example `analyst`, `manager`, `admin`). Values are organization-defined and sourced from the user's Jedify profile or SSO claims. |
+| `JEDIFY_USER_SNOWFLAKE_ROLE` | The Snowflake role Jedify activates with `USE ROLE` before the query, when a per-user Snowflake role is configured. `NULL` when no per-user role is set — in that case the query runs as Jedify's default service role. Inside a policy, read the actual session role with `CURRENT_ROLE()`; this variable is useful for auditing or debugging the intended mapping. |
+
+
+To simulate a Jedify-driven session when testing a policy in Snowflake, `SET` the variable yourself before issuing the SELECT. For example:
+
+
+```sql
+SET JEDIFY_USER_EMAIL = 'bob@bluepeak.example';
+SELECT * FROM <protected_table>;
+```
 
 
 ## Example table
@@ -131,13 +148,13 @@ ALTER TABLE BLUEPEAK_ANALYTICS.PRODUCT.USER_EVENTS
 ## Option 1: Filter by a custom user attribute
 
 
-Use this option when you want Jedify to drive row filtering from a user attribute (here, `USER_ROLE`) without creating one Snowflake role per access group.
+Use this option when you want Jedify to drive row filtering from the user's organizational role (`JEDIFY_USER_ROLE`) without creating one Snowflake role per access group.
 
 
-### 1. Define the user attribute in Jedify
+### 1. Set the user role on each Jedify user
 
 
-Configure a custom user attribute named `USER_ROLE` on each Jedify user, with one of the values you'll reference in the policy — here, `manager`, `analyst`, or `admin`. The attribute must be supplied at SSO sign-in so Jedify can forward it as a session variable, so **this approach assumes SSO is configured** for your Jedify users.
+Set the user role on each Jedify user — `manager`, `analyst`, or `admin` in this example — so Jedify forwards it as `JEDIFY_USER_ROLE` on every query. The role must be supplied at SSO sign-in, so **this approach assumes SSO is configured** for your Jedify users.
 
 
 ### 2. Tag the table with the column the policy depends on
@@ -176,13 +193,13 @@ CREATE OR REPLACE ROW ACCESS POLICY BLUEPEAK_ANALYTICS.SECURITY.rap_user_role_fi
     RETURNS BOOLEAN
     -> CASE
            -- 1. Admin email bypass — sees everything
-           WHEN SESSION_CONTEXT('EMAIL') = 'admin@bluepeak.example'
+           WHEN SESSION_CONTEXT('JEDIFY_USER_EMAIL') = 'admin@bluepeak.example'
                THEN TRUE
            -- 2. Admin role bypass
-           WHEN SESSION_CONTEXT('USER_ROLE') = 'admin'
+           WHEN SESSION_CONTEXT('JEDIFY_USER_ROLE') = 'admin'
                THEN TRUE
            -- 3. Otherwise: viewer's role must match the row's USER_ROLE
-           WHEN SESSION_CONTEXT('USER_ROLE') = user_role
+           WHEN SESSION_CONTEXT('JEDIFY_USER_ROLE') = user_role
                THEN TRUE
            ELSE FALSE
        END;
@@ -213,13 +230,13 @@ USE ROLE JEDIFY_ROLE;
 USE WAREHOUSE JEDIFY_WH;
 
 -- As an analyst — only analyst rows
-SET email     = 'bob@bluepeak.example';
-SET USER_ROLE = 'analyst';
+SET JEDIFY_USER_EMAIL = 'bob@bluepeak.example';
+SET JEDIFY_USER_ROLE  = 'analyst';
 SELECT * FROM BLUEPEAK_ANALYTICS.PRODUCT.USER_EVENTS;
 
 -- As the admin email — all rows
-SET email     = 'admin@bluepeak.example';
-SET USER_ROLE = 'admin';
+SET JEDIFY_USER_EMAIL = 'admin@bluepeak.example';
+SET JEDIFY_USER_ROLE  = 'admin';
 SELECT * FROM BLUEPEAK_ANALYTICS.PRODUCT.USER_EVENTS;
 ```
 
@@ -393,7 +410,7 @@ GRANT SELECT ON TABLE  BLUEPEAK_ANALYTICS.SECURITY.USER_DEPARTMENT_MAP TO ROLE J
 ### 3. Create a memoizable lookup function
 
 
-Snowflake row access policies do **not** accept subqueries that reference session variables in the policy body — both `EXISTS (SELECT … WHERE … = SESSION_CONTEXT('EMAIL'))` and the equivalent `IN` form fail with `Unsupported subquery type cannot be evaluated inside ROW ACCESS POLICY`. The supported pattern is to move the lookup into a [memoizable function](https://docs.snowflake.com/en/sql-reference/sql/create-function#memoizable-function): the function does the join once per query, the policy just calls it.
+Snowflake row access policies do **not** accept subqueries that reference session variables in the policy body — both `EXISTS (SELECT … WHERE … = SESSION_CONTEXT('JEDIFY_USER_EMAIL'))` and the equivalent `IN` form fail with `Unsupported subquery type cannot be evaluated inside ROW ACCESS POLICY`. The supported pattern is to move the lookup into a [memoizable function](https://docs.snowflake.com/en/sql-reference/sql/create-function#memoizable-function): the function does the join once per query, the policy just calls it.
 
 
 ```sql
@@ -406,7 +423,7 @@ CREATE OR REPLACE FUNCTION BLUEPEAK_ANALYTICS.SECURITY.my_departments()
     $$
         SELECT ARRAY_AGG(DEPARTMENT)
           FROM BLUEPEAK_ANALYTICS.SECURITY.USER_DEPARTMENT_MAP
-         WHERE USER_EMAIL = SESSION_CONTEXT('EMAIL')
+         WHERE USER_EMAIL = SESSION_CONTEXT('JEDIFY_USER_EMAIL')
     $$;
 
 GRANT USAGE ON FUNCTION BLUEPEAK_ANALYTICS.SECURITY.my_departments() TO ROLE JEDIFY_ROLE;
@@ -417,7 +434,7 @@ Sanity check the function before attaching the policy — it should return the u
 
 
 ```sql
-SET email = 'bob@bluepeak.example';
+SET JEDIFY_USER_EMAIL = 'bob@bluepeak.example';
 SELECT BLUEPEAK_ANALYTICS.SECURITY.my_departments();   -- ["Marketing"]
 ```
 
@@ -455,10 +472,10 @@ ALTER TABLE BLUEPEAK_ANALYTICS.PRODUCT.USER_EVENTS
 USE ROLE JEDIFY_ROLE;
 USE WAREHOUSE JEDIFY_WH;
 
-SET email = 'dan@bluepeak.example';
+SET JEDIFY_USER_EMAIL = 'dan@bluepeak.example';
 SELECT * FROM BLUEPEAK_ANALYTICS.PRODUCT.USER_EVENTS;   -- Finance rows only
 
-SET email = 'bob@bluepeak.example';
+SET JEDIFY_USER_EMAIL = 'bob@bluepeak.example';
 SELECT * FROM BLUEPEAK_ANALYTICS.PRODUCT.USER_EVENTS;   -- Marketing rows only
 ```
 
@@ -472,7 +489,7 @@ Because `my_departments()` returns an array, a user appearing in the mapping tab
 | | Session variable, direct (Option 1) | Snowflake role (Option 2) | Mapping table (Option 3) |
 | --- | --- | --- | --- |
 | New Snowflake objects | None | One role per group, plus baseline grants | Mapping table + memoizable function |
-| Identity carried into the policy | Custom user attribute (for example `USER_ROLE`) | Active Snowflake role | Custom user attribute (typically email), looked up in a mapping table |
+| Identity carried into the policy | `SESSION_CONTEXT('JEDIFY_USER_ROLE')` (or another session variable) | `CURRENT_ROLE()` | `SESSION_CONTEXT('JEDIFY_USER_EMAIL')` looked up in a mapping table |
 | Requires SSO | Yes | No — SSO is optional and automates the user-to-role mapping via IdP groups | Yes |
 | Works if users also query Snowflake directly outside Jedify | No | Yes | No |
 | Best for | Protected table already carries a user-identity column | Existing role-based access models | User-to-row relationship lives in a separate table |
