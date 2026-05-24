@@ -12,28 +12,17 @@ Restrict which rows each Jedify end-user can see in a Snowflake table using Snow
 Jedify supports two complementary mechanisms for passing the end-user's identity to a row access policy:
 
 
-1. **Session variables.** Jedify reads custom attributes from the user's profile (for example `USER_ROLE` or `USER_DEPARTMENT`) and sets them as Snowflake session variables before running the query. The policy reads them via `SESSION_CONTEXT('<name>')`.
-2. **Snowflake role.** Jedify can switch the session to a specific Snowflake role per user (via the `snowflake_role` user attribute) before running the query. The policy reads `CURRENT_ROLE()`.
+1. **Session variables.** Custom user attributes (for example `USER_ROLE` or `USER_DEPARTMENT`) are forwarded to Snowflake as session variables on every query. The policy reads them via `SESSION_CONTEXT('<name>')`. **Requires SSO**, since attribute values are picked up from the SSO sign-in.
+2. **Snowflake role.** Each Jedify user is mapped to a specific Snowflake role, and Jedify switches the session to that role before each query. The policy reads `CURRENT_ROLE()`. **Works with or without SSO** — with SSO, Jedify maps your IdP groups to Snowflake roles automatically; without SSO, an admin assigns the role per user.
 
 
-Both rely on user attributes configured in Jedify and supplied at login (either directly or mapped from your identity provider). You can use either approach in isolation or combine them in a single policy.
+You can use either approach in isolation or combine them in a single policy.
 
 
 ### Session variables and user attributes
 
 
-Every Jedify user has a `snowflake_params` custom attribute. It is a semicolon-separated list of variables to forward to Snowflake at the start of each session.
-
-
-For example, if a user's `snowflake_params` is:
-
-
-```
-email;USER_ROLE=analyst;
-```
-
-
-Jedify runs, before each query on behalf of that user:
+You can define per-user custom attributes (for example `USER_ROLE`, `USER_DEPARTMENT`) in Jedify. As long as these attributes are sent through during SSO sign-in, Jedify forwards them — along with the user's email — to Snowflake as session variables at the start of each query session:
 
 
 ```sql
@@ -42,17 +31,25 @@ SET USER_ROLE = 'analyst';
 ```
 
 
-- `email` is forwarded by name from the user's account.
-- `USER_ROLE` (and any other `KEY=value` entry) is forwarded with the literal value defined on the user.
-
-
 Inside a row access policy, read these with `SESSION_CONTEXT('email')`, `SESSION_CONTEXT('USER_ROLE')`, and so on.
+
+
+<Note>
+This mechanism relies on values supplied at SSO sign-in. If your users don't sign in through SSO, attribute values aren't propagated automatically — use the per-user Snowflake role approach below instead.
+</Note>
 
 
 ### Per-user Snowflake role
 
 
-If the user has a `snowflake_role` custom attribute, Jedify executes `USE ROLE <role>` before each query. The Jedify service user must already be granted that role (see [Snowflake Data Connector](./snowflake)). Policies can then read `CURRENT_ROLE()` directly.
+Each Jedify user can be mapped to a specific Snowflake role. Before each query, Jedify executes `USE ROLE <role>` so policies can read `CURRENT_ROLE()` directly. The Jedify service user must already be granted every role you intend to use (see [Snowflake Data Connector](./snowflake)).
+
+
+The mapping is configured either:
+
+
+- **Via SSO** — Jedify maps identity-provider groups to Snowflake roles, and each user automatically gets the role corresponding to their group membership at sign-in.
+- **Without SSO** — an admin assigns a Snowflake role to each user directly in user management.
 
 
 ## Example table
@@ -132,15 +129,7 @@ Use this option when you want Jedify to drive row filtering from a user attribut
 ### 1. Define the user attribute in Jedify
 
 
-On each user, set the `snowflake_params` custom attribute so that `USER_ROLE` is forwarded at session start:
-
-
-```
-email;USER_ROLE=analyst;
-```
-
-
-Use values like `manager`, `analyst`, or `admin` to match the labels you'll reference in the policy.
+Configure a custom user attribute named `USER_ROLE` on each Jedify user, with one of the values you'll reference in the policy — here, `manager`, `analyst`, or `admin`. The attribute must be supplied at SSO sign-in so Jedify can forward it as a session variable, so **this approach assumes SSO is configured** for your Jedify users.
 
 
 ### 2. Tag the table with the column the policy depends on
@@ -325,7 +314,11 @@ ALTER TABLE BLUEPEAK_ANALYTICS.PRODUCT.USER_EVENTS
 ### 5. Map Jedify users to the right Snowflake role
 
 
-On each Jedify user, set the `snowflake_role` custom attribute to one of `BLUEPEAK_SALES_ROLE`, `BLUEPEAK_MARKETING_ROLE`, or `BLUEPEAK_FINANCE_ROLE`. Jedify will issue `USE ROLE <role>` before each query on that user's behalf.
+Map each Jedify user to one of `BLUEPEAK_SALES_ROLE`, `BLUEPEAK_MARKETING_ROLE`, or `BLUEPEAK_FINANCE_ROLE`. Jedify will issue `USE ROLE <role>` before each query on that user's behalf.
+
+
+- **With SSO** — in Jedify settings, map each IdP group to its corresponding Snowflake role. Users get the role matching their group on sign-in.
+- **Without SSO** — an admin assigns the Snowflake role per user in user management.
 
 
 ### 6. Smoke test
@@ -351,7 +344,8 @@ SELECT * FROM BLUEPEAK_ANALYTICS.PRODUCT.USER_EVENTS;   -- all rows
 | | Session variable (Option 1) | Snowflake role (Option 2) |
 | --- | --- | --- |
 | New Snowflake objects | None per group | One role per group, plus baseline grants |
-| Who is the filter "owned" by | Jedify user attribute (`snowflake_params`) | Snowflake role hierarchy (`snowflake_role`) |
+| Identity carried into the policy | Custom user attribute (for example `USER_ROLE`) | Active Snowflake role |
+| Requires SSO | Yes | No — SSO is optional and automates the user-to-role mapping via IdP groups |
 | Works if users also query Snowflake directly outside Jedify | No | Yes |
 | Best for | Per-user filters, fine-grained labels | Existing role-based access models |
 
