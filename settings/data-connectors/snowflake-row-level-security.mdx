@@ -31,12 +31,20 @@ SET USER_ROLE = 'analyst';
 ```
 
 
-Inside a row access policy, read these with `SESSION_CONTEXT('email')`, `SESSION_CONTEXT('USER_ROLE')`, and so on.
+Inside a row access policy, read these with `SESSION_CONTEXT('EMAIL')`, `SESSION_CONTEXT('USER_ROLE')`, and so on.
+
+
+<Note>
+**Variable names are case-sensitive when read.** Snowflake stores session variables uppercased, so `SESSION_CONTEXT('EMAIL')` returns the value while `SESSION_CONTEXT('email')` returns `NULL`. The same applies to `GETVARIABLE`. The `SET` statement itself is case-insensitive.
+</Note>
 
 
 <Note>
 This mechanism relies on values supplied at SSO sign-in. If your users don't sign in through SSO, attribute values aren't propagated automatically — use the per-user Snowflake role approach below instead.
 </Note>
+
+
+If the user attribute you want to filter on isn't a column on the protected table — for example, a separate table maps users to the allowed values — see [Option 3](#option-3-filter-via-a-user-to-row-mapping-table) below for the lookup pattern.
 
 
 ### Per-user Snowflake role
@@ -168,7 +176,7 @@ CREATE OR REPLACE ROW ACCESS POLICY BLUEPEAK_ANALYTICS.SECURITY.rap_user_role_fi
     RETURNS BOOLEAN
     -> CASE
            -- 1. Admin email bypass — sees everything
-           WHEN SESSION_CONTEXT('email') = 'admin@bluepeak.example'
+           WHEN SESSION_CONTEXT('EMAIL') = 'admin@bluepeak.example'
                THEN TRUE
            -- 2. Admin role bypass
            WHEN SESSION_CONTEXT('USER_ROLE') = 'admin'
@@ -338,16 +346,136 @@ SELECT * FROM BLUEPEAK_ANALYTICS.PRODUCT.USER_EVENTS;   -- all rows
 ```
 
 
-## Choosing between the two options
+## Option 3: Filter via a user-to-row mapping table
 
 
-| | Session variable (Option 1) | Snowflake role (Option 2) |
-| --- | --- | --- |
-| New Snowflake objects | None per group | One role per group, plus baseline grants |
-| Identity carried into the policy | Custom user attribute (for example `USER_ROLE`) | Active Snowflake role |
-| Requires SSO | Yes | No — SSO is optional and automates the user-to-role mapping via IdP groups |
-| Works if users also query Snowflake directly outside Jedify | No | Yes |
-| Best for | Per-user filters, fine-grained labels | Existing role-based access models |
+Use this option when the table you want to restrict doesn't carry the user's identity directly — instead, a separate **mapping table** links each user (typically by email) to the allowed values (department, region, account list, and so on). Like Option 1, this approach **requires SSO** so the user's identity is available as a session variable.
 
 
-You can also combine both in a single policy — for example, bypass for a designated admin email and otherwise filter by `CURRENT_ROLE()`.
+### 1. Create the mapping table
+
+
+Keep mapping tables in the same database as the protected table (Snowflake requires this for row access policies that reference them).
+
+
+```sql
+USE ROLE ACCOUNTADMIN;
+
+CREATE OR REPLACE TABLE BLUEPEAK_ANALYTICS.SECURITY.USER_DEPARTMENT_MAP (
+    USER_EMAIL  STRING NOT NULL PRIMARY KEY,
+    DEPARTMENT  STRING NOT NULL
+);
+
+INSERT INTO BLUEPEAK_ANALYTICS.SECURITY.USER_DEPARTMENT_MAP (USER_EMAIL, DEPARTMENT) VALUES
+    ('alice@bluepeak.example', 'Sales'),
+    ('bob@bluepeak.example',   'Marketing'),
+    ('carla@bluepeak.example', 'Marketing'),
+    ('dan@bluepeak.example',   'Finance'),
+    ('erin@bluepeak.example',  'Sales'),
+    ('frank@bluepeak.example', 'Engineering');
+```
+
+
+### 2. Grant the querying role access to the mapping table
+
+
+Snowflake evaluates the policy under the querying role's privileges, so `JEDIFY_ROLE` must be able to read the mapping table.
+
+
+```sql
+USE ROLE SECURITYADMIN;
+
+GRANT USAGE  ON SCHEMA BLUEPEAK_ANALYTICS.SECURITY                     TO ROLE JEDIFY_ROLE;
+GRANT SELECT ON TABLE  BLUEPEAK_ANALYTICS.SECURITY.USER_DEPARTMENT_MAP TO ROLE JEDIFY_ROLE;
+```
+
+
+### 3. Create a memoizable lookup function
+
+
+Snowflake row access policies do **not** accept subqueries that reference session variables in the policy body — both `EXISTS (SELECT … WHERE … = SESSION_CONTEXT('EMAIL'))` and the equivalent `IN` form fail with `Unsupported subquery type cannot be evaluated inside ROW ACCESS POLICY`. The supported pattern is to move the lookup into a [memoizable function](https://docs.snowflake.com/en/sql-reference/sql/create-function#memoizable-function): the function does the join once per query, the policy just calls it.
+
+
+```sql
+USE ROLE ACCOUNTADMIN;
+
+CREATE OR REPLACE FUNCTION BLUEPEAK_ANALYTICS.SECURITY.my_departments()
+    RETURNS ARRAY
+    MEMOIZABLE
+    AS
+    $$
+        SELECT ARRAY_AGG(DEPARTMENT)
+          FROM BLUEPEAK_ANALYTICS.SECURITY.USER_DEPARTMENT_MAP
+         WHERE USER_EMAIL = SESSION_CONTEXT('EMAIL')
+    $$;
+
+GRANT USAGE ON FUNCTION BLUEPEAK_ANALYTICS.SECURITY.my_departments() TO ROLE JEDIFY_ROLE;
+```
+
+
+Sanity check the function before attaching the policy — it should return the user's department(s):
+
+
+```sql
+SET email = 'bob@bluepeak.example';
+SELECT BLUEPEAK_ANALYTICS.SECURITY.my_departments();   -- ["Marketing"]
+```
+
+
+### 4. Create the row access policy
+
+
+The policy body contains no subquery — just a function call wrapped in `ARRAY_CONTAINS`.
+
+
+```sql
+CREATE OR REPLACE ROW ACCESS POLICY BLUEPEAK_ANALYTICS.SECURITY.rap_dept_via_map
+    AS (department STRING) RETURNS BOOLEAN
+    -> ARRAY_CONTAINS(
+           department::VARIANT,
+           BLUEPEAK_ANALYTICS.SECURITY.my_departments()
+       );
+```
+
+
+### 5. Attach the policy to the table
+
+
+```sql
+ALTER TABLE BLUEPEAK_ANALYTICS.PRODUCT.USER_EVENTS
+    ADD ROW ACCESS POLICY BLUEPEAK_ANALYTICS.SECURITY.rap_dept_via_map
+        ON (DEPARTMENT);
+```
+
+
+### 6. Smoke test
+
+
+```sql
+USE ROLE JEDIFY_ROLE;
+USE WAREHOUSE JEDIFY_WH;
+
+SET email = 'dan@bluepeak.example';
+SELECT * FROM BLUEPEAK_ANALYTICS.PRODUCT.USER_EVENTS;   -- Finance rows only
+
+SET email = 'bob@bluepeak.example';
+SELECT * FROM BLUEPEAK_ANALYTICS.PRODUCT.USER_EVENTS;   -- Marketing rows only
+```
+
+
+Because `my_departments()` returns an array, a user appearing in the mapping table multiple times (mapped to several departments) automatically sees rows for all of their departments.
+
+
+## Choosing between the options
+
+
+| | Session variable, direct (Option 1) | Snowflake role (Option 2) | Mapping table (Option 3) |
+| --- | --- | --- | --- |
+| New Snowflake objects | None | One role per group, plus baseline grants | Mapping table + memoizable function |
+| Identity carried into the policy | Custom user attribute (for example `USER_ROLE`) | Active Snowflake role | Custom user attribute (typically email), looked up in a mapping table |
+| Requires SSO | Yes | No — SSO is optional and automates the user-to-role mapping via IdP groups | Yes |
+| Works if users also query Snowflake directly outside Jedify | No | Yes | No |
+| Best for | Protected table already carries a user-identity column | Existing role-based access models | User-to-row relationship lives in a separate table |
+
+
+You can combine these in a single policy — for example, bypass for a designated admin email (Option 1 style) and otherwise filter by `CURRENT_ROLE()` (Option 2) or by a mapping-table lookup (Option 3).
