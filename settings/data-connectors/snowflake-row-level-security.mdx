@@ -65,7 +65,7 @@ Before each query, Jedify sets the following session variables in Snowflake. Ref
 | `JEDIFY_USER_ID` | Jedify's internal identifier for the signed-in user. |
 | `JEDIFY_USER_EMAIL` | The signed-in user's email address. |
 | `JEDIFY_USER_NAME` | The signed-in user's display name. |
-| `JEDIFY_USER_ROLE` | The user's Jedify role. One of `User`, `Data Expert`, or `Admin` (see [Role-Based Access Control](../rbac) for what each grants in Jedify). |
+| `JEDIFY_USER_ROLE` | The user's Jedify role. One of `User`, `Data expert`, or `Tenant Admin` (see [Role-Based Access Control](../rbac) for what each grants in Jedify). Compare with exact case in policy logic. |
 | `JEDIFY_USER_SNOWFLAKE_ROLE` | The Snowflake role Jedify activates with `USE ROLE` before the query. Derived from the user's IdP group, mapped to a Snowflake role in Jedify's settings (see [Option 2](#option-2-filter-by-snowflake-role)). `NULL` when no mapping applies — in that case the query runs as Jedify's default service role. Inside a policy, read the actual session role with `CURRENT_ROLE()`; this variable is useful for auditing or debugging the intended mapping. |
 
 
@@ -149,10 +149,10 @@ ALTER TABLE BLUEPEAK_ANALYTICS.PRODUCT.USER_EVENTS
 ## Option 1: Filter by a custom user attribute
 
 
-Use this option when each row already carries the identity of the user it belongs to (an email column, an owner column, and so on). The policy compares that column to `SESSION_CONTEXT('JEDIFY_USER_EMAIL')`, with a bypass for users whose Jedify role is `Admin`.
+Use this option when each row already carries the identity of the user it belongs to (an email column, an owner column, and so on). The policy compares that column to `SESSION_CONTEXT('JEDIFY_USER_EMAIL')`, with a bypass for users whose Jedify role is `Tenant Admin`.
 
 
-The example below filters `USER_EVENTS` so each end-user only sees rows where the `USER_EMAIL` column matches their own email. Jedify Admins see everything.
+The example below filters `USER_EVENTS` so each end-user only sees rows where the `USER_EMAIL` column matches their own email. Tenant Admins see everything.
 
 
 ### 1. Create the row access policy
@@ -163,8 +163,8 @@ CREATE OR REPLACE ROW ACCESS POLICY BLUEPEAK_ANALYTICS.SECURITY.rap_own_events
     AS (user_email STRING)
     RETURNS BOOLEAN
     -> CASE
-           -- 1. Jedify Admins see everything
-           WHEN SESSION_CONTEXT('JEDIFY_USER_ROLE') = 'Admin'
+           -- 1. Tenant Admins see everything
+           WHEN SESSION_CONTEXT('JEDIFY_USER_ROLE') = 'Tenant Admin'
                THEN TRUE
            -- 2. Everyone else: only rows where the row's USER_EMAIL
            --    matches the requester's email
@@ -191,7 +191,7 @@ ALTER TABLE BLUEPEAK_ANALYTICS.PRODUCT.USER_EVENTS
 ### 3. Smoke test
 
 
-Simulate a Jedify session as `bob` (a regular user) and then as an Admin:
+Simulate a Jedify session as `bob` (a regular user) and then as a Tenant Admin:
 
 
 ```sql
@@ -203,8 +203,8 @@ SET JEDIFY_USER_EMAIL = 'bob@bluepeak.example';
 SET JEDIFY_USER_ROLE  = 'User';
 SELECT * FROM BLUEPEAK_ANALYTICS.PRODUCT.USER_EVENTS;
 
--- As an Admin — all rows
-SET JEDIFY_USER_ROLE  = 'Admin';
+-- As a Tenant Admin — all rows
+SET JEDIFY_USER_ROLE  = 'Tenant Admin';
 SELECT * FROM BLUEPEAK_ANALYTICS.PRODUCT.USER_EVENTS;
 ```
 
