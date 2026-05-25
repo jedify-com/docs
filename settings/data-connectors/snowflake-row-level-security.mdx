@@ -38,7 +38,7 @@ This mechanism relies on values supplied at SSO sign-in. If your users don't sig
 </Note>
 
 
-If the value you want to filter on isn't a column on the protected table — for example, a separate table maps users to the allowed values — see [Example 3](#example-3-filter-via-a-user-to-row-mapping-table) below for the lookup pattern.
+If the value you want to filter on isn't a column on the protected table — for example, a separate table maps users to the allowed values — see [Example 3](#example-3-filter-via-a-user-mapping-table) below for the lookup pattern.
 
 
 ### Per-user Snowflake role
@@ -331,7 +331,7 @@ SELECT * FROM BLUEPEAK_ANALYTICS.PRODUCT.USER_EVENTS;   -- all rows
 ```
 
 
-## Example 3: Filter via a user-to-row mapping table
+## Example 3: Filter via a user mapping table
 
 
 Use this example when the table you want to restrict doesn't carry the user's identity directly — instead, a separate **mapping table** links each user (typically by email) to the allowed values (department, region, account list, and so on). Like Example 1, this approach **requires SSO** so the user's identity is available as a session variable.
@@ -460,7 +460,7 @@ Because `my_departments()` returns an array, a user appearing in the mapping tab
 | Identity carried into the policy | `SESSION_CONTEXT('JEDIFY_USER_EMAIL')` compared to a column on the protected table | `CURRENT_ROLE()` | `SESSION_CONTEXT('JEDIFY_USER_EMAIL')` looked up in a separate mapping table |
 | Requires SSO | Yes | No — SSO is optional and automates the user-to-role mapping via IdP groups | Yes |
 | Works if users also query Snowflake directly outside Jedify | No | Yes | No |
-| Best for | Protected table already carries a user-identity column | Existing role-based access models | User-to-row relationship lives in a separate table |
+| Best for | Protected table already carries a user-identity column | Existing role-based access models | User mapping lives in a separate table |
 
 
 You can combine these in a single policy — for example, bypass for a designated admin email (as in Example 1) and otherwise filter by `CURRENT_ROLE()` (Example 2) or by a mapping-table lookup (Example 3).
