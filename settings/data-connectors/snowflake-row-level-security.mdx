@@ -38,7 +38,7 @@ This mechanism relies on values supplied at SSO sign-in. If your users don't sig
 </Note>
 
 
-If the value you want to filter on isn't a column on the protected table — for example, a separate table maps users to the allowed values — see [Option 3](#option-3-filter-via-a-user-to-row-mapping-table) below for the lookup pattern.
+If the value you want to filter on isn't a column on the protected table — for example, a separate table maps users to the allowed values — see [Example 3](#example-3-filter-via-a-user-to-row-mapping-table) below for the lookup pattern.
 
 
 ### Per-user Snowflake role
@@ -66,7 +66,7 @@ Before each query, Jedify sets the following session variables in Snowflake. Ref
 | `JEDIFY_USER_EMAIL` | The signed-in user's email address. |
 | `JEDIFY_USER_NAME` | The signed-in user's display name. |
 | `JEDIFY_USER_ROLE` | The user's Jedify role. One of `User`, `Data expert`, or `Tenant Admin` (see [Role-Based Access Control](../rbac) for what each grants in Jedify). Compare with exact case in policy logic. |
-| `JEDIFY_USER_SNOWFLAKE_ROLE` | The Snowflake role Jedify activates with `USE ROLE` before the query. Derived from the user's IdP group, mapped to a Snowflake role in Jedify's settings (see [Option 2](#option-2-filter-by-snowflake-role)). `NULL` when no mapping applies — in that case the query runs as Jedify's default service role. Inside a policy, read the actual session role with `CURRENT_ROLE()`; this variable is useful for auditing or debugging the intended mapping. |
+| `JEDIFY_USER_SNOWFLAKE_ROLE` | The Snowflake role Jedify activates with `USE ROLE` before the query. Derived from the user's IdP group, mapped to a Snowflake role in Jedify's settings (see [Example 2](#example-2-filter-by-snowflake-role)). `NULL` when no mapping applies — in that case the query runs as Jedify's default service role. Inside a policy, read the actual session role with `CURRENT_ROLE()`; this variable is useful for auditing or debugging the intended mapping. |
 
 
 To simulate a Jedify-driven session when testing a policy in Snowflake, `SET` the variable yourself before issuing the SELECT. For example:
@@ -146,10 +146,10 @@ ALTER TABLE BLUEPEAK_ANALYTICS.PRODUCT.USER_EVENTS
 </Note>
 
 
-## Option 1: Filter by a custom user attribute
+## Example 1: Filter by a custom user attribute
 
 
-Use this option when each row already carries the identity of the user it belongs to (an email column, an owner column, and so on). The policy compares that column to `SESSION_CONTEXT('JEDIFY_USER_EMAIL')`, with a bypass for users whose Jedify role is `Tenant Admin`.
+Use this example when each row already carries the identity of the user it belongs to (an email column, an owner column, and so on). The policy compares that column to `SESSION_CONTEXT('JEDIFY_USER_EMAIL')`, with a bypass for users whose Jedify role is `Tenant Admin`.
 
 
 The example below filters `USER_EVENTS` so each end-user only sees rows where the `USER_EMAIL` column matches their own email. Tenant Admins see everything.
@@ -209,10 +209,10 @@ SELECT * FROM BLUEPEAK_ANALYTICS.PRODUCT.USER_EVENTS;
 ```
 
 
-## Option 2: Filter by Snowflake role
+## Example 2: Filter by Snowflake role
 
 
-Use this option when access groups already correspond to Snowflake roles (for example, one role per department). The policy reads `CURRENT_ROLE()` instead of a session variable, and Jedify switches into the right role per user via the `snowflake_role` user attribute.
+Use this example when access groups already correspond to Snowflake roles (for example, one role per department). The policy reads `CURRENT_ROLE()` instead of a session variable, and Jedify switches into the right role per user via the `snowflake_role` user attribute.
 
 
 ### 1. Create the department-scoped roles
@@ -331,10 +331,10 @@ SELECT * FROM BLUEPEAK_ANALYTICS.PRODUCT.USER_EVENTS;   -- all rows
 ```
 
 
-## Option 3: Filter via a user-to-row mapping table
+## Example 3: Filter via a user-to-row mapping table
 
 
-Use this option when the table you want to restrict doesn't carry the user's identity directly — instead, a separate **mapping table** links each user (typically by email) to the allowed values (department, region, account list, and so on). Like Option 1, this approach **requires SSO** so the user's identity is available as a session variable.
+Use this example when the table you want to restrict doesn't carry the user's identity directly — instead, a separate **mapping table** links each user (typically by email) to the allowed values (department, region, account list, and so on). Like Example 1, this approach **requires SSO** so the user's identity is available as a session variable.
 
 
 ### 1. Create the mapping table
@@ -451,10 +451,10 @@ SELECT * FROM BLUEPEAK_ANALYTICS.PRODUCT.USER_EVENTS;   -- Marketing rows only
 Because `my_departments()` returns an array, a user appearing in the mapping table multiple times (mapped to several departments) automatically sees rows for all of their departments.
 
 
-## Choosing between the options
+## Choosing between the examples
 
 
-| | Session variable, direct (Option 1) | Snowflake role (Option 2) | Mapping table (Option 3) |
+| | Session variable, direct (Example 1) | Snowflake role (Example 2) | Mapping table (Example 3) |
 | --- | --- | --- | --- |
 | New Snowflake objects | None | One role per group, plus baseline grants | Mapping table + memoizable function |
 | Identity carried into the policy | `SESSION_CONTEXT('JEDIFY_USER_EMAIL')` compared to a column on the protected table | `CURRENT_ROLE()` | `SESSION_CONTEXT('JEDIFY_USER_EMAIL')` looked up in a separate mapping table |
@@ -463,4 +463,4 @@ Because `my_departments()` returns an array, a user appearing in the mapping tab
 | Best for | Protected table already carries a user-identity column | Existing role-based access models | User-to-row relationship lives in a separate table |
 
 
-You can combine these in a single policy — for example, bypass for a designated admin email (Option 1 style) and otherwise filter by `CURRENT_ROLE()` (Option 2) or by a mapping-table lookup (Option 3).
+You can combine these in a single policy — for example, bypass for a designated admin email (as in Example 1) and otherwise filter by `CURRENT_ROLE()` (Example 2) or by a mapping-table lookup (Example 3).
