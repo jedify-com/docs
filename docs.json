@@ -161,6 +161,8 @@
               "settings/data-connectors/bigquery",
               "settings/data-connectors/databricks",
               "settings/data-connectors/redshift",
+              "settings/data-connectors/snowflake",
+              "settings/data-connectors/snowflake-row-level-security",
               "settings/data-connectors/sigma",
               "settings/data-connectors/looker",
               "settings/data-connectors/tableau",
