@@ -428,3 +428,40 @@ SELECT COUNT(DISTINCT ID) AS opportunity_count,
 FROM OPP
 GROUP BY fiscal_quarter
 ```
+
+
+#### Linking a semantic dimension to an entity
+
+
+In addition to the analytical dimensions described above, an entity can also reference [semantic dimensions](/semantic-fusion/understanding/semantic-dimensions) — reusable value vocabularies (e.g. account names, statuses, brands) that Jedify uses to ground user phrases like *"Acme"* or *"closed-won"* to the right column value.
+
+
+Most of this wiring happens for you:
+
+
+- **Auto-link on create.** When a semantic dimension is created on a column, Jedify attaches it to every entity whose attributes or base query reference that same source column. No manual step required.
+- **Auto-link on entity edit.** When you add an attribute that selects from a column that already has a semantic dimension, the link is established automatically.
+- **Linked columns.** If the same vocabulary lives in more than one column on the entity (e.g. `operator_name` and `parent_operator_name`), add the sibling columns to the dimension's linked list — see [Linked columns](/semantic-fusion/understanding/semantic-dimensions#linked-columns).
+
+
+#### How to attach manually
+
+
+When auto-link doesn't pick up a column — typically because the attribute uses a transformation, alias, or calculated expression that hides the source — you can attach the dimension yourself:
+
+
+1. Open the entity in the Semantic Fusion™ Model
+2. Find the attribute whose values should be grounded by the dimension
+3. Click **Modify** then select **Link semantic dimension**
+4. Pick the dimension from the list and save
+
+
+#### When to attach manually
+
+
+- The attribute is a calculated or transformed expression and Jedify couldn't infer the underlying column
+- You want a different dimension to ground this attribute than the one Jedify auto-selected
+- The column was added or renamed after the dimension was created — re-run the semantic build for the table, then verify the link
+
+
+Once linked, the dimension's values become available to Jedify whenever a user question references this attribute, and the staging → production publish flow applies as with any other model change.
