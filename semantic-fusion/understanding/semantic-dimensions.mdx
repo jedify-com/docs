@@ -1,0 +1,106 @@
+---
+title: "Semantic Dimensions"
+icon: "tags"
+---
+
+A **semantic dimension** is a reusable definition of a column whose values represent meaningful business terms — statuses, segments, brands, product categories, account names, regions, and so on. Dimensions live in your Semantic Fusion™ Model and are shared across the entities that reference them.
+
+
+They are what allow Jedify to translate a phrase like *"revenue for Acme last month"* into the right column and the right value in your database, without you needing to know the underlying schema.
+
+
+### What a dimension contains
+
+
+- **Name and definition** — the business meaning, used by Jedify when interpreting questions
+- **Source column** — the table and column the values come from
+- **Value query** — the SQL that returns the column's distinct values
+- **Values** — the actual list of business terms that can be matched against user input
+- **Linked columns** *(optional)* — other columns that share the same vocabulary (e.g. an `Operator` dimension also grounding values that appear in `Parent Operator`), so the definition does not need to be duplicated
+
+
+### Two types: categorical vs indexed
+
+
+Every dimension is automatically classified by Jedify based on how many distinct values the column contains. You don't pick the type — Jedify does — but understanding the difference helps when you design your model.
+
+
+|              | **Categorical**                                  | **Indexed**                                                |
+| ------------ | ------------------------------------------------ | ---------------------------------------------------------- |
+| **Best for** | Small, enumerated sets — statuses, segments, plan tiers | High-cardinality vocabularies — customer names, SKUs, accounts |
+| **Cardinality** | Low (≤ 100 distinct values by default)         | High (\> 100 distinct values)                              |
+| **Matching** | Exact match (case-insensitive)                   | Fuzzy match — handles typos, partial names, word variations |
+| **Use when** | Values are well-known and consistent             | Values are messy, partial, or user-typed                   |
+
+
+The threshold is configurable per account if your data has unusual distribution.
+
+
+#### Why the split matters in practice
+
+
+- A *Status* column with values `Active / Inactive / Cancelled` works best as **categorical** — there's no need for fuzzy matching, and exact terms keep results predictable.
+- A *Customer Name* column with thousands of values works best as **indexed** — users will type `"Acme"` when the database has `"Acme Inc."`, and fuzzy matching is what makes that work.
+
+
+### Lifecycle
+
+
+1. **Create** — pick a column, give the dimension a name and definition, and provide the SQL that returns its values. Jedify validates the query and classifies the dimension automatically.
+2. **Auto-link** — the new dimension is attached to any entity whose columns reference the same source, so you don't have to wire it up manually.
+3. **Publish** — like other parts of the Semantic Fusion™ Model, dimensions follow the standard staging → production flow (see [Version Control & Collaboration](/semantic-fusion/editing/version-control)).
+4. **Refresh** — Jedify periodically refreshes the values from your data source so the dimension stays in sync as your data changes. The refresh interval is configurable per dimension.
+
+
+### Linked columns
+
+
+When the same value vocabulary appears in more than one column — for example, `operator_name` and `parent_operator_name` — you can link those columns to a single dimension. Jedify will then match user terms against any of the linked columns, without you having to define the dimension twice.
+
+
+### When grounding doesn't find what you expect
+
+
+| Symptom                                                                       | What's usually going on                       | What to do                                                                                          |
+| ----------------------------------------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Categorical dimension misses a term like `"Acme Inc"` when the DB has `"Acme Inc."` | Categorical matching is exact — no fuzzy tolerance | Consider whether this column should be **indexed** instead, or align the user term with the canonical value |
+| Indexed dimension misses a value you just added in the source                 | Values haven't been refreshed yet             | Trigger a manual refresh and confirm the refresh timestamp advanced                                 |
+| Match works in staging but not in production                                  | The dimension hasn't been published           | Check the dimension's status and publish pending changes                                            |
+| Match works on one column but not its sibling                                 | Linked columns aren't configured              | Add the sibling column to the dimension's linked list                                               |
+
+
+### Direct value search
+
+
+You can search a dimension's values directly — useful when validating the model or debugging a mismatch. Three modes are available:
+
+
+- **Exact** — case-insensitive equality
+- **Fuzzy** — typo-tolerant similarity
+- **Substring** — partial-string scoring
+
+
+Available both in the Jedify UI and via the REST API.
+
+
+### Eligibility
+
+
+A column can become a semantic dimension when:
+
+
+- It is a **text** column
+- Its distinct value count is known (Jedify computes this during semantic build)
+- It has fewer than **50,000** distinct values (configurable per account)
+
+
+If a column doesn't qualify, Jedify will tell you which condition failed. The most common fix is to convert the column type, or to re-run the semantic build for the table.
+
+
+### Related
+
+
+- [Semantic Entities](/semantic-fusion/understanding/semantic-entities) — how dimensions fit into Concepts and Metrics
+- [Editing Semantic Entities](/semantic-fusion/editing/editing-entities) — how to attach a dimension to an entity
+- [Version Control & Collaboration](/semantic-fusion/editing/version-control) — staging vs production flow
+- [Fixing an Incorrect Response](/semantic-fusion/use-cases/fixing-incorrect-response) — when grounding produces the wrong column or value
