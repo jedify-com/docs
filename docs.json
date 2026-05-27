@@ -66,6 +66,7 @@
               "semantic-fusion/understanding/concept",
               "semantic-fusion/understanding/metric",
               "semantic-fusion/understanding/concepts-vs-metrics",
+              "semantic-fusion/understanding/semantic-dimensions",
               "semantic-fusion/understanding/entities-status",
               "semantic-fusion/understanding/how-jedify-uses-it"
             ]
