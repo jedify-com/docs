@@ -110,6 +110,32 @@ The system will automatically:
 3. **Success**: You'll see a "Success! You can close this tab" message
 4. **Return to Claude**: Switch back to Claude Desktop to continue
 
+## Alternative: API Key Authentication
+
+If you prefer not to use the browser-based login — for example on a headless machine, a shared environment, or an automated/CI setup — you can authenticate with a Jedify API key instead.
+
+Set the `JEDIFY_API_KEY` environment variable in your configuration. When present, the proxy skips the browser login entirely and authenticates every request with the key:
+
+```json
+{
+  "mcpServers": {
+    "jedify": {
+      "command": "npx",
+      "args": ["-y", "@jedify/mcp-auth"],
+      "env": {
+        "JEDIFY_API_KEY": "your-api-key"
+      }
+    }
+  }
+}
+```
+
+<Note>
+The API key must be bound to a user (the key identifies who is acting, so no email or extra login is needed). Ask your Jedify administrator to issue a user-bound API key. If `JEDIFY_API_KEY` is not set, the proxy falls back to the standard browser login described above.
+</Note>
+
+Requires `@jedify/mcp-auth` **v1.1.0 or later**.
+
 ## Verification
 
 To verify your setup is working correctly:

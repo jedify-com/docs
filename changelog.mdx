@@ -1,0 +1,31 @@
+---
+title: "Changelog"
+icon: "clock-rotate-left"
+description: "Product updates and release notes for Jedify. Filter by area using the tags on the right."
+---
+
+<Update label="2026-05-31" description="@jedify/mcp-auth v1.1.0" tags={["MCP"]}>
+  ## API key authentication for MCP
+
+  You can now authenticate the Jedify MCP proxy with an API key instead of the browser-based login.
+
+  Set the `JEDIFY_API_KEY` environment variable in your MCP configuration and the proxy skips the browser login, authenticating every request with the key — ideal for headless machines, shared environments, and automated/CI setups.
+
+  ```json
+  {
+    "mcpServers": {
+      "jedify": {
+        "command": "npx",
+        "args": ["-y", "@jedify/mcp-auth"],
+        "env": {
+          "JEDIFY_API_KEY": "your-api-key"
+        }
+      }
+    }
+  }
+  ```
+
+  The key must be bound to a user — ask your Jedify administrator to issue one. If `JEDIFY_API_KEY` is not set, the proxy falls back to the standard browser login.
+
+  See the [Claude Setup guide](mcp/claude-setup) for details.
+</Update>
