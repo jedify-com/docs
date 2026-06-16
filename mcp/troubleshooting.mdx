@@ -1,199 +1,155 @@
 ---
 title: "Troubleshooting"
 icon: "bug"
-description: "Common issues and solutions for the Jedify MCP Server integration."
+description: "Common issues and solutions for the Jedify MCP integration."
 ---
 
-## Quick Test
+## Quick test
 
+To check everything is working, ask your client:
 
-To check if everything is working correctly, ask Claude:
+_"What data entities are available in our Jedify platform?"_
 
-
-*"What data entities are available in our Jedify platform?"*
-
-
-**✅ Success**: Claude responds with information about your organization's data entities.
-**❌ Problem**: See troubleshooting sections below.
-
+- **✅ Success**: you get a response describing your organization's data entities.
+- **❌ Problem**: see the sections below.
 
 ---
 
+## Setup issues
 
-## Setup Issues
+### Jedify tools not available
 
-
-### Jedify Tools Not Available in Claude
-
-
-**Symptoms**: Claude doesn't recognize Jedify tools or says they're not available.
-
+**Symptoms**: your client doesn't recognize Jedify tools or says they're unavailable.
 
 **Solutions**:
 
+1. **Check the config file location**:
+   - **Claude Desktop** — macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`; Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+   - **Cursor** — macOS/Linux: `~/.cursor/mcp.json`; Windows: `%APPDATA%\Cursor\mcp.json`
+2. **Verify JSON format**: no trailing commas, no missing quotes.
+3. **Restart your client**: quit completely and reopen.
+4. **Check Node.js**: run `node --version` to confirm Node.js 18+ is installed.
 
-1. **Check configuration file location**:
-  - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-  - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-2. **Verify JSON format**: Make sure your configuration file has proper JSON formatting with no extra commas or missing quotes.
-3. **Restart Claude Desktop**: Close completely and reopen Claude Desktop.
-4. **Check Node.js**: Ensure Node.js 18+ is installed by running `node --version` in your terminal.
+See [Connect](connect) for the full setup steps.
 
+### Browser login keeps failing
 
-### Authentication Keeps Failing
-
-
-**Symptoms**: Browser opens for login but authentication doesn't complete, or you get "authentication failed" messages.
-
+**Symptoms**: the browser opens for sign-in but never completes, or you see an authentication error.
 
 **Solutions**:
 
+1. **Clear browser data**: clear cookies and try again in a private/incognito window.
+2. **Check account access**: confirm you can sign in to your organization's Jedify platform directly.
+3. **Contact your administrator**: they may need to verify your account access.
 
-1. **Clear browser data**: Clear cookies and try authentication in a private/incognito browser window.
-2. **Check account access**: Verify you can log into your organization's Jedify platform directly.
-3. **Contact administrator**: Your Jedify administrator may need to verify your account access.
-4. **Force logout**: Ask Claude to use the logout tool, then try authenticating again.
+### Browser doesn't open for sign-in
 
-
-### Browser Doesn't Open for Authentication
-
-
-**Symptoms**: Authentication is required but browser doesn't launch automatically.
-
+**Symptoms**: sign-in is required but no browser launches.
 
 **Solutions**:
 
+1. **Open it manually**: look for the sign-in URL in your client and open it in your browser.
+2. **Check your default browser**: make sure one is set in your system settings.
+3. **Check security software**: antivirus or firewall tools can block the browser launch.
 
-1. **Manual browser**: Look for the authentication URL in Claude's interface and open it manually in your browser.
-2. **Check default browser**: Make sure you have a default browser set in your system settings.
-3. **Security software**: Check if antivirus or security software is blocking the browser launch.
+### API key not working
 
+**Symptoms**: you set `JEDIFY_API_KEY` but requests still aren't authenticated.
+
+**Solutions**:
+
+1. **Use a user-bound key**: the key must be bound to a user. Ask your Jedify administrator to issue one.
+2. **Check the version**: API-key authentication requires `@jedify/mcp-auth` **v1.1.0 or later**.
+3. **Check the `env` block**: confirm `JEDIFY_API_KEY` is inside `env`, not `args`. If it's unset, the proxy falls back to the browser login.
+
+See [Authentication](authentication) for the full configuration.
 
 ---
 
+## Builder mode issues
 
-## Data Access Issues
+### Builder tools or functions aren't showing
 
-
-### "No Data Available" Messages
-
-
-**Symptoms**: Tools work but return no data or "no entities found" messages.
-
+**Symptoms**: `list_semantic_functions` is missing, or returns nothing.
 
 **Solutions**:
 
+1. **Confirm Builder mode**: your `args` must include `--builder` (see [Modes](modes)).
+2. **Check for existing functions**: your account may not have any functions yet — create one from a validated question with `create_semantic_function`.
+3. **Broaden your search**: try a single keyword, or call `list_semantic_functions` with no filter.
 
-1. **Check data permissions**: Contact your Jedify administrator to verify you have access to the data you're trying to query.
-2. **Verify data setup**: Confirm your organization has data sources connected and configured in Jedify.
-3. **Test basic access**: Try asking Claude to use the "contextualize" tool to see what data is available.
+### SDK calls return 401
 
-
-### Slow or Incomplete Results
-
-
-**Symptoms**: Queries take a long time or don't complete.
-
+**Symptoms**: `jedify.call(...)` fails with an authentication error.
 
 **Solutions**:
 
+1. **Check the API key**: confirm `JEDIFY_API_KEY` is set and valid in your app environment.
+2. **Check the base URL**: confirm `baseUrl` points to the environment your key belongs to.
 
-1. **Be more specific**: Use exact date ranges and specific filters instead of broad queries like "all time data".
-2. **Break down large requests**: Split complex analysis into smaller, more focused questions.
-3. **Check query scope**: Very large data requests may take longer or hit system limits.
+### A function failed validation
 
-
----
-
-
-## Connection Issues
-
-
-### Connection Timeouts
-
-
-**Symptoms**: "Connection timeout" or "request failed" errors.
-
+**Symptoms**: a created function has a "failed validation" status and can't be called.
 
 **Solutions**:
 
+1. **Re-validate the question**: confirm the underlying question returns correct data in Asker mode.
+2. **Recreate the function**: create it again from a corrected inquiry.
 
-1. **Check internet connection**: Ensure you have stable internet connectivity.
-2. **Restart Claude Desktop**: Close and reopen Claude Desktop to reset the connection.
-3. **Try again later**: Temporary network issues may resolve themselves.
+---
 
+## Data access issues
 
-### Configuration Errors
+### "No data available" messages
 
-
-**Symptoms**: Error messages about configuration when starting Claude Desktop.
-
+**Symptoms**: tools work but return no data or "no entities found".
 
 **Solutions**:
 
+1. **Check data permissions**: confirm with your administrator that you have access to the data you're querying.
+2. **Verify data setup**: confirm your organization has data sources connected in Jedify.
+3. **Test basic access**: ask your client to use the `contextualize` tool to see what's available.
 
-1. **Validate JSON**: Use a JSON validator to check your configuration file format.
-2. **Check file path**: Ensure the configuration file is in the correct location.
-3. **Reset configuration**: Try with a minimal configuration and add complexity gradually.
+### Slow or incomplete results
 
+**Symptoms**: queries take a long time or don't finish.
 
----
+**Solutions**:
 
-
-## Getting Help
-
-
-### Before Contacting Support
-
-
-Collect this information:
-
-
-- Your operating system (Mac/Windows)
-- What you were trying to do when the problem occurred
-- The exact error message you saw
-- Whether authentication completed successfully
-
-
-### Who to Contact
-
-
-1. **Jedify Administrator**: For data access issues, account problems, or permissions
-2. **IT Support**: For network, firewall, or system configuration issues
-3. **Claude Desktop Support**: For Claude Desktop application problems
-
-
-### Self-Service Options
-
-
-- **[Installation Guide](installation)**: Complete setup instructions
-- **[Tools Reference](tools-reference)**: Understanding available tools
-- **[Use Cases](use-cases)**: Examples and workflows
-
+1. **Be more specific**: use exact date ranges and filters instead of broad queries.
+2. **Break down large requests**: split complex analysis into smaller questions.
 
 ---
 
+## Connection issues
 
-## Prevention Tips
+### Connection timeouts
 
+**Solutions**:
 
-### Regular Maintenance
-
-
-- Keep Claude Desktop updated to the latest version
-- Update Node.js periodically
-- Test your setup occasionally with a simple query
-
-
-### Best Practices
-
-
-- Use the logout tool when switching between different user accounts
-- Don't modify configuration files while Claude Desktop is running
-- Keep backup copies of working configurations
-
+1. **Check your internet connection**.
+2. **Restart your client** to reset the connection.
+3. **Try again later** — temporary network issues may resolve on their own.
 
 ---
 
+## Getting help
 
-**Still having issues?** Contact your Jedify administrator for assistance.
+Before contacting support, collect:
+
+- Your operating system and client (Claude Desktop / Cursor)
+- What you were trying to do
+- The exact error message
+- Whether authentication completed
+
+**Who to contact**:
+
+1. **Jedify administrator** — data access, account, or permission issues
+2. **IT support** — network, firewall, or system configuration
+
+**Self-service**:
+
+- [Connect](connect) — setup steps
+- [Authentication](authentication) — sign-in and API keys
+- [Asker tools](asker/tools-reference) — available analysis tools
+- [Use cases](asker/use-cases) — examples and workflows

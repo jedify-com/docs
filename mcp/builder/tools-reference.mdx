@@ -1,0 +1,125 @@
+---
+title: "Builder Tools Reference"
+icon: "wrench"
+description: "The six tools available in Builder mode for managing and using semantic functions."
+---
+
+These tools are available when you connect in [Builder mode](/mcp/modes) (`--builder`). They cover discovering, inspecting, creating, and testing [semantic functions](semantic-functions), plus SDK guidance and a pre-ship checklist. Builder mode also includes the shared semantic-layer and account tools.
+
+| Tool | Purpose |
+| --- | --- |
+| `list_semantic_functions` | Browse available functions |
+| `get_function_schema` | Inspect one function's parameters and output |
+| `call_semantic_function` | Test a function while developing |
+| `create_semantic_function` | Create a function from a validated question |
+| `get_sdk_info` | SDK installation and usage guidance |
+| `process_verification` | Pre-ship checklist for generated code |
+
+## Function management
+
+### list_semantic_functions
+
+Browse the semantic functions available in your account. Use this **first** — most dashboards can reuse existing functions, so only create new ones when there's a gap.
+
+**Parameters** (all optional)
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `search` | string | Match against function names and descriptions |
+| `category` | string | Filter by category (e.g. `revenue`, `churn`) |
+| `limit` | integer | Max results to return (default 100, max 1000) |
+| `offset` | integer | Pagination offset (default 0) |
+
+```text
+list_semantic_functions({ search: "revenue" })
+```
+
+### get_function_schema
+
+Get the full schema for one function — its parameters (types, required/optional, defaults) and its output columns. Use this before writing SDK calls so you pass the right parameters.
+
+**Parameters**
+
+| Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| `function_name` | string | Yes | The function to inspect (e.g. `_REVENUE_BY_PRODUCT`) |
+
+```text
+get_function_schema({ function_name: "_REVENUE_BY_PRODUCT" })
+```
+
+### call_semantic_function
+
+Run a function and preview its results while developing.
+
+<Warning>
+This is for **testing inside MCP only**. In the dashboard code you generate, call functions through the SDK with `jedify.call(...)`, not this tool. See the [SDK reference](sdk-reference).
+</Warning>
+
+**Parameters**
+
+| Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| `function_name` | string | Yes | The function to run |
+| `parameters` | object | No | Parameter values as key–value pairs |
+
+```text
+call_semantic_function({
+  function_name: "_REVENUE_BY_PRODUCT",
+  parameters: { region: "North America", start_date: "2025-01-01", end_date: "2025-03-31" }
+})
+```
+
+### create_semantic_function
+
+Turn a question you've already validated (an inquiry) into a reusable function. After creation, the function can be called by name from the SDK.
+
+**Parameters** (all required)
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `source_inquiry_id` | string | The inquiry to turn into a function |
+| `function_name` | string | Must start with `_` and use `UPPER_CASE_WITH_UNDERSCORES` |
+| `description` | string | What the function does |
+| `parameterize` | array of strings | The values to expose as parameters (e.g. `["region", "date_range"]`) |
+
+```text
+create_semantic_function({
+  source_inquiry_id: "inquiry_abc123",
+  function_name: "_CHURN_BY_REGION",
+  description: "Customer churn breakdown by region",
+  parameterize: ["region", "date_range"]
+})
+```
+
+See [semantic functions](semantic-functions) for what can and can't be parameterized.
+
+## Development
+
+### get_sdk_info
+
+Return SDK installation instructions, usage examples, and the documentation link — useful when generating dashboard code.
+
+**Parameters**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `language` | string | `typescript` (default) or `python` |
+
+```text
+get_sdk_info()
+```
+
+### process_verification
+
+A checklist to confirm generated dashboard code follows Builder best practices before you finish. Each field is a boolean you set to `true` once confirmed.
+
+| Field | Confirms |
+| --- | --- |
+| `api_key_configured` | The code requires/uses an API key |
+| `uppercase_fields_used` | Data fields are accessed in UPPERCASE |
+| `design_system_applied` | A consistent design system is applied |
+| `error_handling_implemented` | `jedify.call()` invocations are wrapped in error handling |
+| `loading_states_added` | Loading states are shown while data fetches |
+| `functions_discovered_first` | Existing functions were checked before creating new ones |
+| `sdk_only_in_runtime` | Runtime code uses only the SDK (no MCP tools) |

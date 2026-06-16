@@ -148,10 +148,25 @@
             "group": "MCP",
             "pages": [
               "mcp/overview",
-              "mcp/claude-setup",
-              "mcp/cursor-setup",
-              "mcp/tools-reference",
-              "mcp/use-cases",
+              "mcp/modes",
+              "mcp/connect",
+              "mcp/authentication",
+              {
+                "group": "Asker mode",
+                "pages": [
+                  "mcp/asker/tools-reference",
+                  "mcp/asker/use-cases"
+                ]
+              },
+              {
+                "group": "Builder mode",
+                "pages": [
+                  "mcp/builder/semantic-functions",
+                  "mcp/builder/tools-reference",
+                  "mcp/builder/sdk-reference",
+                  "mcp/builder/examples"
+                ]
+              },
               "mcp/troubleshooting"
             ]
           },
@@ -232,6 +247,12 @@
       }
     ]
   },
+  "redirects": [
+    { "source": "/mcp/claude-setup", "destination": "/mcp/connect" },
+    { "source": "/mcp/cursor-setup", "destination": "/mcp/builder/semantic-functions" },
+    { "source": "/mcp/tools-reference", "destination": "/mcp/asker/tools-reference" },
+    { "source": "/mcp/use-cases", "destination": "/mcp/asker/use-cases" }
+  ],
   "logo": {
     "light": "/logo/light.svg",
     "dark": "/logo/dark.svg"

@@ -1,0 +1,151 @@
+---
+title: "SDK Reference"
+icon: "code"
+description: "The @jedify/sdk TypeScript SDK for calling semantic functions from your application."
+---
+
+`@jedify/sdk` is the TypeScript SDK for calling [semantic functions](semantic-functions) from your own code at runtime. This is what your generated dashboard code uses — not the MCP tools.
+
+## Installation
+
+```bash
+npm install @jedify/sdk
+```
+
+Requires Node.js 18+ and (for type definitions) TypeScript 5.0+.
+
+## Quick start
+
+```typescript
+import { Jedify } from '@jedify/sdk';
+
+const jedify = new Jedify({
+  apiKey: process.env.JEDIFY_API_KEY,   // required
+  baseUrl: process.env.JEDIFY_BASE_URL, // optional
+});
+
+// List available functions
+const { functions } = await jedify.listFunctions();
+
+// Call a function — returns the data array directly
+const data = await jedify.call('_REVENUE_BY_PRODUCT', {
+  region: 'North America',
+  start_date: '2025-01-01',
+  end_date: '2025-03-31',
+});
+
+data.forEach(row => {
+  console.log(row.PRODUCT_CATEGORY, row.TOTAL_REVENUE); // UPPERCASE fields
+});
+```
+
+<Warning>
+Result field names are **UPPERCASE**. Access `row.TOTAL_REVENUE`, not `row.total_revenue`.
+</Warning>
+
+## Configuration
+
+`new Jedify(config)` accepts:
+
+| Option | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `apiKey` | string | Yes | — | Your Jedify API key |
+| `baseUrl` | string | No | `https://api.jedify.com` | API base URL |
+| `timeout` | number | No | `30000` | Request timeout in milliseconds |
+| `maxRetries` | number | No | `3` | Retry attempts for 5xx errors |
+| `headers` | object | No | — | Custom headers added to every request |
+| `debug` | boolean | No | `false` | Enable debug logging |
+
+Get an API key from [app.jedify.com/settings/api-keys](https://app.jedify.com/settings/api-keys).
+
+## Methods
+
+### listFunctions(filters?)
+
+List available semantic functions.
+
+```typescript
+const result = await jedify.listFunctions({
+  search: 'revenue',  // optional: match name/description
+  category: 'sales',  // optional: filter by category
+  limit: 100,         // optional
+  offset: 0,          // optional
+});
+// result: { functions, total, limit, offset }
+```
+
+### getSchema(functionName)
+
+Get the full schema for one function — its input parameters, output columns, and example usage.
+
+```typescript
+const schema = await jedify.getSchema('_REVENUE_BY_PRODUCT');
+// schema: { function_id, name, description, parameters, output_schema, example_usage }
+```
+
+### call(functionName, parameters?, options?)
+
+Execute a function. Returns the data array directly and throws on error.
+
+```typescript
+const data = await jedify.call('_REVENUE_BY_PRODUCT', {
+  region: 'Europe',
+  start_date: '2025-01-01',
+  end_date: '2025-12-31',
+});
+```
+
+**Options**
+
+| Option | Type | Description |
+| --- | --- | --- |
+| `fetchAll` | boolean | Fetch all pages automatically |
+| `page` | number | Manual pagination: page number |
+| `limit` | number | Manual pagination: rows per page |
+| `timeout` | number | Override the default timeout |
+| `signal` | AbortSignal | Cancel the request |
+
+```typescript
+// Fetch every page in one call
+const allData = await jedify.call('_LARGE_DATASET', {}, { fetchAll: true });
+```
+
+## Error handling
+
+`call()` throws typed errors you can catch:
+
+```typescript
+import { JedifyExecutionError } from '@jedify/sdk';
+
+try {
+  const data = await jedify.call('_REVENUE', params);
+} catch (error) {
+  if (error instanceof JedifyExecutionError) {
+    console.error('Execution failed:', error.message);
+    console.error('SQL:', error.sqlExecuted);
+  }
+}
+```
+
+Available error classes:
+
+| Class | Meaning |
+| --- | --- |
+| `JedifyExecutionError` | The query failed to execute |
+| `JedifyValidationError` | Invalid parameters |
+| `JedifyHttpError` | HTTP error (401, 404, …) |
+| `JedifyTimeoutError` | Request timed out |
+| `JedifyNetworkError` | Network failure |
+
+## TypeScript
+
+Type the rows returned by `call()`:
+
+```typescript
+interface RevenueRow {
+  PRODUCT_CATEGORY: string; // UPPERCASE
+  TOTAL_REVENUE: number;
+}
+
+const data = await jedify.call<RevenueRow>('_REVENUE_BY_PRODUCT', {});
+```

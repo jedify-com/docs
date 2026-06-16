@@ -1,0 +1,104 @@
+---
+title: "Connect"
+icon: "plug"
+description: "Connect Claude Desktop or Cursor to Jedify through the @jedify/mcp-auth proxy."
+---
+
+You connect to Jedify's MCP server through the `@jedify/mcp-auth` proxy, run via `npx`. The configuration is the same across clients — only the location of the config file differs.
+
+## Prerequisites
+
+- An active Jedify account.
+- **Node.js 18 or higher** (the proxy runs with `npx`).
+- The client you want to use — **Claude Desktop** or **Cursor** — installed and up to date.
+
+## Step 1: Add the Jedify configuration
+
+Add this to your client's MCP configuration:
+
+```json
+{
+  "mcpServers": {
+    "jedify": {
+      "command": "npx",
+      "args": ["-y", "@jedify/mcp-auth"]
+    }
+  }
+}
+```
+
+This connects in **Asker mode** (the default). To use **Builder mode**, add `--builder` to `args` — see [Modes](modes) for the details.
+
+## Step 2: Find your client's config file
+
+<Tabs>
+  <Tab title="Claude Desktop">
+    Open the config file from **Settings → Developer → Edit Config**, or edit it directly:
+
+    **macOS**
+
+    ```text
+    ~/Library/Application Support/Claude/claude_desktop_config.json
+    ```
+
+    **Windows**
+
+    ```text
+    %APPDATA%\Claude\claude_desktop_config.json
+    ```
+
+    If the file doesn't exist, create it with `{}` and add the configuration from Step 1.
+  </Tab>
+  <Tab title="Cursor">
+    Open the config from the command palette (`Cmd+Shift+P` / `Ctrl+Shift+P` → **MCP Settings → Open MCP Settings**), or edit it directly:
+
+    **macOS / Linux**
+
+    ```text
+    ~/.cursor/mcp.json
+    ```
+
+    **Windows**
+
+    ```text
+    %APPDATA%\Cursor\mcp.json
+    ```
+
+    If the file doesn't exist, create it and add the configuration from Step 1.
+  </Tab>
+</Tabs>
+
+## Step 3: Restart your client
+
+Fully quit your client and reopen it so it picks up the new configuration.
+
+## Step 4: Authenticate
+
+The first time you use a Jedify tool, you'll be prompted to sign in. See [Authentication](authentication) for the sign-in flow and for the API-key alternative used on headless or shared machines.
+
+## Step 5: Verify
+
+Start a new conversation and ask:
+
+```text
+What data entities are available in our Jedify platform?
+```
+
+You should get a response describing your organization's data entities and semantic layer, confirming the connection.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Modes" icon="toggle-on" href="/mcp/modes">
+    Asker vs Builder, and how to switch.
+  </Card>
+  <Card title="Authentication" icon="key" href="/mcp/authentication">
+    Browser-based login or an API key.
+  </Card>
+  <Card title="Asker tools" icon="comments" href="/mcp/asker/tools-reference">
+    Analyze data in plain language.
+  </Card>
+  <Card title="Builder mode" icon="cube" href="/mcp/builder/semantic-functions">
+    Build dashboards with semantic functions.
+  </Card>
+</CardGroup>

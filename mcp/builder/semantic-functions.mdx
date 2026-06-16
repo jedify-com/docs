@@ -1,0 +1,77 @@
+---
+title: "Semantic functions"
+icon: "cube"
+description: "Reusable, parameterized queries you call by name — the foundation of Builder mode."
+---
+
+A **semantic function** is a reusable, parameterized query created from a question you've already validated. Once created, you call it by name with parameters — from the [SDK](sdk-reference) in your app, or from the [Builder tools](tools-reference) while developing.
+
+Because the query is built ahead of time, execution is deterministic and fast (typically under 500ms), with **no LLM step at runtime**. This is what makes semantic functions suitable for production dashboards and apps.
+
+## How it differs from Asker mode
+
+| | Asker mode | Semantic function |
+| --- | --- | --- |
+| Input | A natural language question | A function name + parameters |
+| When the query is built | Every time you ask | Once, when the function is created |
+| Runtime | Jedify interprets and generates the query | Runs the pre-built query directly |
+| Result | Answer, chart, explanation | Rows of data |
+
+## The lifecycle
+
+<Steps>
+  <Step title="Discover">
+    Check what already exists with `list_semantic_functions`. Most dashboards can be built from existing functions — only create new ones when there's a gap.
+  </Step>
+  <Step title="Create (if needed)">
+    Validate a question in Asker mode, then turn that result into a function with `create_semantic_function`. You name the values you want to expose as parameters.
+  </Step>
+  <Step title="Call">
+    Use the function by name — `jedify.call('_FUNCTION_NAME', params)` from the SDK at runtime, or `call_semantic_function` to test while developing.
+  </Step>
+</Steps>
+
+See [Examples](examples) for a full walkthrough, and the [Builder tools reference](tools-reference) for each tool.
+
+## What you can parameterize
+
+When you create a function, you list the values to expose as parameters. You can parameterize **values** that appear in the query — for example:
+
+- A dimension you filter on (region, status, country, category)
+- A date or datetime range
+- A numeric threshold or range
+- A list of values (an `IN` list)
+- A boolean toggle
+
+You **cannot** parameterize the structure of the query itself — table names, column names, which dimension you group by, or the SQL keywords. A function has one fixed shape with swappable value slots. If you need a different shape — a different grouping, a different table, or a filter the original question didn't include — create a separate function from a question that includes it.
+
+### Parameter types
+
+Each parameter has a type, which controls how its value is formatted into the query:
+
+| Type | Example value |
+| --- | --- |
+| `string` | `"active"` |
+| `number` | `100` |
+| `boolean` | `true` |
+| `date` | `"2025-01-01"` |
+| `datetime` | `"2025-01-01T00:00:00Z"` |
+| `array<string>` | `["US", "Canada"]` |
+| `array<number>` | `[101, 102, 103]` |
+
+Each parameter is either **required** or has a **default** taken from the original query, so a function runs even when you don't pass every parameter.
+
+## Naming
+
+Function names start with an underscore and use `UPPER_CASE_WITH_UNDERSCORES` — for example `_REVENUE_BY_PRODUCT` or `_CHURN_BY_REGION`.
+
+## Validation
+
+When a function is created, Jedify validates it by running it once with its default parameters:
+
+- **Active** — the function ran successfully and is ready to call.
+- **Failed validation** — the function couldn't run; it's saved with the error but can't be called until the issue is resolved.
+
+<Note>
+Query results come back with **UPPERCASE** column names. Access fields as `row.TOTAL_REVENUE`, not `row.total_revenue`. See the [SDK reference](sdk-reference) for details.
+</Note>

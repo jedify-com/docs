@@ -1,0 +1,167 @@
+---
+title: "Examples"
+icon: "chart-line"
+description: "Build a dashboard end to end — from discovering functions to deployed code."
+---
+
+This walkthrough goes from nothing to a working dashboard using [semantic functions](semantic-functions), the [Builder tools](tools-reference), and the [SDK](sdk-reference). Connect in [Builder mode](/mcp/modes) first.
+
+## Step 1: Discover functions
+
+Ask your client to list what's available, or call the tool directly:
+
+```text
+List available semantic functions related to revenue
+```
+
+```text
+list_semantic_functions({ search: "revenue" })
+```
+
+Inspect any function's parameters and output before you use it:
+
+```text
+get_function_schema({ function_name: "_REVENUE_BY_PRODUCT" })
+```
+
+## Step 2: Create a function if one is missing
+
+If no existing function covers your need, validate the question first, then create a function from it.
+
+```text
+ask_a_single_question({ question: "Show me customer churn by region for Q4 2024" })
+```
+
+After verifying the result looks right, turn that inquiry into a function:
+
+```text
+create_semantic_function({
+  source_inquiry_id: "inquiry_abc123",
+  function_name: "_CHURN_BY_REGION",
+  description: "Customer churn breakdown by region",
+  parameterize: ["region", "date_range"]
+})
+```
+
+The function is now callable by name. Repeat for each missing piece.
+
+## Step 3: Generate the dashboard code
+
+Describe the dashboard to your AI client and have it generate code that uses the SDK. For example:
+
+```text
+Create a React dashboard showing revenue by product over time using
+_REVENUE_BY_PRODUCT. Include a date range selector, a bar chart, and a
+table view. Use the @jedify/sdk and handle loading and error states.
+```
+
+## Step 4: Install and configure the SDK
+
+```bash
+npm install @jedify/sdk
+```
+
+```bash
+# .env.local
+JEDIFY_API_KEY=your-api-key
+JEDIFY_BASE_URL=your-base-url
+```
+
+## Step 5: Call functions from your code
+
+A single metric, with loading and error states:
+
+```typescript
+import { Jedify } from '@jedify/sdk';
+import { useState, useEffect } from 'react';
+
+const jedify = new Jedify({
+  apiKey: process.env.JEDIFY_API_KEY!,
+  baseUrl: process.env.JEDIFY_BASE_URL,
+});
+
+function TotalRevenue({ dateRange }) {
+  const [revenue, setRevenue] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const data = await jedify.call('_TOTAL_REVENUE', {
+          start_date: dateRange.start,
+          end_date: dateRange.end,
+        });
+        setRevenue(data[0].TOTAL_REVENUE); // UPPERCASE field
+      } catch (err) {
+        setError((err as Error).message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [dateRange]);
+
+  if (loading) return <Spinner />;
+  if (error) return <ErrorMessage error={error} />;
+  return <MetricCard title="Total Revenue" value={revenue} format="currency" />;
+}
+```
+
+Multiple charts, fetched in parallel:
+
+```typescript
+import { Jedify } from '@jedify/sdk';
+import { useState, useEffect } from 'react';
+import { BarChart, Bar, XAxis, YAxis } from 'recharts';
+
+const jedify = new Jedify({
+  apiKey: process.env.JEDIFY_API_KEY!,
+  baseUrl: process.env.JEDIFY_BASE_URL,
+});
+
+function RevenueDashboard({ filters }) {
+  const [byProduct, setByProduct] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadAll() {
+      try {
+        const [productData] = await Promise.all([
+          jedify.call('_REVENUE_BY_PRODUCT', {
+            start_date: filters.startDate,
+            end_date: filters.endDate,
+            region: filters.region,
+          }),
+        ]);
+        setByProduct(productData);
+      } catch (err) {
+        console.error('Failed to load dashboard data:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadAll();
+  }, [filters]);
+
+  if (loading) return <Spinner />;
+
+  return (
+    <BarChart data={byProduct} width={600} height={300}>
+      <XAxis dataKey="PRODUCT_CATEGORY" />
+      <YAxis />
+      <Bar dataKey="TOTAL_REVENUE" fill="#6E6DF2" />
+    </BarChart>
+  );
+}
+```
+
+<Note>
+Field names in results are **UPPERCASE** — `row.TOTAL_REVENUE`, and chart `dataKey` values like `PRODUCT_CATEGORY` must match.
+</Note>
+
+## Step 6: Verify before shipping
+
+When generating code with an AI client, confirm it followed Builder best practices with `process_verification` — see the [Builder tools reference](tools-reference#process_verification) for the full checklist.
+
+Runtime code should use **only** the SDK (`jedify.call(...)`). The MCP tools (`ask_a_single_question`, `call_semantic_function`, and the rest) are for development and exploration, not for your deployed app.

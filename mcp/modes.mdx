@@ -1,0 +1,78 @@
+---
+title: "Modes"
+icon: "toggle-on"
+description: "Jedify MCP runs in two modes — Asker and Builder. Same connection, different tools."
+---
+
+Jedify's MCP server exposes two modes. The connection and authentication are identical — the mode only changes which tools your client sees.
+
+- **Asker** _(default)_ — natural language data analysis. Ask questions, get answers and charts.
+- **Builder** — programmatic access to semantic functions and the TypeScript SDK for building dashboards and apps.
+
+## Choose your mode
+
+| | Asker mode | Builder mode |
+| --- | --- | --- |
+| **Best for** | Data analysts, business users, executives | Developers, data engineers, app builders |
+| **Primary use** | Ad-hoc data exploration via questions | Building dashboards and data applications |
+| **Interface** | Natural language questions | Semantic functions + TypeScript SDK |
+| **Execution** | LLM generates SQL (2–5s) | Pre-built queries (under 500ms) |
+| **Tools** | Questioning and analysis tools | Function management and SDK tools |
+
+## Asker mode
+
+Ask questions about your business data in plain language. Jedify interprets the question, generates SQL against your semantic layer, runs it, and returns an answer with charts and an explanation.
+
+Best for data analysts, business users, and executives doing ad-hoc exploration, investigations, and reporting.
+
+<CardGroup cols={2}>
+  <Card title="Asker tools" icon="wrench" href="/mcp/asker/tools-reference">
+    Every tool available in Asker mode.
+  </Card>
+  <Card title="Use cases" icon="lightbulb" href="/mcp/asker/use-cases">
+    Practical analysis workflows.
+  </Card>
+</CardGroup>
+
+## Builder mode
+
+Work with **semantic functions** — pre-built, parameterized queries you call by name — and the `@jedify/sdk` TypeScript SDK. Because the query is built ahead of time, execution is deterministic and fast (under 500ms), with no LLM step at runtime.
+
+Best for developers building dashboards, embedded analytics, and data applications.
+
+<CardGroup cols={2}>
+  <Card title="Semantic functions" icon="cube" href="/mcp/builder/semantic-functions">
+    What they are and how they're created.
+  </Card>
+  <Card title="Builder tools" icon="wrench" href="/mcp/builder/tools-reference">
+    The six Builder-mode tools.
+  </Card>
+  <Card title="SDK reference" icon="code" href="/mcp/builder/sdk-reference">
+    The `@jedify/sdk` TypeScript SDK.
+  </Card>
+  <Card title="Examples" icon="chart-line" href="/mcp/builder/examples">
+    Build a dashboard end to end.
+  </Card>
+</CardGroup>
+
+## Switching modes
+
+Asker mode is the default — no flag needed. To run in Builder mode, add `--builder` to the proxy `args`:
+
+```json
+{
+  "mcpServers": {
+    "jedify": {
+      "command": "npx",
+      "args": ["-y", "@jedify/mcp-auth", "--builder"]
+    }
+  }
+}
+```
+
+| `args` | Mode |
+| --- | --- |
+| `["-y", "@jedify/mcp-auth"]` | Asker _(default)_ |
+| `["-y", "@jedify/mcp-auth", "--builder"]` | Builder |
+
+See [Connect](connect) for where this config goes in each client, and [Authentication](authentication) for how to sign in.
