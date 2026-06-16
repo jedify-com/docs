@@ -1,47 +1,40 @@
 ---
 title: "SDK Reference"
 icon: "code"
-description: "The @jedify/sdk TypeScript SDK for calling semantic functions from your application."
+description: "The @jedify/sdk your agent uses to call functions from the app it builds."
 ---
 
-`@jedify/sdk` is the TypeScript SDK for calling [semantic functions](semantic-functions) from your own code at runtime. This is what your generated dashboard code uses — not the MCP tools.
+`@jedify/sdk` is the TypeScript SDK that calls [semantic functions](semantic-functions) from a running app. **Your agent writes this code for you** — you don't need to. This page is here so you can review what your agent generates, and so a developer on your team has a reference. (The MCP tools are for building; the SDK is what the finished app uses at runtime.)
 
-## Installation
+<Note>
+**Not a developer?** You don't need to read the code below. When you review what your agent built, just check three things: it calls each function by name, it wires every filter control to a parameter, and it shows sensible "loading" and "no data" states. If a number or chart looks wrong, tell your agent — you don't have to fix it yourself.
+</Note>
+
+## What your agent sets up
 
 ```bash
 npm install @jedify/sdk
 ```
-
-Requires Node.js 18+ and (for type definitions) TypeScript 5.0+.
-
-## Quick start
 
 ```typescript
 import { Jedify } from '@jedify/sdk';
 
 const jedify = new Jedify({
   apiKey: process.env.JEDIFY_API_KEY,   // required
-  baseUrl: process.env.JEDIFY_BASE_URL, // optional
+  baseUrl: process.env.JEDIFY_BASE_URL, // your environment's URL
 });
 
-// List available functions
-const { functions } = await jedify.listFunctions();
-
-// Call a function — returns the data array directly
-const data = await jedify.call('_REVENUE_BY_PRODUCT', {
-  region: 'North America',
-  start_date: '2025-01-01',
-  end_date: '2025-03-31',
-});
-
-data.forEach(row => {
-  console.log(row.PRODUCT_CATEGORY, row.TOTAL_REVENUE); // UPPERCASE fields
+// Call a function by name — returns the rows directly
+const data = await jedify.call('_COMPLETION_BY_DEPARTMENT', {
+  department: 'R&D',
+  start_date: '2026-01-01',
+  end_date: '2026-06-30',
 });
 ```
 
-<Warning>
-Result field names are **UPPERCASE**. Access `row.TOTAL_REVENUE`, not `row.total_revenue`.
-</Warning>
+<Note>
+**Use the exact column names from the function's schema.** Returned field names follow how the function's query is written — they're often uppercase (e.g. `TOTAL_REVENUE`) but not always, and some can contain spaces. Have your agent read the schema (or one returned row) and match the names exactly. Some numeric values may arrive as text, so the generated code should coerce numbers where it does math.
+</Note>
 
 ## Configuration
 
@@ -50,69 +43,49 @@ Result field names are **UPPERCASE**. Access `row.TOTAL_REVENUE`, not `row.total
 | Option | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
 | `apiKey` | string | Yes | — | Your Jedify API key |
-| `baseUrl` | string | No | `https://api.jedify.com` | API base URL |
-| `timeout` | number | No | `30000` | Request timeout in milliseconds |
+| `baseUrl` | string | No | `https://api.jedify.com` | API base URL for your environment |
+| `timeout` | number | No | `30000` | Request timeout (ms) |
 | `maxRetries` | number | No | `3` | Retry attempts for 5xx errors |
-| `headers` | object | No | — | Custom headers added to every request |
-| `debug` | boolean | No | `false` | Enable debug logging |
+| `headers` | object | No | — | Custom headers on every request |
+| `debug` | boolean | No | `false` | Verbose logging |
 
-Get an API key from [app.jedify.com/settings/api-keys](https://app.jedify.com/settings/api-keys).
+Get an API key from [app.jedify.com/settings/api-keys](https://app.jedify.com/settings/api-keys), and use the base URL for the environment your key belongs to.
 
 ## Methods
 
-### listFunctions(filters?)
+### `listFunctions(filters?)`
 
-List available semantic functions.
+List the available functions.
 
 ```typescript
-const result = await jedify.listFunctions({
-  search: 'revenue',  // optional: match name/description
-  category: 'sales',  // optional: filter by category
-  limit: 100,         // optional
-  offset: 0,          // optional
-});
-// result: { functions, total, limit, offset }
+const { functions } = await jedify.listFunctions({ search: 'revenue' });
 ```
 
-### getSchema(functionName)
+### `getSchema(functionName)`
 
-Get the full schema for one function — its input parameters, output columns, and example usage.
+Get one function's parameters, output columns, and example usage.
 
 ```typescript
-const schema = await jedify.getSchema('_REVENUE_BY_PRODUCT');
-// schema: { function_id, name, description, parameters, output_schema, example_usage }
+const schema = await jedify.getSchema('_REVENUE_BY_REGION');
 ```
 
-### call(functionName, parameters?, options?)
+### `call(functionName, parameters?, options?)`
 
-Execute a function. Returns the data array directly and throws on error.
+Run a function. Returns the rows directly and throws on error.
 
 ```typescript
-const data = await jedify.call('_REVENUE_BY_PRODUCT', {
-  region: 'Europe',
-  start_date: '2025-01-01',
-  end_date: '2025-12-31',
-});
+const data = await jedify.call('_REVENUE_BY_REGION', { region: 'US', start_date: '2026-01-01', end_date: '2026-06-30' });
 ```
 
-**Options**
-
-| Option | Type | Description |
-| --- | --- | --- |
-| `fetchAll` | boolean | Fetch all pages automatically |
-| `page` | number | Manual pagination: page number |
-| `limit` | number | Manual pagination: rows per page |
-| `timeout` | number | Override the default timeout |
-| `signal` | AbortSignal | Cancel the request |
+Options: `fetchAll` (auto-page through everything), `page` / `limit` (manual paging), `timeout`, `signal` (cancel).
 
 ```typescript
-// Fetch every page in one call
 const allData = await jedify.call('_LARGE_DATASET', {}, { fetchAll: true });
 ```
 
 ## Error handling
 
-`call()` throws typed errors you can catch:
+`call()` throws typed errors the generated code can catch:
 
 ```typescript
 import { JedifyExecutionError } from '@jedify/sdk';
@@ -121,13 +94,10 @@ try {
   const data = await jedify.call('_REVENUE', params);
 } catch (error) {
   if (error instanceof JedifyExecutionError) {
-    console.error('Execution failed:', error.message);
-    console.error('SQL:', error.sqlExecuted);
+    console.error('Execution failed:', error.message, error.sqlExecuted);
   }
 }
 ```
-
-Available error classes:
 
 | Class | Meaning |
 | --- | --- |
@@ -139,13 +109,9 @@ Available error classes:
 
 ## TypeScript
 
-Type the rows returned by `call()`:
+Rows can be typed — match the field names to the function's output schema:
 
 ```typescript
-interface RevenueRow {
-  PRODUCT_CATEGORY: string; // UPPERCASE
-  TOTAL_REVENUE: number;
-}
-
-const data = await jedify.call<RevenueRow>('_REVENUE_BY_PRODUCT', {});
+interface RevenueRow { REGION: string; TOTAL_REVENUE: number; }
+const data = await jedify.call<RevenueRow>('_REVENUE_BY_REGION', {});
 ```

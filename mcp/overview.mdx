@@ -4,14 +4,18 @@ icon: "circle-info"
 description: "Connect AI assistants and IDEs to your Jedify semantic layer over the Model Context Protocol."
 ---
 
-The Model Context Protocol (MCP) is an open standard that lets AI assistants and IDEs connect securely to external data sources and tools. Jedify's MCP server gives clients like Claude Desktop and Cursor direct access to your organization's semantic layer.
+The Model Context Protocol (MCP) is an open standard that lets AI agents connect securely to external data and tools. Jedify's MCP server gives your agent — **Claude Desktop**, **Cursor**, or a **hosted AI agent or app builder** — direct access to your organization's data through its semantic layer.
 
-You connect through the `@jedify/mcp-auth` proxy. The same proxy serves two [modes](modes):
+There are two [modes](modes):
 
-- **Asker** _(default)_ — natural language data analysis for analysts and business users.
-- **Builder** — programmatic access to semantic functions and the TypeScript SDK for developers building dashboards and apps.
+- **Asker** _(default)_ — ask questions in plain language and get answers, charts, and explanations.
+- **Builder** — have your agent build data apps and dashboards: it creates reusable **semantic functions** and writes the app code that calls them.
 
-The connection and authentication are the same for both; the mode only changes which tools the client sees.
+You steer your agent in plain language; it uses the Jedify tools. The connection and authentication are the same for both modes; the mode only changes which tools your agent gets.
+
+<Note>
+**Building a dashboard or app?** Read these in order: [Connect](/mcp/connect) → [Semantic functions](/mcp/builder/semantic-functions) → [Examples](/mcp/builder/examples). **Just want to ask questions?** See [Asker examples](/mcp/asker/use-cases).
+</Note>
 
 ## Get started
 
@@ -20,7 +24,7 @@ The connection and authentication are the same for both; the mode only changes w
     Compare Asker and Builder, and learn how to switch.
   </Card>
   <Card title="Connect" icon="plug" href="/mcp/connect">
-    Set up Claude Desktop or Cursor.
+    Set up Claude Desktop, Cursor, or a hosted agent.
   </Card>
   <Card title="Authentication" icon="key" href="/mcp/authentication">
     Browser-based login or an API key.
@@ -37,7 +41,7 @@ The connection and authentication are the same for both; the mode only changes w
     Ask questions in plain language and get answers, charts, and explanations from your data.
   </Card>
   <Card title="Builder mode" icon="cube" href="/mcp/builder/semantic-functions">
-    Call pre-built semantic functions from your own code with deterministic, sub-500ms execution.
+    Steer your agent to build dashboards on reusable semantic functions — they load instantly and show the same numbers every time.
   </Card>
 </CardGroup>
 

@@ -1,167 +1,100 @@
 ---
 title: "Examples"
 icon: "chart-line"
-description: "Build a dashboard end to end — from discovering functions to deployed code."
+description: "How a real build conversation goes — what you say, what your agent does, what you review."
 ---
 
-This walkthrough goes from nothing to a working dashboard using [semantic functions](semantic-functions), the [Builder tools](tools-reference), and the [SDK](sdk-reference). Connect in [Builder mode](/mcp/modes) first.
+This walks through building a dashboard the way it actually happens: **you describe it, your agent does the work.** Connect in [Builder mode](/mcp/modes) first, then talk to your agent in plain language.
 
-## Step 1: Discover functions
+The example: a **team training dashboard** — completion rates with a couple of charts, filterable by department and office, over a date range.
 
-Ask your client to list what's available, or call the tool directly:
+## 1. Describe what you want
 
-```text
-List available semantic functions related to revenue
-```
+**You say:**
 
 ```text
-list_semantic_functions({ search: "revenue" })
+Build a training dashboard for our team. I want:
+- a number showing overall completion rate
+- a bar chart of completion by department
+- filters for department and office, and a date range
+Use the data in Jedify.
 ```
 
-Inspect any function's parameters and output before you use it:
+That's enough to start. You don't need to know function names, SQL, or the SDK — your agent works those out.
+
+## 2. Let your agent find or create the functions
+
+**What your agent does:** it first checks what already exists (`list_semantic_functions`). For anything missing, it asks Jedify a question, confirms the numbers look right, and saves it as a function — exposing the filters you asked for.
+
+**What you review:** when it shows you a result, sanity-check it. A good prompt here:
 
 ```text
-get_function_schema({ function_name: "_REVENUE_BY_PRODUCT" })
+Before you save it, call the completion-by-department function for R&D
+and show me the numbers so I can confirm they look right.
 ```
 
-## Step 2: Create a function if one is missing
+Your agent ends up with functions like:
 
-If no existing function covers your need, validate the question first, then create a function from it.
+| Function | Filters (parameters) |
+| --- | --- |
+| `_COMPLETION_RATE` | department, office, date range |
+| `_COMPLETION_BY_DEPARTMENT` | office, date range |
 
-```text
-ask_a_single_question({ question: "Show me customer churn by region for Q4 2024" })
-```
+Two things to notice. There's a **separate function per breakdown** — the "by department" chart is its own function (ask for "by office" too and you'd get a third). And `_COMPLETION_BY_DEPARTMENT` has **no department filter** — you don't filter by the field you're already breaking down by.
 
-After verifying the result looks right, turn that inquiry into a function:
+## 3. Let your agent build the app
 
-```text
-create_semantic_function({
-  source_inquiry_id: "inquiry_abc123",
-  function_name: "_CHURN_BY_REGION",
-  description: "Customer churn breakdown by region",
-  parameterize: ["region", "date_range"]
-})
-```
-
-The function is now callable by name. Repeat for each missing piece.
-
-## Step 3: Generate the dashboard code
-
-Describe the dashboard to your AI client and have it generate code that uses the SDK. For example:
-
-```text
-Create a React dashboard showing revenue by product over time using
-_REVENUE_BY_PRODUCT. Include a date range selector, a bar chart, and a
-table view. Use the @jedify/sdk and handle loading and error states.
-```
-
-## Step 4: Install and configure the SDK
-
-```bash
-npm install @jedify/sdk
-```
-
-```bash
-# .env.local
-JEDIFY_API_KEY=your-api-key
-JEDIFY_BASE_URL=your-base-url
-```
-
-## Step 5: Call functions from your code
-
-A single metric, with loading and error states:
+**What your agent does:** generates the dashboard — UI, charts, and the data calls — wiring your filter controls to the function parameters through the Jedify SDK. You don't write this; here's the *kind* of code it produces, so you know what to expect:
 
 ```typescript
 import { Jedify } from '@jedify/sdk';
-import { useState, useEffect } from 'react';
 
-const jedify = new Jedify({
-  apiKey: process.env.JEDIFY_API_KEY!,
-  baseUrl: process.env.JEDIFY_BASE_URL,
+const jedify = new Jedify({ apiKey: process.env.JEDIFY_API_KEY, baseUrl: process.env.JEDIFY_BASE_URL });
+
+// filters from the dashboard's controls
+const data = await jedify.call('_COMPLETION_BY_DEPARTMENT', {
+  office: filters.office,          // optional — leave out for "all offices"
+  start_date: filters.startDate,   // date range is required
+  end_date: filters.endDate,
 });
-
-function TotalRevenue({ dateRange }) {
-  const [revenue, setRevenue] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function load() {
-      try {
-        const data = await jedify.call('_TOTAL_REVENUE', {
-          start_date: dateRange.start,
-          end_date: dateRange.end,
-        });
-        setRevenue(data[0].TOTAL_REVENUE); // UPPERCASE field
-      } catch (err) {
-        setError((err as Error).message);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, [dateRange]);
-
-  if (loading) return <Spinner />;
-  if (error) return <ErrorMessage error={error} />;
-  return <MetricCard title="Total Revenue" value={revenue} format="currency" />;
-}
+// render data using the exact field names the function returns
 ```
 
-Multiple charts, fetched in parallel:
-
-```typescript
-import { Jedify } from '@jedify/sdk';
-import { useState, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis } from 'recharts';
-
-const jedify = new Jedify({
-  apiKey: process.env.JEDIFY_API_KEY!,
-  baseUrl: process.env.JEDIFY_BASE_URL,
-});
-
-function RevenueDashboard({ filters }) {
-  const [byProduct, setByProduct] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function loadAll() {
-      try {
-        const [productData] = await Promise.all([
-          jedify.call('_REVENUE_BY_PRODUCT', {
-            start_date: filters.startDate,
-            end_date: filters.endDate,
-            region: filters.region,
-          }),
-        ]);
-        setByProduct(productData);
-      } catch (err) {
-        console.error('Failed to load dashboard data:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadAll();
-  }, [filters]);
-
-  if (loading) return <Spinner />;
-
-  return (
-    <BarChart data={byProduct} width={600} height={300}>
-      <XAxis dataKey="PRODUCT_CATEGORY" />
-      <YAxis />
-      <Bar dataKey="TOTAL_REVENUE" fill="#6E6DF2" />
-    </BarChart>
-  );
-}
-```
+Optional filters (like `office`) can be left out to mean "all"; the date range must always be supplied.
 
 <Note>
-Field names in results are **UPPERCASE** — `row.TOTAL_REVENUE`, and chart `dataKey` values like `PRODUCT_CATEGORY` must match.
+**Two places, two purposes.** The MCP connection you set up in your platform (server URL + API key) lets your agent *build*. The finished app needs its **own** credentials to *run* — `JEDIFY_API_KEY` and `JEDIFY_BASE_URL` (`https://api.jedify.com`) stored as your platform's app secrets. Skip this and the published dashboard loads blank. See [Authentication](/mcp/authentication#how-your-live-app-stays-connected).
 </Note>
 
-## Step 6: Verify before shipping
+## 4. Review and adjust
 
-When generating code with an AI client, confirm it followed Builder best practices with `process_verification` — see the [Builder tools reference](tools-reference#process_verification) for the full checklist.
+Steer the result like you would a designer:
 
-Runtime code should use **only** the SDK (`jedify.call(...)`). The MCP tools (`ask_a_single_question`, `call_semantic_function`, and the rest) are for development and exploration, not for your deployed app.
+```text
+Make the office filter optional so the default shows all offices.
+Add a second chart: completion by office.
+Show the completion rate as a percentage.
+```
+
+Good things to check:
+- **Filters actually filter** — change a filter, confirm the numbers change.
+- **"All" works** — clearing an optional filter shows everything.
+- **Field names match** — the app reads the exact column names each function returns.
+
+## 5. Before it ships
+
+Ask your agent to confirm it ran its own checks:
+
+```text
+Did you run the verification check? Confirm functions are reused where possible,
+the runtime uses only the SDK, and there's loading and error handling.
+```
+
+Your agent self-checks with `process_verification` before reporting done. Once that passes, the dashboard runs on its own — each function call returns quickly, with no AI in the loop.
+
+## Steering tips
+
+- **Reuse first** — tell your agent to check existing functions before creating new ones.
+- **One breakdown per chart** — each "by X" view is its own function; just ask for each.
+- **Say which filters are optional** — so your "All" options work.
+- **Always confirm a live call** — have your agent run a function with real filter values and show you the rows before trusting it.

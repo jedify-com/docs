@@ -1,125 +1,70 @@
 ---
 title: "Builder Tools Reference"
 icon: "wrench"
-description: "The six tools available in Builder mode for managing and using semantic functions."
+description: "The six tools your agent uses in Builder mode — and how to steer it to use them."
 ---
 
-These tools are available when you connect in [Builder mode](/mcp/modes) (`--builder`). They cover discovering, inspecting, creating, and testing [semantic functions](semantic-functions), plus SDK guidance and a pre-ship checklist. Builder mode also includes the shared semantic-layer and account tools.
+These are the tools your AI agent gets when you connect in [Builder mode](/mcp/modes). **You don't call them — your agent does.** This page shows what each one does and what to say to get your agent to use it well.
 
-| Tool | Purpose |
+| Tool | What your agent uses it for |
 | --- | --- |
-| `list_semantic_functions` | Browse available functions |
-| `get_function_schema` | Inspect one function's parameters and output |
-| `call_semantic_function` | Test a function while developing |
-| `create_semantic_function` | Create a function from a validated question |
-| `get_sdk_info` | SDK installation and usage guidance |
-| `process_verification` | Pre-ship checklist for generated code |
+| `list_semantic_functions` | Find functions that already exist |
+| `get_function_schema` | Read a function's parameters and output |
+| `call_semantic_function` | Try a function out while building |
+| `create_semantic_function` | Save a validated question as a reusable function |
+| `get_sdk_info` | Look up how to call functions from app code |
+| `process_verification` | Self-check the work before reporting done |
 
-## Function management
+## Discovering and inspecting
 
 ### list_semantic_functions
 
-Browse the semantic functions available in your account. Use this **first** — most dashboards can reuse existing functions, so only create new ones when there's a gap.
+Your agent lists the functions already defined for your account. **Reuse comes first** — most dashboards can be built largely from functions that already exist, so a good agent always checks before creating new ones.
 
-**Parameters** (all optional)
+> **Steer it:** *"First check what semantic functions we already have for revenue before building anything new."*
 
-| Name | Type | Description |
-| --- | --- | --- |
-| `search` | string | Match against function names and descriptions |
-| `category` | string | Filter by category (e.g. `revenue`, `churn`) |
-| `limit` | integer | Max results to return (default 100, max 1000) |
-| `offset` | integer | Pagination offset (default 0) |
-
-```text
-list_semantic_functions({ search: "revenue" })
-```
+Filters (all optional): `search`, `category`, `limit` (default 100, max 1000), `offset`.
 
 ### get_function_schema
 
-Get the full schema for one function — its parameters (types, required/optional, defaults) and its output columns. Use this before writing SDK calls so you pass the right parameters.
+Reads one function's full schema — its parameters (types, required/optional, defaults) and its output columns — so your agent knows exactly how to call it and what it returns.
 
-**Parameters**
+> **Steer it:** *"Show me the parameters and output of `_REVENUE_BY_REGION` before you wire it up."*
 
-| Name | Type | Required | Description |
-| --- | --- | --- | --- |
-| `function_name` | string | Yes | The function to inspect (e.g. `_REVENUE_BY_PRODUCT`) |
-
-```text
-get_function_schema({ function_name: "_REVENUE_BY_PRODUCT" })
-```
+Parameter: `function_name` (required).
 
 ### call_semantic_function
 
-Run a function and preview its results while developing.
+Runs a function and shows the result **while building**, so you and your agent can confirm it returns what you expect.
 
 <Warning>
-This is for **testing inside MCP only**. In the dashboard code you generate, call functions through the SDK with `jedify.call(...)`, not this tool. See the [SDK reference](sdk-reference).
+This is for trying functions out during the build. In the dashboard your agent ships, functions are called through the **SDK** (`jedify.call(...)`), not this tool — see the [SDK reference](sdk-reference).
 </Warning>
 
-**Parameters**
+> **Steer it:** *"Call `_COMPLETION_BY_DEPARTMENT` for R&D and show me the numbers so we can sanity-check it."*
 
-| Name | Type | Required | Description |
-| --- | --- | --- | --- |
-| `function_name` | string | Yes | The function to run |
-| `parameters` | object | No | Parameter values as key–value pairs |
+Parameters: `function_name` (required), `parameters` (the filter values).
 
-```text
-call_semantic_function({
-  function_name: "_REVENUE_BY_PRODUCT",
-  parameters: { region: "North America", start_date: "2025-01-01", end_date: "2025-03-31" }
-})
-```
+## Creating
 
 ### create_semantic_function
 
-Turn a question you've already validated (an inquiry) into a reusable function. After creation, the function can be called by name from the SDK.
+Turns a question your agent has **already asked and verified** into a reusable function, exposing the filters you asked for as parameters.
 
-**Parameters** (all required)
+> **Steer it:** *"That completion-by-department result looks right — save it as a function with department and date range as optional filters."*
 
-| Name | Type | Description |
-| --- | --- | --- |
-| `source_inquiry_id` | string | The inquiry to turn into a function |
-| `function_name` | string | Must start with `_` and use `UPPER_CASE_WITH_UNDERSCORES` |
-| `description` | string | What the function does |
-| `parameterize` | array of strings | The values to expose as parameters (e.g. `["region", "date_range"]`) |
+What your agent provides: the source question it validated, a name, a description, and the list of values to expose as filters. See [semantic functions](semantic-functions) for what can and can't be a filter (and the one-breakdown-per-function rule).
 
-```text
-create_semantic_function({
-  source_inquiry_id: "inquiry_abc123",
-  function_name: "_CHURN_BY_REGION",
-  description: "Customer churn breakdown by region",
-  parameterize: ["region", "date_range"]
-})
-```
-
-See [semantic functions](semantic-functions) for what can and can't be parameterized.
-
-## Development
+## Building the app
 
 ### get_sdk_info
 
-Return SDK installation instructions, usage examples, and the documentation link — useful when generating dashboard code.
+Returns the SDK package name, install command, and usage examples so the code your agent generates calls functions correctly.
 
-**Parameters**
-
-| Name | Type | Description |
-| --- | --- | --- |
-| `language` | string | `typescript` (default) or `python` |
-
-```text
-get_sdk_info()
-```
+> You rarely need to steer this — your agent uses it automatically when writing the app. See the [SDK reference](sdk-reference) for what it produces.
 
 ### process_verification
 
-A checklist to confirm generated dashboard code follows Builder best practices before you finish. Each field is a boolean you set to `true` once confirmed.
+Before your agent tells you "the dashboard is ready," it runs this self-check — confirming it reused existing functions, used the right field names, added loading and error states, and kept the runtime code SDK-only (no build-time tools shipped into the app).
 
-| Field | Confirms |
-| --- | --- |
-| `api_key_configured` | The code requires/uses an API key |
-| `uppercase_fields_used` | Data fields are accessed in UPPERCASE |
-| `design_system_applied` | A consistent design system is applied |
-| `error_handling_implemented` | `jedify.call()` invocations are wrapped in error handling |
-| `loading_states_added` | Loading states are shown while data fetches |
-| `functions_discovered_first` | Existing functions were checked before creating new ones |
-| `sdk_only_in_runtime` | Runtime code uses only the SDK (no MCP tools) |
+> Think of it as your agent's pre-flight checklist. If something here fails, a good agent fixes it before reporting done — you can also ask *"did you run the verification check?"*
