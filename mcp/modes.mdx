@@ -1,22 +1,23 @@
 ---
 title: "Modes"
 icon: "toggle-on"
-description: "Jedify MCP runs in two modes — Asker and Builder. Same connection, different tools."
+description: "Jedify MCP runs in three modes — Asker, Editor, and Builder. Same connection, different tools."
 ---
 
-Jedify's MCP server exposes two modes. The connection and authentication are identical — the mode only changes which tools your client sees.
+Jedify's MCP server exposes three modes. The connection and authentication are identical — the mode only changes which tools your client sees.
 
 - **Asker** _(default)_ — ask questions in plain language; get data back.
+- **Editor** — have your agent propose changes to your semantic layer for human review.
 - **Builder** — have your agent build data apps and dashboards using Jedify's semantic functions.
 
 ## Choose your mode
 
-| | Asker mode | Builder mode |
-| --- | --- | --- |
-| **Best for** | Ad-hoc questions and analysis | Building dashboards and data apps |
-| **How you use it** | You ask, in conversation | You describe; your agent builds |
-| **Speed** | A few seconds — generated per question | Instant — prebuilt, no AI at runtime |
-| **Tools your agent gets** | Questioning and analysis | The above, plus function management and SDK |
+| | Asker mode | Editor mode | Builder mode |
+| --- | --- | --- | --- |
+| **Best for** | Ad-hoc questions and analysis | Evolving the semantic layer itself | Building dashboards and data apps |
+| **How you use it** | You ask, in conversation | You describe a change; your agent proposes it for review | You describe; your agent builds |
+| **Speed** | A few seconds — generated per question | Edits await human approval | Instant — prebuilt, no AI at runtime |
+| **Tools your agent gets** | Questioning and analysis | The above, plus semantic-layer editing | The above, plus function management and SDK |
 
 ## Asker mode
 
@@ -30,6 +31,10 @@ Ask a question in plain language. Jedify interprets it against your semantic lay
     Example prompts and what your agent does.
   </Card>
 </CardGroup>
+
+## Editor mode
+
+Describe a change to your semantic layer — a new entity, a relationship, a dimension — and your agent proposes it as a batch of edits. Jedify validates the changes and stages them as review-pending edit sessions; nothing takes effect until a human approves them.
 
 ## Builder mode
 
@@ -52,7 +57,7 @@ Describe the dashboard or app you want; your agent builds it using **semantic fu
 
 ## Switching modes
 
-Asker mode is the default — no flag needed. To run in Builder mode, add `--builder` to the proxy `args`:
+Asker mode is the default — no flag needed. To run in Editor or Builder mode, add the matching flag to the proxy `args`:
 
 ```json
 {
@@ -68,6 +73,7 @@ Asker mode is the default — no flag needed. To run in Builder mode, add `--bui
 | `args` | Mode |
 | --- | --- |
 | `["-y", "@jedify/mcp-auth"]` | Asker _(default)_ |
+| `["-y", "@jedify/mcp-auth", "--editor"]` | Editor |
 | `["-y", "@jedify/mcp-auth", "--builder"]` | Builder |
 
 On a **hosted agent or app builder** (no local proxy), select Builder mode with the URL `https://be.jedify.com/mcp/sse?mode=builder` instead.
