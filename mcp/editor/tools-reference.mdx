@@ -1,0 +1,63 @@
+---
+title: "Editor Tools Reference"
+icon: "wrench"
+description: "The tools your agent uses in Editor mode, and how an edit goes from proposal to human approval."
+---
+
+Your agent gets these tools in [Editor mode](/mcp/modes). It reads your current semantic layer, proposes a batch of changes, and submits them for review — nothing it does applies until a human approves it.
+
+## How an edit flows
+
+<Steps>
+  <Step title="Read the current model">
+    The agent loads the relevant taxonomy, schema, and existing dimensions with `sl_get_taxonomy_context`, `sl_get_semantic_schema`, and `sl_get_semantic_dimensions`.
+  </Step>
+  <Step title="Propose a changeset">
+    It composes a **changeset** — a batch of typed edit operations such as adding an entity, changing a join, or adding a dimension — and submits it with `sl_commit_edits`. The call returns a `changeset_id` and processes in the background.
+  </Step>
+  <Step title="Jedify validates">
+    Every operation runs through Jedify's guardrails without writing anything. Validation issues are recorded against the changeset.
+  </Step>
+  <Step title="Changes are staged for review">
+    If all operations pass, Jedify stages the result as **review-pending edit sessions** — one per entity the changeset touches.
+  </Step>
+  <Step title="Track and approve">
+    The agent polls `sl_get_edit_state` with the `changeset_id` to follow progress and surface any issues. A human then reviews and approves the staged sessions. Nothing takes effect until approval.
+  </Step>
+</Steps>
+
+<Note>
+Editor mode never changes your semantic layer directly. It only proposes edits; a person approves them before they apply.
+</Note>
+
+## Tools
+
+### Read the model
+
+| Tool | What your agent uses it for |
+| --- | --- |
+| `sl_get_taxonomy_context` | Load the taxonomy and surrounding context for the area being edited |
+| `sl_get_semantic_schema` | Read the semantic schema of the entities involved |
+| `sl_get_semantic_dimensions` | List the semantic dimensions already defined |
+
+### Propose and track changes
+
+| Tool | What your agent uses it for |
+| --- | --- |
+| `sl_add_semantic_dimension` | Add a semantic dimension that spans entities |
+| `sl_commit_edits` | Submit a changeset of edit operations for validation and review; returns a `changeset_id` |
+| `sl_get_edit_state` | Check a changeset's state and any validation issues, using its `changeset_id` |
+
+## What a changeset can contain
+
+A changeset is a batch of edit operations. Each operation references the entities it affects by label.
+
+| Operation | Effect |
+| --- | --- |
+| `add_full_node` | Add a new entity |
+| `update_node` | Change an existing entity |
+| `add_relation` | Add a relationship between two entities |
+| `edit_relation` | Change an existing relationship |
+| `delete_relation` | Remove a relationship |
+
+Relationships specify a **join type** (`INNER`, `LEFT`, `RIGHT`, `FULL`, `CROSS`, `OUTER`) and their join conditions (equality or `BETWEEN`). Semantic dimensions can be declared inline on an entity, by column.
