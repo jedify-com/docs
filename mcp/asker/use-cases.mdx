@@ -1,51 +1,37 @@
 ---
 title: "Asker Examples"
 icon: "flask"
-description: "A few example prompts, what your agent does with the MCP, and what comes back."
+description: "Example prompts, and what your agent does with each."
 ---
 
-In Asker mode you talk to your AI agent (Claude, Cursor, or any MCP client) in plain language. The agent uses the Jedify tools to answer from your data — you don't call the tools yourself. Here are three example prompts and what happens behind them.
+You ask in plain language; your agent uses the Jedify tools to answer from your data. Three examples:
 
 ## See what you can ask
 
-**You say:**
+**Prompt:** "List 5 questions I can answer about our data with Jedify."
 
-```text
-List 5 questions I can answer about our data with Jedify.
-```
+**Agent:** calls `contextualize` and `get_semantic_layer_entities` to read your semantic layer.
 
-**What the agent does:** calls `contextualize` and `get_semantic_layer_entities` (and `search_semantic_layer` if you mention a topic) to read your semantic layer — the metrics, dimensions, and entities defined for your account.
+**Result:** concrete, answerable questions grounded in your data — not generic suggestions.
 
-**What comes back:** a short list of concrete, answerable questions grounded in *your* data — e.g. "What was total revenue by region last quarter?" or "How many active employees are there by department?" — not generic suggestions. A good way to start when you're not sure what's available.
+## Ask a direct question
 
-## Ask a direct data question
+**Prompt:** "What was total invoiced revenue in USD for the first half of 2026?"
 
-**You say:**
+**Agent:** calls `ask_a_single_question` — Jedify generates the query, runs it on your warehouse, and returns the data.
 
-```text
-What was total invoiced revenue in USD for the first half of 2026?
-```
+**Result:** the figure you asked for.
 
-**What the agent does:** calls `ask_a_single_question`. Jedify interprets the question against your semantic layer, generates SQL, runs it on your warehouse, and returns the result.
+## Combine your data with the web
 
-**What comes back:** the answer with a short explanation and, when it fits, a chart — plus the figure you asked for. Be specific with dates and names ("first half of 2026", a metric by its real name) for the cleanest result.
+**Prompt:** "Pull our invoiced revenue by region for 2026, compare it to public industry growth rates, and write a short brief."
 
-## Ask for a report that blends your data with the web
+**Agent:** uses `ask_questions` for the internal numbers and its own web search for the benchmarks.
 
-**You say:**
+**Result:** a brief combining your figures with outside context. For deeper internal investigations ("why did X change?"), the agent uses `ask_a_research_question`.
 
-```text
-Pull our invoiced revenue by region for 2026 so far, then compare it to public
-industry growth rates and write a short brief for the leadership team.
-```
+## Tips
 
-**What the agent does:** uses Jedify for the internal numbers — usually `ask_questions` to run the regional breakdown (and any follow-ups) in parallel — and uses its *own* web search for the external benchmarks. The MCP is one tool in your agent's toolkit; it supplies the trustworthy data, the agent supplies the surrounding work.
-
-**What comes back:** a short written brief that combines your real figures with outside context — internal numbers from Jedify, benchmarks from the web, and the agent's synthesis. For deeper, multi-step internal investigations ("why did X change?"), tell the agent to use `ask_a_research_question`, which runs an autonomous multi-query investigation and returns a findings report.
-
-## Steering tips
-
-- **Be specific** with dates, metric names, and segments — it removes guesswork.
-- **Start broad, then drill in** — ask for the headline number, then ask the agent to break it down or explain it.
-- **Name the depth** — say "quick answer" for a single number, or "investigate" / "research" to trigger a multi-step analysis.
-- **Ask what it means**, not just the number — the agent can interpret and recommend, not only report.
+- Be specific with dates, metric names, and segments.
+- Start with the headline number, then ask the agent to break it down.
+- Say "research" or "investigate" to trigger a multi-step analysis.

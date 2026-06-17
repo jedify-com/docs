@@ -6,24 +6,21 @@ description: "Jedify MCP runs in two modes — Asker and Builder. Same connectio
 
 Jedify's MCP server exposes two modes. The connection and authentication are identical — the mode only changes which tools your client sees.
 
-- **Asker** _(default)_ — ask questions in plain language; get answers and charts.
-- **Builder** — have your agent build data apps: it creates reusable semantic functions and writes the app code that calls them.
+- **Asker** _(default)_ — ask questions in plain language; get data back.
+- **Builder** — have your agent build data apps and dashboards using Jedify's semantic functions.
 
 ## Choose your mode
 
 | | Asker mode | Builder mode |
 | --- | --- | --- |
-| **Best for** | Analysts, business users, executives | Building dashboards & data apps |
-| **Primary use** | Ad-hoc questions and analysis | Steering your agent to build apps |
-| **How you use it** | You ask, in conversation | You describe; your agent builds with functions + SDK |
-| **Speed & consistency** | Re-asks the AI each time (a few seconds) | Loads instantly; same inputs always give the same number |
-| **Tools your agent gets** | Questioning and analysis | Function management and SDK |
+| **Best for** | Ad-hoc questions and analysis | Building dashboards and data apps |
+| **How you use it** | You ask, in conversation | You describe; your agent builds |
+| **Speed** | A few seconds — generated per question | Instant — prebuilt, no AI at runtime |
+| **Tools your agent gets** | Questioning and analysis | The above, plus function management and SDK |
 
 ## Asker mode
 
-Ask questions about your business data in plain language. Jedify interprets the question, generates SQL against your semantic layer, runs it, and returns an answer with charts and an explanation.
-
-Best for data analysts, business users, and executives doing ad-hoc exploration, investigations, and reporting.
+Ask a question in plain language. Jedify interprets it against your semantic layer, runs the query, and returns the data. Best for ad-hoc exploration, investigations, and reporting.
 
 <CardGroup cols={2}>
   <Card title="Asker tools" icon="wrench" href="/mcp/asker/tools-reference">
@@ -36,9 +33,7 @@ Best for data analysts, business users, and executives doing ad-hoc exploration,
 
 ## Builder mode
 
-Describe the dashboard or app you want, and your agent builds it: it creates reusable **semantic functions** (parameterized queries) and writes the app code that calls them through the `@jedify/sdk` SDK. Because each function's query is built ahead of time, the dashboard loads instantly and shows the same numbers every time — no AI step at runtime.
-
-You steer in plain language — your agent does the technical work. **You don't need to be a developer**: if you can describe what you want and review the result, Builder mode is for you. Best for dashboards, embedded analytics, and data apps.
+Describe the dashboard or app you want; your agent builds it using **semantic functions**. No coding required — see [Semantic functions](/mcp/builder/semantic-functions) for how it works.
 
 <CardGroup cols={2}>
   <Card title="Semantic functions" icon="cube" href="/mcp/builder/semantic-functions">
@@ -75,6 +70,6 @@ Asker mode is the default — no flag needed. To run in Builder mode, add `--bui
 | `["-y", "@jedify/mcp-auth"]` | Asker _(default)_ |
 | `["-y", "@jedify/mcp-auth", "--builder"]` | Builder |
 
-On a **hosted agent or app builder** (no local proxy), select Builder mode by adding `?mode=builder` to your Jedify MCP server URL instead.
+On a **hosted agent or app builder** (no local proxy), select Builder mode with the URL `https://be.jedify.com/mcp/sse?mode=builder` instead.
 
-See [Connect](connect) for where this goes in each client, and [Authentication](authentication) for how to sign in.
+See [Connect](/mcp/connect) for the full setup in each client.

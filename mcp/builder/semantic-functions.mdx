@@ -1,89 +1,61 @@
 ---
 title: "Semantic functions"
 icon: "cube"
-description: "Reusable, parameterized queries your agent builds and your app calls — the foundation of Builder mode."
+description: "Reusable, parameterized queries your agent builds and your app calls."
 ---
 
-A **semantic function** is a reusable, parameterized query — saved once, then called by name with parameters. Building with Jedify is a conversation: **you describe the dashboard you want, and your AI agent does the technical work** — discovering or creating the functions and writing the app code. You don't call tools or write SQL yourself.
+A **semantic function** is a reusable, parameterized query — saved once, then called by name. You describe the dashboard you want in plain language; your agent creates the functions and writes the app code that calls them. No SQL or coding on your part.
 
-Because each function's query is built ahead of time, it's **fast and consistent — with no AI step at runtime**, so the same inputs always return the same answer. That's what makes a semantic function safe to put behind a live dashboard.
+The function's query is built once, so at runtime it's fast and returns the same answer for the same inputs — safe to put behind a live dashboard. Creating a function uses AI; calling it does not.
 
-<Note>
-**Decide whose data the dashboard will show before you build.** A published app calls Jedify with one API key, so every viewer sees data at *that key's* permission level — the same for everyone, not each person's own. For sensitive data (HR, finance), use a key whose access matches what all viewers should see. See [Authentication](/mcp/authentication) for details.
-</Note>
-
-## How building a dashboard works
+## How it works
 
 <Steps>
-  <Step title="You describe what you want">
-    In plain language, tell your agent the dashboard you need — the metrics, the breakdowns, and the filters (e.g. "training completion by department, filterable by office and date range").
+  <Step title="Describe">
+    Tell your agent the metrics, breakdowns, and filters you need.
   </Step>
-  <Step title="Your agent finds or creates the functions">
-    It checks what already exists, and for anything missing it asks Jedify a question, confirms the result looks right, and saves it as a semantic function. This is the only step that uses AI, and it happens once.
+  <Step title="Build">
+    Your agent reuses existing functions where it can, and for anything missing it asks Jedify a question, confirms the result, and saves it as a function.
   </Step>
-  <Step title="Your agent builds the app">
-    It generates the dashboard code (React, etc.) that calls those functions through the Jedify SDK, with filters wired to the parameters.
-  </Step>
-  <Step title="Your app runs">
-    When someone opens the dashboard, it calls the functions by name and gets data back quickly — no AI in the loop.
+  <Step title="Run">
+    The published app calls the functions by name through the [SDK](/mcp/builder/sdk-reference) and renders the data.
   </Step>
 </Steps>
 
-Your job is to **steer**: describe what you want, review what the agent built, and ask for adjustments. The pages here show you what your agent can do so you can guide it well.
-
-## What a semantic function is, vs. just asking
-
-| | Asking (Asker mode) | A semantic function (Builder mode) |
-| --- | --- | --- |
-| Who calls it | You, in conversation | Your app, by name |
-| When the query is built | Every time you ask | Once, when the function is created |
-| Speed & consistency | Seconds; AI-generated each time | Fast; identical every time |
-| Good for | Exploring, one-off answers | Production dashboards and apps |
+See [Examples](/mcp/builder/examples) for a full walkthrough.
 
 ## What your agent can filter on
 
-When your agent creates a function, it exposes the **values** you filter by as parameters. From a dashboard's point of view, these are your filter controls. All of these work:
+A function exposes the values you filter by as parameters — your dashboard's filter controls:
 
-- A category you filter by — **department, office, region, manager, course, status**
-- A **date range**
-- A **number** threshold
-- A **list of values** (a multi-select, like a set of people or products)
-- A **yes/no** flag (completed, active)
+| Filter type | Example |
+| --- | --- |
+| Category (department, office, region, manager, course, status) | `"R&D"` |
+| Number | `100` |
+| Yes / no | `true` |
+| Date | `"2026-01-01"` |
+| List (multi-select) | `["R&D", "Finance"]` |
 
-Tell your agent which filters the dashboard needs, and whether each should be **optional** ("leaving it blank means show everything") or required. Most dashboard filters should be optional.
+Tell your agent which filters should be **optional** (blank means "all") and which are required. Most should be optional.
 
 <Note>
-**One breakdown = one function.** A function has one fixed shape. "Completion **by department**" and "completion **by manager**" are *two* functions — the filters inside a function are flexible, but the breakdown (the group-by) is fixed. If you want several breakdowns, ask your agent to create one function per breakdown.
+**One breakdown, one function.** A function has a fixed shape. "Completion by department" and "completion by manager" are two functions — the filters inside a function are flexible, but the breakdown is not. Ask for one function per breakdown.
 </Note>
 
-### Filter (parameter) types
+### Dates
 
-| Type | Example value |
-| --- | --- |
-| text / category | `"R&D"` |
-| number | `100` |
-| yes/no | `true` |
-| date | `"2026-01-01"` |
-| list (multi-select) | `["R&D", "Finance"]` |
-
-### A note on optional filters
-
-A filter your agent marks **optional** can be left out at call time, which a dashboard reads as "no filter / show all." Tell your agent which filters should be optional so your "All" option works.
-
-One current limitation to plan around: **date-range filters are always required** today — your dashboard must always have a start and end date, so a user can't clear the date picker to mean "all time." Every other filter — category, number, list, yes/no — can be optional.
+Date-range filters are always required — a dashboard can't leave the date blank to mean "all time."
 
 > **Steer it:** *"Default the date range to year-to-date, and add an 'All time' option that sends 2000-01-01 through today."*
 
-## What comes back
+## Validation
 
-A function returns rows of data. The column names follow how the underlying query is written — they're often uppercase (`TOTAL_REVENUE`) but **not always**, and your agent must use the exact names the function returns. Your agent handles this; you don't need to.
-
-One thing to keep in your back pocket as a reviewer: numbers occasionally come back as text. Your agent normally handles it — but if a chart looks broken or a total shows up as text, just tell your agent: *"the values are coming back as text — convert them to numbers."*
-
-## Active vs. failed
-
-When your agent saves a function, Jedify validates it by running it once. A function is either **active** (ready to use) or **failed validation** (saved with the error, not callable until fixed). If a function fails, ask your agent to re-check the underlying question and recreate it.
+When your agent saves a function, Jedify runs it once to validate. A function is either **active** (ready) or **failed validation** (saved with the error, not callable). If one fails, ask your agent to re-check the question and recreate it.
 
 ## Naming
 
-Functions are named in `UPPER_CASE_WITH_UNDERSCORES` starting with an underscore — for example `_COMPLETION_BY_DEPARTMENT` or `_REVENUE_BY_REGION`. That's just the naming convention (nothing is wrong if the names look stylized). Your agent picks the names; you'll see them in the function list and in the dashboard code.
+Functions use names like `_COMPLETION_BY_DEPARTMENT` — uppercase, leading underscore. Your agent picks them; you'll see them in the function list and app code.
+
+<Note>
+Published apps share one API key across all viewers — choose its access level before you build. See [Authentication](/mcp/authentication).
+</Note>

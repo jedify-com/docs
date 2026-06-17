@@ -4,24 +4,11 @@ icon: "plug"
 description: "Connect Claude Desktop, Cursor, or a hosted AI agent to Jedify."
 ---
 
-Jedify's MCP works with **desktop AI apps** — **Claude Desktop** and **Cursor** — and with **hosted AI agents and app builders** (for example ChatGPT or no-code app builders). Pick the path that matches how you work.
-
-- **Desktop apps (Claude Desktop, Cursor)** run a small local proxy (`@jedify/mcp-auth`).
-- **Hosted agents / app builders** connect to the Jedify MCP server over the network.
-
-Either way, the [mode](modes) (Asker or Builder) and [authentication](authentication) work the same.
+Jedify's MCP works with **desktop apps** (Claude Desktop, Cursor) and **hosted agents and app builders** (such as ChatGPT or no-code app builders). Both use the same [modes](/mcp/modes) and [authentication](/mcp/authentication).
 
 ## Desktop apps: Claude Desktop & Cursor
 
-### Prerequisites
-
-- An active Jedify account.
-- **Node.js 18 or higher** (the proxy runs with `npx`).
-- **Claude Desktop** or **Cursor**, installed and up to date.
-
-### Step 1: Add the Jedify configuration
-
-Add this to your client's MCP configuration:
+Add this to your client's MCP configuration (requires **Node.js 18+**):
 
 ```json
 {
@@ -34,81 +21,43 @@ Add this to your client's MCP configuration:
 }
 ```
 
-This connects in **Asker mode** (the default). For **Builder mode**, add `--builder` to `args` — see [Modes](modes).
+This connects in Asker mode. For Builder mode, use `"args": ["-y", "@jedify/mcp-auth", "--builder"]`.
 
-### Step 2: Find your client's config file
+The config file lives at:
 
 <Tabs>
   <Tab title="Claude Desktop">
-    Open it from **Settings → Developer → Edit Config**, or edit directly:
+    **Settings → Developer → Edit Config**, or edit directly:
 
-    **macOS** — `~/Library/Application Support/Claude/claude_desktop_config.json`
-
-    **Windows** — `%APPDATA%\Claude\claude_desktop_config.json`
-
-    If the file doesn't exist, create it with `{}` and add the configuration from Step 1.
+    - **macOS** — `~/Library/Application Support/Claude/claude_desktop_config.json`
+    - **Windows** — `%APPDATA%\Claude\claude_desktop_config.json`
   </Tab>
   <Tab title="Cursor">
-    Open it from the command palette (`Cmd+Shift+P` / `Ctrl+Shift+P` → **MCP Settings → Open MCP Settings**), or edit directly:
+    Command palette (`Cmd/Ctrl+Shift+P`) → **MCP Settings → Open MCP Settings**, or edit directly:
 
-    **macOS / Linux** — `~/.cursor/mcp.json`
-
-    **Windows** — `%APPDATA%\Cursor\mcp.json`
-
-    If the file doesn't exist, create it and add the configuration from Step 1.
+    - **macOS / Linux** — `~/.cursor/mcp.json`
+    - **Windows** — `%APPDATA%\Cursor\mcp.json`
   </Tab>
 </Tabs>
 
-### Step 3: Restart, authenticate, verify
-
-1. Fully quit and reopen your client so it loads the configuration.
-2. The first time you use a Jedify tool you'll sign in — see [Authentication](authentication).
-3. Confirm it works by asking: *"What data entities are available in our Jedify platform?"*
+Restart your client. The first time you use a Jedify tool, you'll [sign in](/mcp/authentication).
 
 ## Hosted agents & app builders
 
-Hosted AI agents and app builders connect to the Jedify MCP server **directly over the network** — there's no local proxy to install and no JSON config files to edit. The screens differ by platform, but to connect your agent you always provide two things: the **server URL** and your **API key**. (The app your agent later builds needs its own credentials to run — see [Authentication](authentication#how-your-live-app-stays-connected).)
+In your platform's MCP settings, provide the server URL and an API key:
 
-<Steps>
-  <Step title="Open your platform's MCP settings">
-    Find where your platform lets you add an MCP server or external tool — often labeled **MCP servers**, **Tools**, or **Integrations**.
-  </Step>
-  <Step title="Enter the Jedify MCP server URL">
-    Paste your Jedify MCP server URL. To use [Builder mode](modes), add `?mode=builder` to the end of the URL; leave it off for Asker:
+| | |
+| --- | --- |
+| **Server URL** | `https://be.jedify.com/mcp/sse` — for Builder mode, use `https://be.jedify.com/mcp/sse?mode=builder` |
+| **API key** | See [Authentication](/mcp/authentication) |
 
-    ```text
-    Asker mode (default):
-    https://<your-jedify-mcp-url>
-
-    Builder mode — note ?mode=builder at the end:
-    https://<your-jedify-mcp-url>?mode=builder
-    ```
-
-    (If your URL already contains a `?`, join the parameter with `&` instead: `…&mode=builder`.) Your API key is at [app.jedify.com/settings/api-keys](https://app.jedify.com/settings/api-keys); if you can't find your MCP server URL, ask your Jedify contact.
-  </Step>
-  <Step title="Add your API key">
-    Paste your [API key](authentication) into the platform's credential field — usually labeled **API key**, **token**, or **authorization**.
-  </Step>
-  <Step title="Verify two things">
-    **In Builder mode?** Ask *"Which Jedify builder tools do you have?"* — you should see tools like `create_semantic_function` and `list_semantic_functions`. If you only get question-answering tools, the `?mode=builder` didn't take effect.
-
-    **Reaching your data?** Ask *"Using Jedify, what data is available about our company?"* — a real, account-specific answer confirms it's connected to your account.
-  </Step>
-</Steps>
+To confirm you're in Builder mode, ask your agent *"Which Jedify builder tools do you have?"* — you should see `create_semantic_function` and `list_semantic_functions`.
 
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Modes" icon="toggle-on" href="/mcp/modes">
-    Asker vs Builder, and how to switch.
-  </Card>
-  <Card title="Authentication" icon="key" href="/mcp/authentication">
-    Browser-based login or an API key.
-  </Card>
-  <Card title="Asker examples" icon="comments" href="/mcp/asker/use-cases">
-    What to ask, and what your agent does.
-  </Card>
-  <Card title="Builder mode" icon="cube" href="/mcp/builder/semantic-functions">
-    Build dashboards by steering your agent.
-  </Card>
+  <Card title="Modes" icon="toggle-on" href="/mcp/modes">Asker vs Builder.</Card>
+  <Card title="Authentication" icon="key" href="/mcp/authentication">Sign in or use an API key.</Card>
+  <Card title="Asker examples" icon="comments" href="/mcp/asker/use-cases">What to ask.</Card>
+  <Card title="Builder mode" icon="cube" href="/mcp/builder/semantic-functions">Build dashboards.</Card>
 </CardGroup>

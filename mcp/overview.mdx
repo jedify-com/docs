@@ -1,52 +1,35 @@
 ---
 title: "MCP Overview"
 icon: "circle-info"
-description: "Connect AI assistants and IDEs to your Jedify semantic layer over the Model Context Protocol."
+description: "Connect your AI agent to your Jedify data over the Model Context Protocol."
 ---
 
-The Model Context Protocol (MCP) is an open standard that lets AI agents connect securely to external data and tools. Jedify's MCP server gives your agent — **Claude Desktop**, **Cursor**, or a **hosted AI agent or app builder** — direct access to your organization's data through its semantic layer.
+The Model Context Protocol (MCP) lets an AI agent — Claude Desktop, Cursor, or a hosted agent or app builder — work with your Jedify data through its semantic layer.
 
-There are two [modes](modes):
+There are two modes:
 
-- **Asker** _(default)_ — ask questions in plain language and get answers, charts, and explanations.
-- **Builder** — have your agent build data apps and dashboards: it creates reusable **semantic functions** and writes the app code that calls them.
+- **Asker** _(default)_ — ask questions in plain language and get data back.
+- **Builder** — have your agent build data apps and dashboards using Jedify's semantic functions.
 
-You steer your agent in plain language; it uses the Jedify tools. The connection and authentication are the same for both modes; the mode only changes which tools your agent gets.
+Builder mode includes every Asker tool, plus additional tools and guidance for turning questions into reusable functions and wiring them into an app.
 
 <Note>
-**Building a dashboard or app?** Read these in order: [Connect](/mcp/connect) → [Semantic functions](/mcp/builder/semantic-functions) → [Examples](/mcp/builder/examples). **Just want to ask questions?** See [Asker examples](/mcp/asker/use-cases).
+**Building a dashboard or app?** Read [Connect](/mcp/connect) → [Semantic functions](/mcp/builder/semantic-functions) → [Examples](/mcp/builder/examples). **Just asking questions?** See [Asker examples](/mcp/asker/use-cases).
 </Note>
 
 ## Get started
 
 <CardGroup cols={2}>
   <Card title="Modes" icon="toggle-on" href="/mcp/modes">
-    Compare Asker and Builder, and learn how to switch.
+    Asker vs Builder, and how to switch.
   </Card>
   <Card title="Connect" icon="plug" href="/mcp/connect">
-    Set up Claude Desktop, Cursor, or a hosted agent.
+    Claude Desktop, Cursor, or a hosted agent.
   </Card>
   <Card title="Authentication" icon="key" href="/mcp/authentication">
-    Browser-based login or an API key.
+    Sign in, or use an API key.
   </Card>
   <Card title="Troubleshooting" icon="bug" href="/mcp/troubleshooting">
     Common issues and fixes.
   </Card>
 </CardGroup>
-
-## What you can do
-
-<CardGroup cols={2}>
-  <Card title="Asker mode" icon="comments" href="/mcp/asker/tools-reference">
-    Ask questions in plain language and get answers, charts, and explanations from your data.
-  </Card>
-  <Card title="Builder mode" icon="cube" href="/mcp/builder/semantic-functions">
-    Steer your agent to build dashboards on reusable semantic functions — they load instantly and show the same numbers every time.
-  </Card>
-</CardGroup>
-
-## Key features
-
-- **Secure authentication** — sign in through your organization, or use a user-bound API key.
-- **Semantic layer access** — explore your data using business terminology, not raw tables.
-- **Role-based access control** — every request is scoped to your user's permissions.

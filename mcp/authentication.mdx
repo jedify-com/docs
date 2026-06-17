@@ -1,87 +1,28 @@
 ---
 title: "Authentication"
 icon: "key"
-description: "How you authenticate to Jedify — an API key for hosted agents and apps, or sign-in for desktop clients."
+description: "Sign in, or use an API key."
 ---
 
-How you authenticate depends on how you [connect](connect):
+How you authenticate depends on your client:
 
-| Your client | How you authenticate |
-| --- | --- |
-| **Hosted agent or app builder** (ChatGPT, app builders) | An **API key** |
-| **Desktop app** (Claude Desktop, Cursor) | **Sign-in** when prompted, or an API key |
+- **Desktop apps** (Claude Desktop, Cursor) — **sign in** when prompted. The first time you use a Jedify tool, your browser opens to your organization's login page; sign in and return to your client. Sessions refresh automatically.
+- **Hosted agents and apps** — use an **API key**.
 
-A finished app or dashboard always uses an **API key** — that's how it calls Jedify without a person present to sign in.
+A finished app or dashboard always uses an API key, since no one is present to sign in.
 
-## Get your API key
+## API keys
 
-Create one at [app.jedify.com/settings/api-keys](https://app.jedify.com/settings/api-keys). The key is **bound to you** — it carries your identity and your data permissions, so anything using it sees exactly the data you're allowed to see. (If your account restricts who can create keys, ask your Jedify administrator for one.)
+Create one at [app.jedify.com/settings/api-keys](https://app.jedify.com/settings/api-keys). Paste it into your platform's **API key** (or **token**) field. Treat it like a password.
 
-Treat the key like a password — don't share it or commit it to code.
-
-## Hosted agents & app builders
-
-Use an **API key** (there's no sign-in pop-up without a local app). In your platform's MCP or integration settings, paste the key into the credential field it provides — usually labeled **API key**, **token**, or **authorization**. You don't edit any JSON or set environment variables yourself.
-
-### How your live app stays connected
-
-When your agent builds an app, the app calls Jedify on its own — so it needs **two values stored as app-level secrets** (your platform gives you a place for these):
-
-- `JEDIFY_API_KEY` — your API key (from the settings page above)
-- `JEDIFY_BASE_URL` — your Jedify API base URL (for production, `https://api.jedify.com`)
-
-The live dashboard uses both on every call. If you store only the key, the app won't know where to send its requests.
-
-This is a **separate step from connecting your agent**. The **MCP server URL** you entered in your platform's MCP settings is for *building*; the running app uses the **API base URL** (`https://api.jedify.com`) above — they're different addresses, so don't reuse the MCP URL as the app's base URL.
+The key is **bound to you** — it carries your identity and permissions.
 
 <Warning>
-Because an API key is **user-bound**, an app that uses one key shows **every viewer** data at that key's permission level — not each viewer's own. For something sensitive (HR, finance), use a key whose data access matches what *all* viewers of the dashboard should be allowed to see.
+A published app uses one API key for everyone who opens it, so **every viewer sees data at that key's permission level** — not their own. For sensitive data (HR, finance), use a key whose access matches what all viewers should see.
 </Warning>
-
-## Desktop apps (Claude Desktop, Cursor)
-
-On desktop, you can either sign in through the browser (the default) or use an API key. *This section only applies to the local proxy — hosted users can skip it.*
-
-### Sign-in (default)
-
-When no API key is configured, you're prompted to sign in the first time you use a Jedify tool.
-
-<Steps>
-  <Step title="Trigger the tools">
-    Ask your client something that uses Jedify, e.g. _"What data is available in Jedify?"_
-  </Step>
-  <Step title="Sign in">
-    Your browser opens to your organization's login page. Sign in with your organization credentials.
-  </Step>
-  <Step title="Return to your client">
-    You'll see "Success! You can close this tab." Switch back — you're connected.
-  </Step>
-</Steps>
-
-Sign-in persists across sessions and refreshes automatically, so you only do it occasionally.
-
-### API key on desktop
-
-To skip sign-in (useful on a shared machine, or to act as a fixed user), put the key in the config's `env` block. This requires `@jedify/mcp-auth` **v1.1.0 or later**.
-
-```json
-{
-  "mcpServers": {
-    "jedify": {
-      "command": "npx",
-      "args": ["-y", "@jedify/mcp-auth", "--builder"],
-      "env": {
-        "JEDIFY_API_KEY": "your-api-key"
-      }
-    }
-  }
-}
-```
-
-(`--builder` selects [Builder mode](modes); omit it for Asker. If `JEDIFY_API_KEY` isn't set, the proxy falls back to sign-in.)
 
 ## Security
 
-- **Encrypted communication** — all traffic uses HTTPS.
-- **Scoped access** — you only reach your organization's data, limited by your permissions.
-- **Managed tokens** — sign-in sessions refresh automatically and expire for security.
+- All traffic uses HTTPS.
+- Access is scoped to the key's (or signed-in user's) permissions.
+- Sign-in sessions refresh and expire automatically.

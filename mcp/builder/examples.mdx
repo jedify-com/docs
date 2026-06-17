@@ -1,100 +1,62 @@
 ---
 title: "Examples"
 icon: "chart-line"
-description: "How a real build conversation goes — what you say, what your agent does, what you review."
+description: "Build a dashboard end to end — your prompts, and what your agent does."
 ---
 
-This walks through building a dashboard the way it actually happens: **you describe it, your agent does the work.** Connect in [Builder mode](/mcp/modes) first, then talk to your agent in plain language.
+A worked example: a **team training dashboard** — completion rates, a couple of charts, filterable by department and office over a date range. Connect in [Builder mode](/mcp/modes) first.
 
-The example: a **team training dashboard** — completion rates with a couple of charts, filterable by department and office, over a date range.
-
-## 1. Describe what you want
-
-**You say:**
+## 1. Describe it
 
 ```text
-Build a training dashboard for our team. I want:
-- a number showing overall completion rate
-- a bar chart of completion by department
-- filters for department and office, and a date range
+Build a training dashboard. I want overall completion rate, a bar chart of
+completion by department, filters for department and office, and a date range.
 Use the data in Jedify.
 ```
 
-That's enough to start. You don't need to know function names, SQL, or the SDK — your agent works those out.
+You don't need function names, SQL, or the SDK — your agent works those out.
 
-## 2. Let your agent find or create the functions
+## 2. Review the functions it creates
 
-**What your agent does:** it first checks what already exists (`list_semantic_functions`). For anything missing, it asks Jedify a question, confirms the numbers look right, and saves it as a function — exposing the filters you asked for.
-
-**What you review:** when it shows you a result, sanity-check it. A good prompt here:
+Your agent reuses what exists and creates what's missing. When it shows you a result, confirm it:
 
 ```text
 Before you save it, call the completion-by-department function for R&D
-and show me the numbers so I can confirm they look right.
+and show me the numbers.
 ```
 
-Your agent ends up with functions like:
+It ends up with functions like:
 
-| Function | Filters (parameters) |
+| Function | Filters |
 | --- | --- |
 | `_COMPLETION_RATE` | department, office, date range |
 | `_COMPLETION_BY_DEPARTMENT` | office, date range |
 
-Two things to notice. There's a **separate function per breakdown** — the "by department" chart is its own function (ask for "by office" too and you'd get a third). And `_COMPLETION_BY_DEPARTMENT` has **no department filter** — you don't filter by the field you're already breaking down by.
+`_COMPLETION_BY_DEPARTMENT` has no `department` filter — you don't filter by the field you're breaking down by. Each breakdown is [its own function](/mcp/builder/semantic-functions#what-your-agent-can-filter-on).
 
-## 3. Let your agent build the app
+## 3. Let it build the app
 
-**What your agent does:** generates the dashboard — UI, charts, and the data calls — wiring your filter controls to the function parameters through the Jedify SDK. You don't write this; here's the *kind* of code it produces, so you know what to expect:
+Your agent generates the dashboard and wires your filter controls to the function parameters through the SDK. The published app authenticates with its own [API key](/mcp/authentication) — set it as your platform's app secret, or the dashboard loads blank.
 
 ```typescript
-import { Jedify } from '@jedify/sdk';
-
-const jedify = new Jedify({ apiKey: process.env.JEDIFY_API_KEY, baseUrl: process.env.JEDIFY_BASE_URL });
-
-// filters from the dashboard's controls
 const data = await jedify.call('_COMPLETION_BY_DEPARTMENT', {
-  office: filters.office,          // optional — leave out for "all offices"
-  start_date: filters.startDate,   // date range is required
+  office: filters.office,          // optional — omit for all offices
+  start_date: filters.startDate,
   end_date: filters.endDate,
 });
-// render data using the exact field names the function returns
 ```
 
-Optional filters (like `office`) can be left out to mean "all"; the date range must always be supplied.
+## 4. Review and iterate
 
-<Note>
-**Two places, two purposes.** The MCP connection you set up in your platform (server URL + API key) lets your agent *build*. The finished app needs its **own** credentials to *run* — `JEDIFY_API_KEY` and `JEDIFY_BASE_URL` (`https://api.jedify.com`) stored as your platform's app secrets. Skip this and the published dashboard loads blank. See [Authentication](/mcp/authentication#how-your-live-app-stays-connected).
-</Note>
-
-## 4. Review and adjust
-
-Steer the result like you would a designer:
+Adjust in plain language:
 
 ```text
 Make the office filter optional so the default shows all offices.
-Add a second chart: completion by office.
-Show the completion rate as a percentage.
+Add a chart for completion by office, and show the rate as a percentage.
 ```
 
-Good things to check:
-- **Filters actually filter** — change a filter, confirm the numbers change.
-- **"All" works** — clearing an optional filter shows everything.
-- **Field names match** — the app reads the exact column names each function returns.
+Check that filters change the numbers, that clearing an optional filter shows everything, and that the charts read from the right fields.
 
-## 5. Before it ships
+## 5. Ship it
 
-Ask your agent to confirm it ran its own checks:
-
-```text
-Did you run the verification check? Confirm functions are reused where possible,
-the runtime uses only the SDK, and there's loading and error handling.
-```
-
-Your agent self-checks with `process_verification` before reporting done. Once that passes, the dashboard runs on its own — each function call returns quickly, with no AI in the loop.
-
-## Steering tips
-
-- **Reuse first** — tell your agent to check existing functions before creating new ones.
-- **One breakdown per chart** — each "by X" view is its own function; just ask for each.
-- **Say which filters are optional** — so your "All" options work.
-- **Always confirm a live call** — have your agent run a function with real filter values and show you the rows before trusting it.
+Ask your agent to confirm its [pre-ship check](/mcp/builder/tools-reference#process_verification): functions reused, runtime SDK-only, loading and error states present. Once it passes, each function call returns quickly with no AI in the loop.

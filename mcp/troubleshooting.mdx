@@ -10,8 +10,8 @@ To check everything is working, ask your client:
 
 _"What data entities are available in our Jedify platform?"_
 
-- **✅ Success**: you get a response describing your organization's data entities.
-- **❌ Problem**: see the sections below.
+- **Working** — you get a response describing your organization's data entities.
+- **Not working** — see the sections below.
 
 ---
 
@@ -30,7 +30,7 @@ _"What data entities are available in our Jedify platform?"_
 3. **Restart your client**: quit completely and reopen.
 4. **Check Node.js**: run `node --version` to confirm Node.js 18+ is installed.
 
-See [Connect](connect) for the full setup steps.
+See [Connect](/mcp/connect) for the full setup steps.
 
 ### Browser login keeps failing
 
@@ -62,7 +62,7 @@ See [Connect](connect) for the full setup steps.
 2. **Check the version**: API-key authentication requires `@jedify/mcp-auth` **v1.1.0 or later**.
 3. **Check the `env` block**: confirm `JEDIFY_API_KEY` is inside `env`, not `args`. If it's unset, the proxy falls back to the browser login.
 
-See [Authentication](authentication) for the full configuration.
+See [Authentication](/mcp/authentication) for the full configuration.
 
 ---
 
@@ -74,7 +74,7 @@ See [Authentication](authentication) for the full configuration.
 
 **Solutions**:
 
-1. **Confirm Builder mode**: your `args` must include `--builder` (see [Modes](modes)).
+1. **Confirm Builder mode**: your `args` must include `--builder` (see [Modes](/mcp/modes)).
 2. **Check for existing functions**: your account may not have any functions yet — create one from a validated question with `create_semantic_function`.
 3. **Broaden your search**: try a single keyword, or call `list_semantic_functions` with no filter.
 
@@ -82,10 +82,7 @@ See [Authentication](authentication) for the full configuration.
 
 **Symptoms**: `jedify.call(...)` fails with an authentication error.
 
-**Solutions**:
-
-1. **Check the API key**: confirm `JEDIFY_API_KEY` is set and valid in your app environment.
-2. **Check the base URL**: confirm `baseUrl` points to the environment your key belongs to.
+**Solution**: confirm `JEDIFY_API_KEY` is set and valid in your app's secrets.
 
 ### A function failed validation
 
@@ -149,7 +146,7 @@ Before contacting support, collect:
 
 **Self-service**:
 
-- [Connect](connect) — setup steps
-- [Authentication](authentication) — sign-in and API keys
-- [Asker tools](asker/tools-reference) — available analysis tools
-- [Use cases](asker/use-cases) — examples and workflows
+- [Connect](/mcp/connect) — setup steps
+- [Authentication](/mcp/authentication) — sign-in and API keys
+- [Asker tools](/mcp/asker/tools-reference) — available analysis tools
+- [Asker examples](/mcp/asker/use-cases) — example prompts and workflows

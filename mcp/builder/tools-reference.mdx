@@ -4,7 +4,7 @@ icon: "wrench"
 description: "The six tools your agent uses in Builder mode — and how to steer it to use them."
 ---
 
-These are the tools your AI agent gets when you connect in [Builder mode](/mcp/modes). **You don't call them — your agent does.** This page shows what each one does and what to say to get your agent to use it well.
+Your agent gets these tools in [Builder mode](/mcp/modes). Steer it with the prompts below.
 
 | Tool | What your agent uses it for |
 | --- | --- |
@@ -19,7 +19,7 @@ These are the tools your AI agent gets when you connect in [Builder mode](/mcp/m
 
 ### list_semantic_functions
 
-Your agent lists the functions already defined for your account. **Reuse comes first** — most dashboards can be built largely from functions that already exist, so a good agent always checks before creating new ones.
+Lists the functions already defined for your account. **Reuse comes first** — agents should check here before creating anything new.
 
 > **Steer it:** *"First check what semantic functions we already have for revenue before building anything new."*
 
@@ -38,7 +38,7 @@ Parameter: `function_name` (required).
 Runs a function and shows the result **while building**, so you and your agent can confirm it returns what you expect.
 
 <Warning>
-This is for trying functions out during the build. In the dashboard your agent ships, functions are called through the **SDK** (`jedify.call(...)`), not this tool — see the [SDK reference](sdk-reference).
+This is for trying functions out during the build. In the dashboard your agent ships, functions are called through the **SDK** (`jedify.call(...)`), not this tool — see the [SDK reference](/mcp/builder/sdk-reference).
 </Warning>
 
 > **Steer it:** *"Call `_COMPLETION_BY_DEPARTMENT` for R&D and show me the numbers so we can sanity-check it."*
@@ -53,7 +53,7 @@ Turns a question your agent has **already asked and verified** into a reusable f
 
 > **Steer it:** *"That completion-by-department result looks right — save it as a function with department and date range as optional filters."*
 
-What your agent provides: the source question it validated, a name, a description, and the list of values to expose as filters. See [semantic functions](semantic-functions) for what can and can't be a filter (and the one-breakdown-per-function rule).
+What your agent provides: the source question it validated, a name, a description, and the list of values to expose as filters. See [semantic functions](/mcp/builder/semantic-functions) for what can and can't be a filter (and the one-breakdown-per-function rule).
 
 ## Building the app
 
@@ -61,10 +61,10 @@ What your agent provides: the source question it validated, a name, a descriptio
 
 Returns the SDK package name, install command, and usage examples so the code your agent generates calls functions correctly.
 
-> You rarely need to steer this — your agent uses it automatically when writing the app. See the [SDK reference](sdk-reference) for what it produces.
+> You rarely need to steer this — your agent uses it automatically when writing the app. See the [SDK reference](/mcp/builder/sdk-reference) for what it produces.
 
 ### process_verification
 
-Before your agent tells you "the dashboard is ready," it runs this self-check — confirming it reused existing functions, used the right field names, added loading and error states, and kept the runtime code SDK-only (no build-time tools shipped into the app).
+A pre-ship self-check your agent runs before reporting done — confirming it reused existing functions, used the right field names, added loading and error states, and kept the runtime code SDK-only. If a check fails, it fixes the issue first.
 
-> Think of it as your agent's pre-flight checklist. If something here fails, a good agent fixes it before reporting done — you can also ask *"did you run the verification check?"*
+> **Steer it:** *"Did you run the verification check?"*
