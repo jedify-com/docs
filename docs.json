@@ -159,6 +159,12 @@
                 ]
               },
               {
+                "group": "Editor mode",
+                "pages": [
+                  "mcp/editor/tools-reference"
+                ]
+              },
+              {
                 "group": "Builder mode",
                 "pages": [
                   "mcp/builder/semantic-functions",
