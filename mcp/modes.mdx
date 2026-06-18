@@ -1,7 +1,7 @@
 ---
-title: "Modes"
-icon: "toggle-on"
-description: "Jedify MCP runs in three modes — Asker, Editor, and Builder. Same connection, different tools."
+title: 'Modes'
+icon: 'toggle-on'
+description: 'Jedify MCP runs in three modes — Asker, Editor, and Builder. Same connection, different tools.'
 ---
 
 Jedify's MCP server exposes three modes. The connection and authentication are identical — the mode only changes which tools your client sees.
@@ -12,12 +12,12 @@ Jedify's MCP server exposes three modes. The connection and authentication are i
 
 ## Choose your mode
 
-| | Asker mode | Editor mode | Builder mode |
-| --- | --- | --- | --- |
-| **Best for** | Ad-hoc questions and analysis | Evolving the semantic layer itself | Building dashboards and data apps |
-| **How you use it** | You ask, in conversation | You describe a change; your agent proposes it for review | You describe; your agent builds |
-| **Speed** | A few seconds — generated per question | Edits await human approval | Instant — prebuilt, no AI at runtime |
-| **Tools your agent gets** | Questioning and analysis | The above, plus semantic-layer editing | The above, plus function management and SDK |
+|                           | Asker mode                             | Editor mode                                              | Builder mode                                |
+| ------------------------- | -------------------------------------- | -------------------------------------------------------- | ------------------------------------------- |
+| **Best for**              | Ad-hoc questions and analysis          | Evolving the semantic layer itself                       | Building dashboards and data apps           |
+| **How you use it**        | You ask, in conversation               | You describe a change; your agent proposes it for review | You describe; your agent builds             |
+| **Speed**                 | A few seconds — generated per question | Edits await human approval                               | Instant — prebuilt, no AI at runtime        |
+| **Tools your agent gets** | Questioning and analysis               | The above, plus semantic-layer editing                   | The above, plus function management and SDK |
 
 ## Asker mode
 
@@ -76,12 +76,12 @@ Asker mode is the default — no flag needed. To run in Editor or Builder mode, 
 }
 ```
 
-| `args` | Mode |
-| --- | --- |
-| `["-y", "@jedify/mcp-auth"]` | Asker _(default)_ |
-| `["-y", "@jedify/mcp-auth", "--editor"]` | Editor |
-| `["-y", "@jedify/mcp-auth", "--builder"]` | Builder |
+| `args`                                    | Mode              |
+| ----------------------------------------- | ----------------- |
+| `["-y", "@jedify/mcp-auth"]`              | Asker _(default)_ |
+| `["-y", "@jedify/mcp-auth", "--editor"]`  | Editor            |
+| `["-y", "@jedify/mcp-auth", "--builder"]` | Builder           |
 
-On a **hosted agent or app builder** (no local proxy), select Builder mode with the URL `https://be.jedify.com/mcp/sse?mode=builder` instead.
+On a **hosted agent or app builder** (no local proxy), select Builder mode with the URL `https://be.jedify.com/mcp/message?mode=builder` instead.
 
 See [Connect](/mcp/connect) for the full setup in each client.

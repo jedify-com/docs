@@ -1,7 +1,7 @@
 ---
-title: "Connect"
-icon: "plug"
-description: "Connect Claude Desktop, Cursor, or a hosted AI agent to Jedify."
+title: 'Connect'
+icon: 'plug'
+description: 'Connect Claude Desktop, Cursor, or a hosted AI agent to Jedify.'
 ---
 
 Jedify's MCP works with **desktop apps** (Claude Desktop, Cursor) and **hosted agents and app builders** (such as ChatGPT or no-code app builders). Both use the same [modes](/mcp/modes) and [authentication](/mcp/authentication).
@@ -31,12 +31,14 @@ The config file lives at:
 
     - **macOS** — `~/Library/Application Support/Claude/claude_desktop_config.json`
     - **Windows** — `%APPDATA%\Claude\claude_desktop_config.json`
+
   </Tab>
   <Tab title="Cursor">
     Command palette (`Cmd/Ctrl+Shift+P`) → **MCP Settings → Open MCP Settings**, or edit directly:
 
     - **macOS / Linux** — `~/.cursor/mcp.json`
     - **Windows** — `%APPDATA%\Cursor\mcp.json`
+
   </Tab>
 </Tabs>
 
@@ -46,18 +48,26 @@ Restart your client. The first time you use a Jedify tool, you'll [sign in](/mcp
 
 In your platform's MCP settings, provide the server URL and an API key:
 
-| | |
-| --- | --- |
-| **Server URL** | `https://be.jedify.com/mcp/sse` — for Builder mode, use `https://be.jedify.com/mcp/sse?mode=builder` |
-| **API key** | See [Authentication](/mcp/authentication) |
+|                |                                                                                                              |
+| -------------- | ------------------------------------------------------------------------------------------------------------ |
+| **Server URL** | `https://be.jedify.com/mcp/message` — for Builder mode, use `https://be.jedify.com/mcp/message?mode=builder` |
+| **API key**    | See [Authentication](/mcp/authentication)                                                                    |
 
-To confirm you're in Builder mode, ask your agent *"Which Jedify builder tools do you have?"* — you should see `create_semantic_function` and `list_semantic_functions`.
+To confirm you're in Builder mode, ask your agent _"Which Jedify builder tools do you have?"_ — you should see `create_semantic_function` and `list_semantic_functions`.
 
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Modes" icon="toggle-on" href="/mcp/modes">Asker vs Builder.</Card>
-  <Card title="Authentication" icon="key" href="/mcp/authentication">Sign in or use an API key.</Card>
-  <Card title="Asker examples" icon="comments" href="/mcp/asker/use-cases">What to ask.</Card>
-  <Card title="Builder mode" icon="cube" href="/mcp/builder/semantic-functions">Build dashboards.</Card>
+  <Card title="Modes" icon="toggle-on" href="/mcp/modes">
+    Asker vs Builder.
+  </Card>
+  <Card title="Authentication" icon="key" href="/mcp/authentication">
+    Sign in or use an API key.
+  </Card>
+  <Card title="Asker examples" icon="comments" href="/mcp/asker/use-cases">
+    What to ask.
+  </Card>
+  <Card title="Builder mode" icon="cube" href="/mcp/builder/semantic-functions">
+    Build dashboards.
+  </Card>
 </CardGroup>
