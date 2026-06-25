@@ -44,6 +44,28 @@ The config file lives at:
 
 Restart your client. The first time you use a Jedify tool, you'll [sign in](/mcp/authentication).
 
+### Authenticate with an API key
+
+To skip the browser login — on a headless machine, a shared environment, or a CI setup — set `JEDIFY_API_KEY` in an `env` block. When it's present, the proxy authenticates every request with the key instead of prompting you to sign in:
+
+```json
+{
+  "mcpServers": {
+    "jedify": {
+      "command": "npx",
+      "args": ["-y", "@jedify/mcp-auth"],
+      "env": {
+        "JEDIFY_API_KEY": "your-api-key"
+      }
+    }
+  }
+}
+```
+
+<Note>
+The API key must be **bound to a user** — it carries that user's identity and permissions, so no email or sign-in is needed. Ask your Jedify administrator to issue one. If `JEDIFY_API_KEY` is unset, the proxy falls back to the browser login. Requires `@jedify/mcp-auth` **v1.1.0 or later**.
+</Note>
+
 ## Hosted agents & app builders
 
 In your platform's MCP settings, provide the server URL and an API key:
