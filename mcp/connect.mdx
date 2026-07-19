@@ -4,9 +4,9 @@ icon: 'plug'
 description: 'Connect Claude Desktop, Cursor, or a hosted AI agent to Jedify.'
 ---
 
-Jedify's MCP works with **desktop apps** (Claude Desktop, Cursor) and **hosted agents and app builders** (such as ChatGPT or no-code app builders). Both use the same [modes](/mcp/modes) and [authentication](/mcp/authentication).
+Jedify's MCP works with **local clients** (Claude Desktop, Cursor, Claude Code) and **hosted agents and app builders** (such as ChatGPT or no-code app builders). Both use the same [modes](/mcp/modes) and [authentication](/mcp/authentication).
 
-## Desktop apps: Claude Desktop & Cursor
+## Local clients: Claude Desktop, Cursor & Claude Code
 
 Add this to your client's MCP configuration (requires **Node.js 18+**):
 
@@ -40,6 +40,10 @@ The config file lives at:
     - **Windows** — `%APPDATA%\Cursor\mcp.json`
 
   </Tab>
+  <Tab title="Claude Code">
+    Edit `~/.claude.json` in your home directory and add the `jedify` server under `mcpServers` (the same block shown above).
+
+  </Tab>
 </Tabs>
 
 Restart your client. The first time you use a Jedify tool, you'll [sign in](/mcp/authentication).
@@ -65,6 +69,27 @@ To skip the browser login — on a headless machine, a shared environment, or a 
 <Note>
 The API key must be **bound to a user** — it carries that user's identity and permissions, so no email or sign-in is needed. Ask your Jedify administrator to issue one. If `JEDIFY_API_KEY` is unset, the proxy falls back to the browser login. Requires `@jedify/mcp-auth` **v1.1.0 or later**.
 </Note>
+
+### Select a mode with an API key
+
+An API key carries its own mode — **Asker**, unless the key was issued for another mode. To choose the mode yourself, set the server URL with a `?mode=` parameter via `REMOTE_MCP_URL`; the URL parameter always takes precedence over the key's own mode:
+
+```json
+{
+  "mcpServers": {
+    "jedify": {
+      "command": "npx",
+      "args": ["-y", "@jedify/mcp-auth"],
+      "env": {
+        "REMOTE_MCP_URL": "https://be.jedify.com/mcp/message?mode=builder",
+        "JEDIFY_API_KEY": "your-api-key"
+      }
+    }
+  }
+}
+```
+
+Replace `builder` with `editor` to request Editor mode. To confirm Builder mode, ask your agent _"Which Jedify builder tools do you have?"_ — you should see `create_semantic_function` and `list_semantic_functions`.
 
 ## Hosted agents & app builders
 

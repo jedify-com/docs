@@ -75,8 +75,9 @@ See [Authentication](/mcp/authentication) for the full configuration.
 **Solutions**:
 
 1. **Confirm Builder mode**: your `args` must include `--builder` (see [Modes](/mcp/modes)).
-2. **Check for existing functions**: your account may not have any functions yet — create one from a validated question with `create_semantic_function`.
-3. **Broaden your search**: try a single keyword, or call `list_semantic_functions` with no filter.
+2. **Using an API key?** The mode is carried by the key (Asker by default), so requesting Builder mode elsewhere may not take effect. Set it in the server URL instead — `"REMOTE_MCP_URL": "https://be.jedify.com/mcp/message?mode=builder"` (see [Select a mode with an API key](/mcp/connect#select-a-mode-with-an-api-key)).
+3. **Check for existing functions**: your account may not have any functions yet — create one from a validated question with `create_semantic_function`.
+4. **Broaden your search**: try a single keyword, or call `list_semantic_functions` with no filter.
 
 ### SDK calls return 401
 
