@@ -1,0 +1,80 @@
+---
+title: 'Model Versioning'
+icon: 'code-branch'
+description: 'Review, test, and publish changes to your Semantic Fusion™ model — and restore any earlier version — from inside Jedify.'
+---
+
+Model Versioning gives you control over how your Semantic Fusion™ model changes. Every edit is reviewed and can be tested against real prompts before it goes live, and any recent version can be restored — all from the Jedify app.
+
+This works because your Context Graph is represented as a Git-managed, text-based (YAML) model.
+
+## What you get
+
+<CardGroup cols={3}>
+  <Card title="Review" icon="code-compare">
+    Every edit is reviewed before it reaches **main**, with a side-by-side YAML diff.
+  </Card>
+  <Card title="Roll back" icon="clock-rotate-left">
+    Restore any version published in the last 90 days.
+  </Card>
+  <Card title="Audit" icon="user-check">
+    See who pushed each branch and when, and who merged each change into **main**.
+  </Card>
+</CardGroup>
+
+## How a change reaches production
+
+Changes move through five stages:
+
+| Stage       | What happens                                                                  |
+| ----------- | ----------------------------------------------------------------------------- |
+| **Edit**    | A skill run opens an edit session.                                            |
+| **Push**    | Commits land on a dedicated branch.                                           |
+| **Preview** | The branch is available as a read-only preview, shown with a purple frame.     |
+| **Review**  | A YAML diff against **main** is available; the branch is merged or declined.   |
+| **Publish** | The branch closes and a new version goes live on **main**.                     |
+
+Merging a branch publishes a new version on **main**. See [Review, merge, and restore](/semantic-fusion/versioning/review-and-merge) for what the review screen shows.
+
+## Rollout
+
+Once Model Versioning is enabled for your account, two things change:
+
+- Model edits go through **skills** instead of the UI.
+- The model is represented as a file-based, Git-backed structure.
+
+## What stays editable in the UI
+
+Not everything moves to skills. You can still edit the following directly in Jedify:
+
+- **Knowledge** — Business Glossary and Research Agent Guidance.
+- **Test sets**.
+- **Dimensions** — new dimensions are still created in the UI and approved through the regular process.
+
+<Note>
+  Dimensions created after Model Versioning is enabled do not appear in the node's YAML file.
+</Note>
+
+## Storage
+
+In the first release, entities are migrated to YAML: one file per node, plus a single file for all relations. Dimensions are versioned in Git but are not YAML files — converting them is planned for a later release.
+
+## Repository ownership
+
+You have two options, and you can switch between them at any time:
+
+- **Jedify-managed** _(default)_ — a Git repository managed by Jedify and hosted on Jedify's S3. No GitHub setup required.
+- **Your own GitHub** — connect a GitHub account and move the repository into that environment. See [Connect a GitHub repository](/semantic-fusion/versioning/github).
+
+## Conflicts
+
+Conflict resolution happens in the skills or on GitHub — not in the Jedify app.
+
+<CardGroup cols={2}>
+  <Card title="The Versions menu" icon="list-tree" href="/semantic-fusion/versioning/versions-menu">
+    Browse branches and published versions, and switch what you're viewing.
+  </Card>
+  <Card title="Review, merge, and restore" icon="code-merge" href="/semantic-fusion/versioning/review-and-merge">
+    Compare a branch to main, publish it, or roll back.
+  </Card>
+</CardGroup>
