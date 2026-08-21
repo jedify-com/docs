@@ -4,12 +4,29 @@ icon: "clock-rotate-left"
 description: "Product updates and release notes for Jedify. Filter by area using the tags on the right."
 ---
 
+<Update label="2026-08-18" description="Model Versioning (Beta)" tags={["Semantic Fusion"]}>
+  ## Model Versioning
+
+  Your Semantic Fusion™ model is now Git-managed. Every edit lands on a branch you can preview and review before it reaches **main**, and any version published in the last 90 days can be restored - all from inside Jedify.
+
+  ![The Versions menu on the Context Graph page, listing published versions with who merged each one](/images/docs/versioning/versions-menu-connect-github.png)
+
+  - **Review** - compare a branch to **main** with a side-by-side YAML diff, then merge or decline it.
+  - **Roll back** - restore any version from the last 90 days. Restoring publishes a new version matching the one you picked.
+  - **Compare** - while previewing a branch or an earlier version, any node offers a *Compare to main* view.
+  - **Audit** - see who pushed each branch and who merged each change into **main**, with timestamps.
+
+  Your repository is managed by Jedify by default, with no setup required. You can also connect your own GitHub account and move the repository into that environment at any time.
+
+  See [Model Versioning](/semantic-fusion/versioning/overview) to get started.
+</Update>
+
 <Update label="2026-05-31" description="@jedify/mcp-auth v1.1.0" tags={["MCP"]}>
   ## API key authentication for MCP
 
   You can now authenticate the Jedify MCP proxy with an API key instead of the browser-based login.
 
-  Set the `JEDIFY_API_KEY` environment variable in your MCP configuration and the proxy skips the browser login, authenticating every request with the key — ideal for headless machines, shared environments, and automated/CI setups.
+  Set the `JEDIFY_API_KEY` environment variable in your MCP configuration and the proxy skips the browser login, authenticating every request with the key - ideal for headless machines, shared environments, and automated/CI setups.
 
   ```json
   {
@@ -25,7 +42,7 @@ description: "Product updates and release notes for Jedify. Filter by area using
   }
   ```
 
-  The key must be bound to a user — ask your Jedify administrator to issue one. If `JEDIFY_API_KEY` is not set, the proxy falls back to the standard browser login.
+  The key must be bound to a user - ask your Jedify administrator to issue one. If `JEDIFY_API_KEY` is not set, the proxy falls back to the standard browser login.
 
   See the [Authentication guide](mcp/authentication) for details.
 </Update>
