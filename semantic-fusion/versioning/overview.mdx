@@ -1,10 +1,10 @@
 ---
 title: 'Model Versioning'
 icon: 'code-branch'
-description: 'Review, test, and publish changes to your Semantic Fusion™ model — and restore any earlier version — from inside Jedify.'
+description: 'Review, test, and publish changes to your Semantic Fusion™ model - and restore any earlier version - from inside Jedify.'
 ---
 
-Model Versioning gives you control over how your Semantic Fusion™ model changes. Every edit is reviewed and can be tested against real prompts before it goes live, and any recent version can be restored — all from the Jedify app.
+Model Versioning gives you control over how your Semantic Fusion™ model changes. Every edit is reviewed and can be tested against real prompts before it goes live, and any recent version can be restored - all from the Jedify app.
 
 This works because your Context Graph is represented as a Git-managed, text-based (YAML) model.
 
@@ -50,9 +50,9 @@ Once Model Versioning is enabled for your account, two things change:
 
 Not everything moves to skills. You can still edit the following directly in Jedify:
 
-- **Knowledge** — Business Glossary and Research Agent Guidance.
+- **Knowledge** - Business Glossary and Research Agent Guidance.
 - **Test sets**.
-- **Dimensions** — new dimensions are still created in the UI and approved through the regular process.
+- **Dimensions** - new dimensions are still created in the UI and approved through the regular process.
 
 <Note>
   Dimensions created after Model Versioning is enabled do not appear in the node's YAML file.
@@ -60,18 +60,18 @@ Not everything moves to skills. You can still edit the following directly in Jed
 
 ## Storage
 
-In the first release, entities are migrated to YAML: one file per node, plus a single file for all relations. Dimensions are versioned in Git but are not YAML files — converting them is planned for a later release.
+In the first release, entities are migrated to YAML: one file per node, plus a single file for all relations. Dimensions are versioned in Git but are not YAML files - converting them is planned for a later release.
 
 ## Repository ownership
 
 You have two options, and you can switch between them at any time:
 
-- **Jedify-managed** _(default)_ — a Git repository managed by Jedify and hosted on Jedify's S3. No GitHub setup required.
-- **Your own GitHub** — connect a GitHub account and move the repository into that environment. See [Connect a GitHub repository](/semantic-fusion/versioning/github).
+- **Jedify-managed** _(default)_ - a Git repository managed by Jedify and hosted on Jedify's S3. No GitHub setup required.
+- **Your own GitHub** - connect a GitHub account and move the repository into that environment. See [Connect a GitHub repository](/semantic-fusion/versioning/github).
 
 ## Conflicts
 
-Conflict resolution happens in the skills or on GitHub — not in the Jedify app.
+Conflict resolution happens in the skills or on GitHub - not in the Jedify app.
 
 <CardGroup cols={2}>
   <Card title="The Versions menu" icon="list-tree" href="/semantic-fusion/versioning/versions-menu">
