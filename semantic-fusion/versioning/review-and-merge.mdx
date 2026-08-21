@@ -1,0 +1,44 @@
+---
+title: 'Review, Merge, and Restore'
+icon: 'code-merge'
+description: 'Compare a branch to main with a YAML diff, publish it as a new version, or restore an earlier one.'
+---
+
+Review happens per branch. Merging publishes a new version on **main**; restoring brings an earlier version back.
+
+## Review a branch
+
+Select the branch from the **Versions** menu, then click **Review & Merge** in the purple bar.
+
+The review screen is split:
+
+- **Left** - the list of changed entities.
+- **Right** - the raw YAML diff against **main**, with line-level and word-level highlights.
+
+From here you can **merge** the branch or **decline** it.
+
+## Merge
+
+Merging a branch closes it and publishes a new version on **main**. The new version appears in the **Versions** tab with a `vYYYY.MM.DD.N` label and a **Merged by \<user name\>, \<date\>** record.
+
+Once merged, users on **main** see a toast reading *Model was updated - refresh to view*.
+
+## Pull from main
+
+If **main** moved forward while your branch was open, **Pull from main** appears in the header after you click **Review & Merge**. Pull before merging so you are reviewing against current **main**.
+
+## Conflicts
+
+Conflict resolution happens in the skills or on GitHub - not in the Jedify app. Once the conflict is resolved and pushed, you'll see a toast on that branch reading *Changes made to the branch - refresh to view*.
+
+## Restore a previous version
+
+Select a version from the **Versions** tab, then click **Restore as main** in the purple bar.
+
+<Note>
+  Restoring does not rewrite history. It publishes a **new** version whose content matches the one you selected.
+</Note>
+
+Before restoring, you can inspect exactly what differs: select any node in the Context Graph and click **Compare to main** in the node's panel.
+
+Versions published in the last 90 days are available to restore.

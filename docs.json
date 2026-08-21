@@ -84,6 +84,15 @@
             ]
           },
           {
+            "group": "Model Versioning",
+            "pages": [
+              "semantic-fusion/versioning/overview",
+              "semantic-fusion/versioning/versions-menu",
+              "semantic-fusion/versioning/review-and-merge",
+              "semantic-fusion/versioning/github"
+            ]
+          },
+          {
             "group": "Best Practices",
             "pages": [
               "semantic-fusion/best-practices/overview",
