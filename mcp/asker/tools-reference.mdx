@@ -4,42 +4,53 @@ icon: "wrench"
 description: "Reference for every tool available in Asker mode."
 ---
 
-Your agent calls these tools to answer questions from your data. Builder mode includes all of them, plus the [Builder tools](/mcp/builder/tools-reference).
+Your agent calls these tools to answer questions from your data. [Editor](/mcp/editor/tools-reference) and [Builder](/mcp/builder/tools-reference) modes include all of them too — except `data_collection_strategy`, which is Asker-only — plus their own tools.
 
 ## Context
 
 | Tool | Purpose |
 | --- | --- |
-| `contextualize()` | Load the account's context and what data is available. Start here. |
-| `data_collection_strategy(strategy)` | Plan a multi-step analysis before querying. |
+| `contextualize()` | Load the account's context — business model, glossary, and the entities of every data source. Start here. |
+| `data_collection_strategy(strategy)` | Plan a multi-step analysis before querying. Asker mode only. |
 
 ## Ask
 
 | Tool | Purpose |
 | --- | --- |
-| `ask_a_single_question(question)` | Ask one question; a session is created automatically. |
-| `ask_questions(questions)` | Ask several questions in parallel, each in its own session. |
-| `ask_a_research_question(question)` | Run a multi-step autonomous investigation. |
+| `ask_a_single_question(question, data_source_id?)` | Ask one question; a session is created automatically. `data_source_id` is required when the account has more than one data source. |
+| `ask_questions(questions)` | Ask several independent questions in parallel, each in its own session. |
+| `ask_a_research_question(question)` | Run a multi-step autonomous investigation that plans and executes many queries and writes a report. |
 | `stop_question(inquiry_id)` | Stop a running inquiry. |
+
+## Custom agents
+
+The experts your team has built in Jedify — each with its own persona, instructions, and entity scope.
+
+| Tool | Purpose |
+| --- | --- |
+| `list_agents(search?, limit?)` | List the account's custom agents with their descriptions and sample questions. |
+| `ask_an_agent(agent_id, question, session_id?)` | Ask a question of one agent; it answers as the expert it was built to be. Returns a `session_id` and `inquiry_id` to poll like any other question. |
 
 ## Get results
 
 | Tool | Purpose |
 | --- | --- |
-| `check_question_status(inquiry_id)` | Check whether an inquiry has finished. |
-| `wait_for_completion(inquiry_ids)` | Wait for inquiries to finish, then return their results. |
-| `get_questions_data(inquiry_ids)` | Retrieve full results for one or more inquiries. |
+| `check_question_status(inquiry_id)` | Check whether an inquiry has finished. Pass `inquiry_type: "research"` for research questions. |
+| `wait_for_completion(inquiry_ids)` | Wait for inquiries to finish, then return their results. After about three minutes it returns `in_progress`; your agent calls it again with the same ids to keep waiting. |
+| `get_questions_data(inquiry_ids)` | Retrieve full results — answer, explanation, SQL, and data — for up to 5 inquiries at once. |
+| `create_share_link(session_id)` | Create a link that opens the full answer — narrative, charts, and data — in the Jedify app. Opening it requires a Jedify login in the same account; it is not a public link. |
 
 ## Explore the semantic layer
 
 | Tool | Purpose |
 | --- | --- |
-| `search_semantic_layer(search_term)` | Find entities by name (e.g. "revenue", "churn"). |
-| `get_semantic_layer_entities(node_ids)` | Get full details for up to 10 entities. |
+| `search_semantic_layer(search_term)` | Find entities by name (e.g. "revenue", "churn"). Entities from API sources also match on their descriptions and field names. |
+| `get_semantic_layer_entities(node_ids, taxonomy_id?)` | Get full details for up to 10 entities. `taxonomy_id` is required when the account has more than one data source. |
 
 ## Advanced
 
 | Tool | Purpose |
 | --- | --- |
-| `run_sql_query(query)` | Run a read-only SQL `SELECT` against the data source. |
+| `run_sql_query(query, data_source_id?)` | Run a read-only SQL `SELECT` directly against a data source. Your agent is instructed to use this rarely — the semantic layer is the primary interface. |
+| `call_api(data_source_id, node, operation, params?)` | Run one declared read operation against a connected API source (such as HubSpot) and return the raw response. Listed only when your account has a connected API source. Questions about API data normally go through `ask_a_single_question` with the source's `data_source_id` instead. |
 | `logout()` | End the session and clear authentication. |

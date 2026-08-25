@@ -63,6 +63,8 @@ Returns the SDK package name, install command, and usage examples so the code yo
 
 > You rarely need to steer this — your agent uses it automatically when writing the app. See the [SDK reference](/mcp/builder/sdk-reference) for what it produces.
 
+Parameter: `language` (optional) — `typescript` (default) or `python`.
+
 ### process_verification
 
 A pre-ship self-check your agent runs before reporting done — confirming it reused existing functions, used the right field names, added loading and error states, and kept the runtime code SDK-only. If a check fails, it fixes the issue first.

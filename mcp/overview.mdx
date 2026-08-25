@@ -9,20 +9,20 @@ The Model Context Protocol (MCP) lets an AI agent — Claude Desktop, Cursor, or
 There are three modes:
 
 - **Asker** _(default)_ — ask questions in plain language and get data back.
-- **Editor** — have your agent propose changes to your semantic layer for human review.
+- **Editor** — have your agent make validated changes to your semantic layer, verify them, and publish only when you confirm.
 - **Builder** — have your agent build data apps and dashboards using Jedify's semantic functions.
 
-Builder mode includes every Asker tool, plus additional tools and guidance for turning questions into reusable functions and wiring them into an app.
+Every mode shares the core question tools. Editor adds semantic-layer editing, versioning, and test sets; Builder adds function management and the SDK.
 
 <Note>
-**Building a dashboard or app?** Read [Connect](/mcp/connect) → [Semantic functions](/mcp/builder/semantic-functions) → [Examples](/mcp/builder/examples). **Just asking questions?** See [Asker examples](/mcp/asker/use-cases).
+**Building a dashboard or app?** Read [Connect](/mcp/connect) → [Semantic functions](/mcp/builder/semantic-functions) → [Examples](/mcp/builder/examples). **Evolving the semantic layer?** See [Editor tools](/mcp/editor/tools-reference). **Just asking questions?** See [Asker examples](/mcp/asker/use-cases).
 </Note>
 
 ## Get started
 
 <CardGroup cols={2}>
   <Card title="Modes" icon="toggle-on" href="/mcp/modes">
-    Asker vs Builder, and how to switch.
+    Asker, Editor, or Builder — and how to switch.
   </Card>
   <Card title="Connect" icon="plug" href="/mcp/connect">
     Claude Desktop, Cursor, or a hosted agent.

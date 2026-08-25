@@ -58,7 +58,7 @@ See [Connect](/mcp/connect) for the full setup steps.
 
 **Solutions**:
 
-1. **Use a user-bound key**: the key must be bound to a user. Ask your Jedify administrator to issue one.
+1. **Use a key created in Jedify**: create it under **Settings → API Keys** — keys created there are bound to you. A key issued any other way must be user-bound.
 2. **Check the version**: API-key authentication requires `@jedify/mcp-auth` **v1.1.0 or later**.
 3. **Check the `env` block**: confirm `JEDIFY_API_KEY` is inside `env`, not `args`. If it's unset, the proxy falls back to the browser login.
 
@@ -75,7 +75,7 @@ See [Authentication](/mcp/authentication) for the full configuration.
 **Solutions**:
 
 1. **Confirm Builder mode**: your `args` must include `--builder` (see [Modes](/mcp/modes)).
-2. **Using an API key?** The mode is carried by the key (Asker by default), so requesting Builder mode elsewhere may not take effect. Set it in the server URL instead — `"REMOTE_MCP_URL": "https://be.jedify.com/mcp/message?mode=builder"` (see [Select a mode with an API key](/mcp/connect#select-a-mode-with-an-api-key)).
+2. **Using an API key?** `--builder` is ignored — the mode comes from the key, and keys created in the app are Asker. Set it in the server URL instead — `"REMOTE_MCP_URL": "https://be.jedify.com/mcp/message?mode=builder"` (see [Select a mode with an API key](/mcp/connect#select-a-mode-with-an-api-key)).
 3. **Check for existing functions**: your account may not have any functions yet — create one from a validated question with `create_semantic_function`.
 4. **Broaden your search**: try a single keyword, or call `list_semantic_functions` with no filter.
 
@@ -93,6 +93,44 @@ See [Authentication](/mcp/authentication) for the full configuration.
 
 1. **Re-validate the question**: confirm the underlying question returns correct data in Asker mode.
 2. **Recreate the function**: create it again from a corrected inquiry.
+
+---
+
+## Editor mode issues
+
+### Editor tools aren't showing
+
+**Symptoms**: `make_edit`, `get_graph`, or the test-set tools are missing.
+
+**Solutions**:
+
+1. **Confirm Editor mode**: your `args` must include `--editor` (see [Modes](/mcp/modes)).
+2. **Check the proxy version**: `--editor` requires `@jedify/mcp-auth` v1.1.1 or later, and `npx` may be running a cached older version — use `"@jedify/mcp-auth@latest"` in `args` once to refresh it.
+3. **Using an API key?** `--editor` is ignored — the mode comes from the key, and keys created in the app are Asker. Set it in the server URL instead — `"REMOTE_MCP_URL": "https://be.jedify.com/mcp/message?mode=editor"` (see [Select a mode with an API key](/mcp/connect#select-a-mode-with-an-api-key)).
+
+### A versioning tool says it isn't available for this account
+
+**Symptoms**: `list_versions`, `switch`, `compare_changes`, or `restore_version` returns an error saying the operation isn't available.
+
+**Solution**: these tools require [Model Versioning](/semantic-fusion/versioning/overview) to be enabled for your account. Editing still works without it — your agent uses `make_edit`, `publish_change`, and `discard_change`, and a Data Expert approves the edit in Jedify.
+
+### `publish_change` returned `needs_confirmation`
+
+**Symptoms**: your agent reports that nothing was published and asks whether to proceed.
+
+**Solution**: this is expected. Publishing always requires your explicit confirmation; once you agree, your agent calls `publish_change` again with `confirm: true`.
+
+### `make_edit` returned `status: "processing"`
+
+**Symptoms**: the edit was accepted but isn't live, and your agent reports a `changeset_id`.
+
+**Solution**: the edit was submitted for review. Your agent polls `sl_get_edit_state` until each operation is `confirmed`; a Data Expert then approves the edit in Jedify before it can be published. See [How an edit flows](/mcp/editor/tools-reference#how-an-edit-flows).
+
+### API-source tools are missing
+
+**Symptoms**: `call_api` or the `sl_*_api_*` tools don't appear.
+
+**Solution**: they are listed only when your account has a connected API source (such as HubSpot). Questions about API data go through `ask_a_single_question` with the source's `data_source_id`.
 
 ---
 
@@ -150,4 +188,5 @@ Before contacting support, collect:
 - [Connect](/mcp/connect) — setup steps
 - [Authentication](/mcp/authentication) — sign-in and API keys
 - [Asker tools](/mcp/asker/tools-reference) — available analysis tools
+- [Editor tools](/mcp/editor/tools-reference) — editing, versioning, and test-set tools
 - [Asker examples](/mcp/asker/use-cases) — example prompts and workflows
