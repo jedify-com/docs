@@ -1,33 +1,35 @@
 ---
 title: "Editor Tools Reference"
 icon: "wrench"
-description: "The tools your agent uses in Editor mode, and how an edit goes from proposal to human approval."
+description: "The tools your agent uses in Editor mode — reading the model, making and verifying a change, publishing it, and keeping test sets and versions in order."
 ---
 
-Your agent gets these tools in [Editor mode](/mcp/modes). It reads your current semantic layer, proposes a batch of changes, and submits them for review — nothing it does applies until a human approves it.
+Your agent gets these tools in [Editor mode](/mcp/modes), on top of every [Asker tool](/mcp/asker/tools-reference). It reads your current semantic layer, makes a validated change, lets you verify it, and publishes only when you say so.
 
 ## How an edit flows
 
 <Steps>
   <Step title="Read the current model">
-    The agent loads the relevant taxonomy, schema, and existing dimensions with `sl_get_taxonomy_context`, `sl_get_semantic_schema`, and `sl_get_semantic_dimensions`.
+    The agent loads the live model with `get_graph` — entities, relationships, and dimensions — and the tables and columns the model can be built on with `sl_get_semantic_schema`. To see how analysts actually query the data, it can pull the warehouse query history with `fetch_qlh`.
   </Step>
-  <Step title="Propose a changeset">
-    It composes a **changeset** — a batch of typed edit operations such as adding an entity, changing a join, or adding a dimension — and submits it with `sl_commit_edits`. The call returns a `changeset_id` and processes in the background.
+  <Step title="Make the change">
+    It composes an ordered list of typed operations — add an entity, change a relationship, declare a dimension — and submits it with `make_edit`. Every operation is validated first: structure, table membership, a dry run of each SQL base query, and definition checks. Any error rejects the whole edit with issues keyed to the operation, and nothing is saved.
+
+    On success, the response tells your agent which flow it is in:
+
+    - **`status: "committed"`** with a `branch` — the edit is a **pending change**. Your agent is switched to it, so its follow-up questions and `get_graph` run against the pending change, not the live model. This is the flow on accounts with [Model Versioning](/semantic-fusion/versioning/overview).
+    - **`status: "processing"`** with a `changeset_id` — the edit was **submitted for review**. Your agent polls `sl_get_edit_state` until each operation is `confirmed`, and a Data Expert then approves the resulting edit sessions in Jedify before they can be published.
   </Step>
-  <Step title="Jedify validates">
-    Every operation runs through Jedify's guardrails without writing anything. Validation issues are recorded against the changeset.
+  <Step title="Verify">
+    Ask questions — they run against the pending change. Run a test set against it with `ask_benchmark` to check that known answers did not regress. Where Model Versioning is enabled, `compare_changes` shows exactly what differs from the live model.
   </Step>
-  <Step title="Changes are staged for review">
-    If all operations pass, Jedify stages the result as **review-pending edit sessions** — one per entity the changeset touches.
-  </Step>
-  <Step title="Track and approve">
-    The agent polls `sl_get_edit_state` with the `changeset_id` to follow progress and surface any issues. A human then reviews and approves the staged sessions. Nothing takes effect until approval.
+  <Step title="Publish or discard">
+    `publish_change` makes the change live. It requires explicit confirmation: the first call returns `needs_confirmation` and your agent asks you before calling again with `confirm: true`. `discard_change` abandons the pending change instead.
   </Step>
 </Steps>
 
 <Note>
-Editor mode never changes your semantic layer directly. It only proposes edits; a person approves them before they apply.
+Nothing goes live until you confirm. Your agent must ask before it publishes, and on accounts without Model Versioning a Data Expert also approves the edit in Jedify first.
 </Note>
 
 ## Tools
@@ -36,28 +38,87 @@ Editor mode never changes your semantic layer directly. It only proposes edits; 
 
 | Tool | What your agent uses it for |
 | --- | --- |
-| `sl_get_taxonomy_context` | Load the taxonomy and surrounding context for the area being edited |
-| `sl_get_semantic_schema` | Read the semantic schema of the entities involved |
-| `sl_get_semantic_dimensions` | List the semantic dimensions already defined |
+| `get_graph()` | Read the model at the active target — entities with their definitions, base queries, attributes, and linked dimensions; relationships; and dimension definitions |
+| `sl_get_semantic_schema(tables?, columns?, match?, data_source_id?, detail?)` | List the tables and columns the semantic layer can be built on, with fully-qualified column names for attributes, dimensions, and relationships |
+| `fetch_qlh(used_tables?, term_filters?, days_interval?, …)` | Pull business-question rows from the warehouse query log, scoped by tables and terms, to ground new entities in how the data is really queried. Returns a `qlh_run_id` |
+| `get_qlh(qlh_run_id, kind?)` | Re-read a saved query-log run without re-querying the warehouse |
 
-### Propose and track changes
+### Make, publish, and discard changes
 
 | Tool | What your agent uses it for |
 | --- | --- |
-| `sl_add_semantic_dimension` | Add a semantic dimension that spans entities |
-| `sl_commit_edits` | Submit a changeset of edit operations for validation and review; returns a `changeset_id` |
-| `sl_get_edit_state` | Check a changeset's state and any validation issues, using its `changeset_id` |
+| `make_edit(edits, message?)` | Submit an ordered list of operations (see below). `message` is a short change summary that names the pending change and, once published, the version |
+| `sl_get_edit_state(changeset_id)` | Poll an edit that returned `status: "processing"` until each operation is `confirmed` or `errored`, with any validation issues |
+| `publish_change(confirm?, branch?, changeset_id?)` | Publish the pending change live. Without `confirm: true` it publishes nothing and returns the confirmation question to relay to you. Pass the `changeset_id` when the edit was submitted for review |
+| `discard_change(branch?, changeset_id?)` | Abandon the pending change. Published versions are unaffected |
 
-## What a changeset can contain
+### Verify and version
 
-A changeset is a batch of edit operations. Each operation references the entities it affects by label.
+These tools are available when [Model Versioning](/semantic-fusion/versioning/overview) is enabled for your account. On other accounts they return an error saying the operation isn't available — `make_edit`, `publish_change`, and `discard_change` are the editing flow there.
+
+| Tool | What your agent uses it for |
+| --- | --- |
+| `list_versions()` | List published versions (`vYYYY.MM.DD.N`, the current one flagged) and pending branches, with who pushed each and when |
+| `switch(branch?, version?)` | Switch the active model to a branch or a published version — questions and `get_graph` then run against it. Returns `behind_main` so your agent knows whether the branch is behind the live model. With no arguments, reads the current active model |
+| `compare_changes(node_ids?)` | Diff the active branch or version against the live model — added, removed, and modified entities and relationships, with both sides' full definitions. Pass `node_ids` to zoom in |
+| `restore_version()` | Roll the version you switched to forward: publish a new version whose content matches it. Nothing is deleted — history is kept |
+
+These match what you see in the app's [Versions menu](/semantic-fusion/versioning/versions-menu) and [review screen](/semantic-fusion/versioning/review-and-merge).
+
+### Test sets
+
+A [test set](/semantic-fusion/test-sets) is a saved group of questions with recorded answers. Re-running it re-asks every question and compares each new answer to the recorded one, so a change to the model or the data shows up as a failing case.
+
+| Tool | What your agent uses it for |
+| --- | --- |
+| `list_test_sets(limit?)` | List the account's test sets with their size and last-run outcome. Start here |
+| `get_test_set(test_set_id)` | Read one set — its title, description, and test cases (question plus recorded SQL) |
+| `create_test_set(title, inquiry_ids, description?)` | Turn already-answered questions into a test set, up to 40 per call. Only inquiries whose status reports `eligible_for_test_set: true` are accepted; the rest come back in `rejected` with a reason |
+| `add_to_test_set(test_set_id, inquiry_ids)` | Add answered questions to an existing set, with the same eligibility rule |
+| `remove_from_test_set(test_set_id, test_case_ids)` | Remove test cases. A set can't be emptied — delete it instead |
+| `update_test_set(test_set_id, title?, description?, status?)` | Rename or describe a set, or activate and deactivate it |
+| `delete_test_set(test_set_id)` | Delete a set. Past runs stay readable |
+| `run_test_set(test_set_id, run_multiplier?, refresh_original_question?)` | Re-ask every question and compare each answer to the recorded one. Asynchronous — returns a `run_id` and takes minutes |
+| `get_test_set_run(run_id, results?)` | Poll a run's progress; pass `results: true` once it completes for the per-case verdicts |
+| `ask_benchmark(template_id)` | Run a test set's cases against your pending change. Each case comes back as its own inquiry to compare with its `baseline_answer` |
+
+When you ask your agent to "create a test set for these questions", it asks them all at once with `ask_questions`, waits for them to finish, keeps the ones that report `eligible_for_test_set: true`, and creates the set from those — reporting any question that was not eligible and why.
+
+### Cross-source relationships
+
+For accounts with more than one data source: relationships that join an entity in one source to an entity in another.
+
+| Tool | What your agent uses it for |
+| --- | --- |
+| `sl_get_cross_source_relations(node_id?, taxonomy_id_a?, taxonomy_id_b?)` | List cross-source relationships — both endpoints, type, direction, definition, confidence, and join keys |
+| `sl_add_cross_source_relation(taxonomy_id_a, node_id_a, taxonomy_id_b, node_id_b, relation_type, direction, …)` | Create one, optionally with `join_keys` |
+| `sl_update_cross_source_relation(relation_id, …)` | Change only the supplied fields; `join_keys`, when supplied, replaces the whole list |
+| `sl_delete_cross_source_relation(relation_id)` | Remove a relationship |
+
+### API sources
+
+Listed only when your account has a connected API source (such as HubSpot). API entities have their own authoring format and write tool; they share the same pending change and `publish_change` as everything else.
+
+| Tool | What your agent uses it for |
+| --- | --- |
+| `sl_get_api_authoring_spec()` | Read the authoring schema for API entities and measures — once per editing session, before writing |
+| `sl_get_api_nodes(source?)` | List the API entities with their `node_id` and full content as they stand on your pending change |
+| `sl_apply_api_changes(changes, message?)` | Apply an ordered change list to API entities atomically. A rejection saves nothing; the change stays pending until `publish_change` |
+
+## What an edit can contain
+
+`make_edit` takes an ordered list of operations. Each one carries a `local_ref` your agent chooses (echoed back in the results and in any issue) and references entities by label; an entity must be declared before an operation that references it.
 
 | Operation | Effect |
 | --- | --- |
-| `add_full_node` | Add a new entity |
-| `update_node` | Change an existing entity |
-| `add_relation` | Add a relationship between two entities |
-| `edit_relation` | Change an existing relationship |
+| `add_full_node` | Add an entity: `branch` (`concepts` or `metrics`), `definition`, `base_query`, `attributes`, and optionally `semantic_dimensions` and `custom_instructions` |
+| `update_node` | Change an entity: `set` replaces fields (definition, base query, `rename_to`, owner, example questions); `attributes` takes `add`, `edit`, `rename`, and `remove` actions; `semantic_dimensions` adds dimensions |
+| `add_relation` | Add a relationship between two entities: `source_label`, `target_label`, `relation_name`, `relation_type`, `join_type`, `join_keys` |
+| `edit_relation` | Change an existing relationship — `change` carries only the keys to modify |
 | `delete_relation` | Remove a relationship |
+| `delete_dead_relation` | Remove a relationship whose target entity no longer exists (`target_node_id`) |
+| `delete_node` | Remove an entity. Not available on every account — when refused, the response says to delete the entity in the Jedify app instead |
 
-Relationships specify a **join type** (`INNER`, `LEFT`, `RIGHT`, `FULL`, `CROSS`, `OUTER`) and their join conditions (equality or `BETWEEN`). Semantic dimensions can be declared inline on an entity, by column.
+**Relationships** specify a cardinality (`one_to_one`, `one_to_many`, `many_to_one`, `many_to_many`), a join type (`INNER`, `LEFT`, `RIGHT`, `FULL`, `CROSS`), and join keys — equality by default, or `between` with a high bound.
+
+**Semantic dimensions** are declared on an entity by column (`from_column` or `semantic_id`) with a name and a generic definition. They are shared: if the column already has a dimension, the existing one is linked and your name and definition are kept aside. Dimensions are add-only through `make_edit`; on accounts with Model Versioning, `unlink_dimensions` on `update_node` drops an entity's link to a dimension.

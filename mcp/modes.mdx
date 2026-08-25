@@ -7,17 +7,17 @@ description: 'Jedify MCP runs in three modes — Asker, Editor, and Builder. Sam
 Jedify's MCP server exposes three modes. The connection and authentication are identical — the mode only changes which tools your client sees.
 
 - **Asker** _(default)_ — ask questions in plain language; get data back.
-- **Editor** — have your agent propose changes to your semantic layer for human review.
+- **Editor** — have your agent make validated changes to your semantic layer, verify them, and publish only when you confirm.
 - **Builder** — have your agent build data apps and dashboards using Jedify's semantic functions.
 
 ## Choose your mode
 
-|                           | Asker mode                             | Editor mode                                              | Builder mode                                |
-| ------------------------- | -------------------------------------- | -------------------------------------------------------- | ------------------------------------------- |
-| **Best for**              | Ad-hoc questions and analysis          | Evolving the semantic layer itself                       | Building dashboards and data apps           |
-| **How you use it**        | You ask, in conversation               | You describe a change; your agent proposes it for review | You describe; your agent builds             |
-| **Speed**                 | A few seconds — generated per question | Edits await human approval                               | Instant — prebuilt, no AI at runtime        |
-| **Tools your agent gets** | Questioning and analysis               | The above, plus semantic-layer editing                   | The above, plus function management and SDK |
+|                           | Asker mode                             | Editor mode                                                                    | Builder mode                                |
+| ------------------------- | -------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------- |
+| **Best for**              | Ad-hoc questions and analysis          | Evolving the semantic layer itself                                             | Building dashboards and data apps           |
+| **How you use it**        | You ask, in conversation               | You describe a change; your agent drafts it, you verify it, you confirm publish | You describe; your agent builds             |
+| **Speed**                 | A few seconds — generated per question | Edits are validated instantly; publishing waits for your go-ahead              | Instant — prebuilt, no AI at runtime        |
+| **Tools your agent gets** | Questioning and analysis               | The above, plus editing, versioning, and test sets                             | The above, plus function management and SDK |
 
 ## Asker mode
 
@@ -34,11 +34,14 @@ Ask a question in plain language. Jedify interprets it against your semantic lay
 
 ## Editor mode
 
-Describe a change to your semantic layer — a new entity, a relationship, a dimension — and your agent proposes it as a batch of edits. Jedify validates the changes and stages them as review-pending edit sessions; nothing takes effect until a human approves them.
+Describe a change to your semantic layer — a new metric, a relationship, a dimension — and your agent turns it into a validated pending change. You can ask questions against the pending change, run a test set on it, and review what differs before you tell your agent to publish. Nothing goes live until you confirm — and on accounts without [Model Versioning](/semantic-fusion/versioning/overview), a Data Expert also approves the edit in Jedify first.
 
 <CardGroup cols={2}>
   <Card title="Editor tools" icon="wrench" href="/mcp/editor/tools-reference">
-    The tools your agent uses, and how an edit flows to approval.
+    The tools your agent uses, and how an edit flows from draft to publish.
+  </Card>
+  <Card title="Model Versioning" icon="code-branch" href="/semantic-fusion/versioning/overview">
+    Review, compare, and restore versions of your model in the app.
   </Card>
 </CardGroup>
 
@@ -82,6 +85,6 @@ Asker mode is the default — no flag needed. To run in Editor or Builder mode, 
 | `["-y", "@jedify/mcp-auth", "--editor"]`  | Editor            |
 | `["-y", "@jedify/mcp-auth", "--builder"]` | Builder           |
 
-On a **hosted agent or app builder** (no local proxy), select Builder mode with the URL `https://be.jedify.com/mcp/message?mode=builder` instead.
+On a **hosted agent or app builder** (no local proxy), select the mode in the server URL instead: `https://be.jedify.com/mcp/message?mode=editor` or `https://be.jedify.com/mcp/message?mode=builder`.
 
 See [Connect](/mcp/connect) for the full setup in each client.

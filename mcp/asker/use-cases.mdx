@@ -4,7 +4,7 @@ icon: "flask"
 description: "Example prompts, and what your agent does with each."
 ---
 
-You ask in plain language; your agent uses the Jedify tools to answer from your data. Three examples:
+You ask in plain language; your agent uses the Jedify tools to answer from your data. Five examples:
 
 ## See what you can ask
 
@@ -22,6 +22,14 @@ You ask in plain language; your agent uses the Jedify tools to answer from your 
 
 **Result:** the figure you asked for.
 
+## Ask one of your custom agents
+
+**Prompt:** "Ask our revenue agent why Q2 bookings came in below plan."
+
+**Agent:** calls `list_agents` to find the agent, then `ask_an_agent` — the agent answers with its own persona, instructions, and entity scope applied.
+
+**Result:** an answer shaped by the expert your team built, not a generic query.
+
 ## Combine your data with the web
 
 **Prompt:** "Pull our invoiced revenue by region for 2026, compare it to public industry growth rates, and write a short brief."
@@ -30,8 +38,17 @@ You ask in plain language; your agent uses the Jedify tools to answer from your 
 
 **Result:** a brief combining your figures with outside context. For deeper internal investigations ("why did X change?"), the agent uses `ask_a_research_question`.
 
+## Share an answer
+
+**Prompt:** "Send me a link to that answer so I can forward it to finance."
+
+**Agent:** waits for the session's questions to finish, then calls `create_share_link`.
+
+**Result:** a link that opens the full answer — narrative, charts, and data — in the Jedify app. Recipients need a Jedify login in the same account.
+
 ## Tips
 
 - Be specific with dates, metric names, and segments.
 - Start with the headline number, then ask the agent to break it down.
 - Say "research" or "investigate" to trigger a multi-step analysis.
+- If your account has more than one data source, name the source you mean — your agent passes it as `data_source_id`.

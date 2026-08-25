@@ -21,7 +21,7 @@ Add this to your client's MCP configuration (requires **Node.js 18+**):
 }
 ```
 
-This connects in Asker mode. For Builder mode, use `"args": ["-y", "@jedify/mcp-auth", "--builder"]`.
+This connects in Asker mode. Add `"--editor"` or `"--builder"` to the `args` for Editor or Builder mode — see [Modes](/mcp/modes).
 
 The config file lives at:
 
@@ -97,7 +97,7 @@ In your platform's MCP settings, provide the server URL and an API key:
 
 |                |                                                                                                              |
 | -------------- | ------------------------------------------------------------------------------------------------------------ |
-| **Server URL** | `https://be.jedify.com/mcp/message` — for Builder mode, use `https://be.jedify.com/mcp/message?mode=builder` |
+| **Server URL** | `https://be.jedify.com/mcp/message` — add `?mode=editor` or `?mode=builder` to select a mode                 |
 | **API key**    | See [Authentication](/mcp/authentication)                                                                    |
 
 To confirm you're in Builder mode, ask your agent _"Which Jedify builder tools do you have?"_ — you should see `create_semantic_function` and `list_semantic_functions`.
@@ -106,7 +106,7 @@ To confirm you're in Builder mode, ask your agent _"Which Jedify builder tools d
 
 <CardGroup cols={2}>
   <Card title="Modes" icon="toggle-on" href="/mcp/modes">
-    Asker vs Builder.
+    Asker, Editor, or Builder.
   </Card>
   <Card title="Authentication" icon="key" href="/mcp/authentication">
     Sign in or use an API key.
