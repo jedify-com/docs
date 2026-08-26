@@ -21,6 +21,16 @@ description: "Product updates and release notes for Jedify. Jump to a release us
   See [Model Versioning](/semantic-fusion/versioning/overview) to get started.
 </Update>
 
+<Update label="2026-08-11" description="Jedify connector for Claude">
+  ## Jedify connector for Claude
+
+  Jedify is now a custom connector in Claude - no local install or configuration file needed. A workspace admin adds it once (**+ → Connectors → Manage connectors → Add custom connector**) with the server URL `https://be.jedify.com/mcp`, and everyone in the organization can connect and sign in with their Jedify login. Add `?mode=editor` or `?mode=builder` to the URL for the other [modes](/mcp/modes).
+
+  If you were using the `@jedify/mcp-auth` proxy, remove the `jedify` entry from your client's configuration and add the connector instead.
+
+  See [Connect](/mcp/connect) to get started.
+</Update>
+
 <Update label="2026-05-31" description="@jedify/mcp-auth v1.1.0">
   ## API key authentication for MCP
 

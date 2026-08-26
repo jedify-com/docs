@@ -66,29 +66,14 @@ Describe the dashboard or app you want; your agent builds it using **semantic fu
 
 ## Switching modes
 
-Asker mode is the default — no flag needed. How you select another mode depends on how you authenticate.
+The mode is selected in the server URL. Asker mode is the default — no parameter needed.
 
-**Browser sign-in (local proxy).** Add the matching flag to the proxy `args`:
+| Server URL                               | Mode              |
+| ---------------------------------------- | ----------------- |
+| `https://be.jedify.com/mcp`              | Asker _(default)_ |
+| `https://be.jedify.com/mcp?mode=editor`  | Editor            |
+| `https://be.jedify.com/mcp?mode=builder` | Builder           |
 
-```json
-{
-  "mcpServers": {
-    "jedify": {
-      "command": "npx",
-      "args": ["-y", "@jedify/mcp-auth", "--builder"]
-    }
-  }
-}
-```
+In Claude, each mode is its own connector — add one per mode you need. For hosted agents, set the URL in the platform's MCP settings. The URL parameter takes precedence over everything else: an API key created in the app carries Asker mode on its own, and `?mode=` overrides it.
 
-| `args`                                    | Mode              |
-| ----------------------------------------- | ----------------- |
-| `["-y", "@jedify/mcp-auth"]`              | Asker _(default)_ |
-| `["-y", "@jedify/mcp-auth", "--editor"]`  | Editor            |
-| `["-y", "@jedify/mcp-auth", "--builder"]` | Builder           |
-
-`--editor` requires `@jedify/mcp-auth` v1.1.1 or later. Setting `MCP_MODE` to `editor` or `builder` in the `env` block is equivalent; the flag wins if both are set.
-
-**API key — local proxy or hosted agent.** The flag is ignored: the mode comes from the key, and keys created in the app carry Asker mode. Select the mode in the server URL instead — `https://be.jedify.com/mcp/message?mode=editor` or `?mode=builder`. For the local proxy, set that URL as `REMOTE_MCP_URL` in the `env` block. The URL parameter takes precedence over every other setting, so it works with the browser sign-in too.
-
-See [Connect](/mcp/connect) for the full setup in each client.
+See [Connect](/mcp/connect) for the full setup.

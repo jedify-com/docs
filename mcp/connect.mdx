@@ -1,116 +1,55 @@
 ---
 title: 'Connect'
 icon: 'plug'
-description: 'Connect Claude Desktop, Cursor, or a hosted AI agent to Jedify.'
+description: 'Add the Jedify connector in Claude, or point a hosted agent at the Jedify MCP server.'
 ---
 
-Jedify's MCP works with **local clients** (Claude Desktop, Cursor, Claude Code) and **hosted agents and app builders** (such as ChatGPT or no-code app builders). Both use the same [modes](/mcp/modes) and [authentication](/mcp/authentication).
-
-## Local clients: Claude Desktop, Cursor & Claude Code
-
-Add this to your client's MCP configuration (requires **Node.js 18+**):
-
-```json
-{
-  "mcpServers": {
-    "jedify": {
-      "command": "npx",
-      "args": ["-y", "@jedify/mcp-auth"]
-    }
-  }
-}
-```
-
-This connects in Asker mode and signs you in through the browser. To run in another mode, add `--editor` or `--builder` to `args`:
-
-```json
-"args": ["-y", "@jedify/mcp-auth", "--editor"]
-```
-
-Setting `MCP_MODE` to `editor` or `builder` in an `env` block does the same; the flag wins if both are set.
+Jedify's MCP server runs at `https://be.jedify.com/mcp` — there is nothing to install. Add it as a **connector in Claude**, or give a **hosted agent or app builder** the server URL and an API key. Both use the same [modes](/mcp/modes) and [authentication](/mcp/authentication).
 
 <Note>
-`--editor` requires `@jedify/mcp-auth` **v1.1.1 or later**. `npx` can keep running a version it cached earlier — if the flag has no effect, use `"@jedify/mcp-auth@latest"` in `args` once to refresh it.
+If your organization's Jedify is hosted in the EU, use `https://be-eu.jedify.com/mcp` wherever this page says `https://be.jedify.com/mcp`.
 </Note>
 
-The config file lives at:
+## Claude
 
-<Tabs>
-  <Tab title="Claude Desktop">
-    **Settings → Developer → Edit Config**, or edit directly:
+Jedify is a **custom connector** in Claude. A workspace admin adds it once and every user in the organization gets it; if your plan lets you add custom connectors yourself, the same steps apply to your own account.
 
-    - **macOS** — `~/Library/Application Support/Claude/claude_desktop_config.json`
-    - **Windows** — `%APPDATA%\Claude\claude_desktop_config.json`
+<Steps>
+  <Step title="Open the connector settings">
+    In Claude, click **+** in the message box → **Connectors** → **Manage connectors** → **Add custom connector**.
+  </Step>
+  <Step title="Enter the server URL">
+    Name it **Jedify** and enter the URL for the [mode](/mcp/modes) you want:
 
-  </Tab>
-  <Tab title="Cursor">
-    Command palette (`Cmd/Ctrl+Shift+P`) → **MCP Settings → Open MCP Settings**, or edit directly:
+    | Mode                  | Server URL                               |
+    | --------------------- | ---------------------------------------- |
+    | **Asker** _(default)_ | `https://be.jedify.com/mcp`              |
+    | **Editor**            | `https://be.jedify.com/mcp?mode=editor`  |
+    | **Builder**           | `https://be.jedify.com/mcp?mode=builder` |
 
-    - **macOS / Linux** — `~/.cursor/mcp.json`
-    - **Windows** — `%APPDATA%\Cursor\mcp.json`
+    The mode is part of the URL, so add one connector per mode you need.
+  </Step>
+  <Step title="Connect and sign in">
+    Click **Add**, then **Connect** on the Jedify connector. Your organization's Jedify login opens; sign in and return to Claude. Sessions refresh automatically — see [Authentication](/mcp/authentication).
+  </Step>
+</Steps>
 
-  </Tab>
-  <Tab title="Claude Code">
-    Edit `~/.claude.json` in your home directory and add the `jedify` server under `mcpServers` (the same block shown above).
-
-  </Tab>
-</Tabs>
-
-Restart your client. The first time you use a Jedify tool, you'll [sign in](/mcp/authentication).
-
-### Authenticate with an API key
-
-To skip the browser login — on a headless machine, a shared environment, or a CI setup — set `JEDIFY_API_KEY` in an `env` block. When it's present, the proxy authenticates every request with the key instead of prompting you to sign in:
-
-```json
-{
-  "mcpServers": {
-    "jedify": {
-      "command": "npx",
-      "args": ["-y", "@jedify/mcp-auth"],
-      "env": {
-        "JEDIFY_API_KEY": "your-api-key"
-      }
-    }
-  }
-}
-```
+Once added, Jedify appears alongside Claude's other connectors wherever you use Claude — the web app, Claude Desktop, and Claude Code (run `/mcp` to see it) — for every user your admin enabled it for.
 
 <Note>
-Create the key in Jedify under **Settings → API Keys**. It is bound to you and carries your identity and permissions, so no email or sign-in is needed. If `JEDIFY_API_KEY` is unset, the proxy falls back to the browser login. Requires `@jedify/mcp-auth` **v1.1.0 or later**.
+**Already using `@jedify/mcp-auth`?** Remove the `jedify` entry from your client's MCP configuration and add the connector instead — the local proxy is no longer needed.
 </Note>
 
-### Select a mode with an API key
+To confirm the mode, ask Claude _"Which Jedify tools do you have?"_ — Editor mode includes `make_edit` and `get_graph`; Builder mode includes `create_semantic_function` and `list_semantic_functions`.
 
-When you authenticate with an API key, the server takes the mode from the key itself and **ignores `--editor`, `--builder`, and `MCP_MODE`**. Keys created in the app carry Asker mode. To use another mode, put it in the server URL through `REMOTE_MCP_URL` — the URL parameter takes precedence over every other setting:
+## Hosted agents and other MCP clients
 
-```json
-{
-  "mcpServers": {
-    "jedify": {
-      "command": "npx",
-      "args": ["-y", "@jedify/mcp-auth"],
-      "env": {
-        "REMOTE_MCP_URL": "https://be.jedify.com/mcp/message?mode=editor",
-        "JEDIFY_API_KEY": "your-api-key"
-      }
-    }
-  }
-}
-```
+For platforms that connect to an MCP server with a URL and a token — ChatGPT, no-code app builders, or any MCP client outside Claude — provide the server URL and an API key in the platform's MCP settings:
 
-Replace `editor` with `builder` for Builder mode. The URL parameter also works with the browser login, so it is the one setting that selects the mode in every setup.
-
-To confirm the mode, ask your agent _"Which Jedify tools do you have?"_ — Editor mode includes `make_edit` and `get_graph`; Builder mode includes `create_semantic_function` and `list_semantic_functions`.
-
-## Hosted agents & app builders
-
-In your platform's MCP settings, provide the server URL and an API key:
-
-|                |                                                                                                                                                       |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Server URL** | `https://be.jedify.com/mcp/message` for Asker mode. Add `?mode=editor` or `?mode=builder` for the other modes — with no proxy, the URL is the only way to select a mode |
-| **API key**    | Create one in Jedify under **Settings → API Keys** — see [Authentication](/mcp/authentication)                                                        |
+|                |                                                                                                                                          |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **Server URL** | `https://be.jedify.com/mcp` for Asker mode. Add `?mode=editor` or `?mode=builder` for the other modes — the URL is what selects the mode |
+| **API key**    | Create one in Jedify under **Settings → API Keys** — see [Authentication](/mcp/authentication)                                           |
 
 To confirm the mode, ask your agent _"Which Jedify tools do you have?"_ — Editor mode includes `make_edit` and `get_graph`; Builder mode includes `create_semantic_function` and `list_semantic_functions`.
 
