@@ -24,7 +24,7 @@ description: "Product updates and release notes for Jedify. Jump to a release us
 <Update label="2026-08-11" description="Jedify connector for Claude">
   ## Jedify connector for Claude
 
-  Jedify is now a custom connector in Claude - no local install or configuration file needed. A workspace admin adds it once (**+ → Connectors → Manage connectors → Add custom connector**) with the server URL `https://be.jedify.com/mcp`, and everyone in the organization can connect and sign in with their Jedify login. Add `?mode=editor` or `?mode=builder` to the URL for the other [modes](/mcp/modes).
+  Jedify is now a connector in Claude - no local install or configuration file needed. Connect Asker mode from the [connector directory](https://claude.ai/directory/jedify), or have a workspace admin enable it once for the whole organization. Editor and Builder are separate custom connectors (**+ → Connectors → Manage connectors → Add custom connector**) with `https://be.jedify.com/mcp?mode=editor` or `?mode=builder` as the server URL - one connector per [mode](/mcp/modes).
 
   If you were using the `@jedify/mcp-auth` proxy, remove the `jedify` entry from your client's configuration and add the connector instead.
 

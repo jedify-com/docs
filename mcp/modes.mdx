@@ -74,6 +74,6 @@ The mode is selected in the server URL. Asker mode is the default — no paramet
 | `https://be.jedify.com/mcp?mode=editor`  | Editor            |
 | `https://be.jedify.com/mcp?mode=builder` | Builder           |
 
-In Claude, each mode is its own connector — add one per mode you need. For hosted agents, set the URL in the platform's MCP settings. The URL parameter takes precedence over everything else: an API key created in the app carries Asker mode on its own, and `?mode=` overrides it.
+In Claude, **each mode is a separate connector**: Asker comes from the [connector directory](https://claude.ai/directory/jedify); Editor and Builder are custom connectors with the URLs above — add one per mode you need. For hosted agents, set the URL in the platform's MCP settings. The URL parameter takes precedence over everything else: an API key created in the app carries Asker mode on its own, and `?mode=` overrides it.
 
 See [Connect](/mcp/connect) for the full setup.

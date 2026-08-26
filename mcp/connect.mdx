@@ -1,10 +1,10 @@
 ---
 title: 'Connect'
 icon: 'plug'
-description: 'Add the Jedify connector in Claude, or point a hosted agent at the Jedify MCP server.'
+description: 'Connect Jedify from the Claude connector directory, add a custom connector for Editor or Builder mode, or point a hosted agent at the Jedify MCP server.'
 ---
 
-Jedify's MCP server runs at `https://be.jedify.com/mcp` — there is nothing to install. Add it as a **connector in Claude**, or give a **hosted agent or app builder** the server URL and an API key. Both use the same [modes](/mcp/modes) and [authentication](/mcp/authentication).
+Jedify's MCP server runs at `https://be.jedify.com/mcp` — there is nothing to install. In **Claude**, Jedify is a connector; **hosted agents and app builders** get the server URL and an API key. Both use the same [modes](/mcp/modes) and [authentication](/mcp/authentication).
 
 <Note>
 If your organization's Jedify is hosted in the EU, use `https://be-eu.jedify.com/mcp` wherever this page says `https://be.jedify.com/mcp`.
@@ -12,32 +12,44 @@ If your organization's Jedify is hosted in the EU, use `https://be-eu.jedify.com
 
 ## Claude
 
-Jedify is a **custom connector** in Claude. A workspace admin adds it once and every user in the organization gets it; if your plan lets you add custom connectors yourself, the same steps apply to your own account.
+<Warning>
+**Each mode is a separate connector.** The Jedify connector in Claude's directory runs in **Asker** mode. For **Editor** or **Builder** mode, add a custom connector with the mode in its URL, as described below — one per mode you need. Several can be connected side by side.
+</Warning>
+
+### Asker mode: from the connector directory
+
+Jedify is listed in Claude's connector directory. Open [claude.ai/directory/jedify](https://claude.ai/directory/jedify) (also reachable from **Settings → Connectors** in Claude) and click **Connect**. Your organization's Jedify login opens; sign in and return to Claude.
+
+![Jedify in the Claude connector directory, showing the Asker tools and the Connected by default status](/images/docs/mcp/claude-directory-jedify.png)
+
+On Claude Team and Enterprise, a workspace admin can enable the connector once for the whole organization — it then appears for every user, connected by default.
+
+### Editor and Builder modes: as a custom connector
 
 <Steps>
   <Step title="Open the connector settings">
     In Claude, click **+** in the message box → **Connectors** → **Manage connectors** → **Add custom connector**.
   </Step>
   <Step title="Enter the server URL">
-    Name it **Jedify** and enter the URL for the [mode](/mcp/modes) you want:
+    Name it after the mode — for example **Jedify Editor** — and enter the mode's URL:
 
-    | Mode                  | Server URL                               |
-    | --------------------- | ---------------------------------------- |
-    | **Asker** _(default)_ | `https://be.jedify.com/mcp`              |
-    | **Editor**            | `https://be.jedify.com/mcp?mode=editor`  |
-    | **Builder**           | `https://be.jedify.com/mcp?mode=builder` |
+    | Mode                  | Server URL                                                                         |
+    | --------------------- | ---------------------------------------------------------------------------------- |
+    | **Editor**            | `https://be.jedify.com/mcp?mode=editor`                                            |
+    | **Builder**           | `https://be.jedify.com/mcp?mode=builder`                                           |
+    | **Asker** _(default)_ | `https://be.jedify.com/mcp` — only if the directory listing isn't available to you |
 
-    The mode is part of the URL, so add one connector per mode you need.
+    Repeat for each mode you need.
   </Step>
   <Step title="Connect and sign in">
-    Click **Add**, then **Connect** on the Jedify connector. Your organization's Jedify login opens; sign in and return to Claude. Sessions refresh automatically — see [Authentication](/mcp/authentication).
+    Click **Add**, then **Connect**. Sign in with your Jedify login and return to Claude. Sessions refresh automatically — see [Authentication](/mcp/authentication).
   </Step>
 </Steps>
 
-Once added, Jedify appears alongside Claude's other connectors wherever you use Claude — the web app, Claude Desktop, and Claude Code (run `/mcp` to see it) — for every user your admin enabled it for.
+Once added, the Jedify connectors appear alongside Claude's other connectors wherever you use Claude — the web app, Claude Desktop, and Claude Code (run `/mcp` to see them) — for every user your admin enabled them for.
 
 <Note>
-**Already using `@jedify/mcp-auth`?** Remove the `jedify` entry from your client's MCP configuration and add the connector instead — the local proxy is no longer needed.
+**Already using `@jedify/mcp-auth`?** Remove the `jedify` entry from your client's MCP configuration and use the connectors instead — the local proxy is no longer needed.
 </Note>
 
 To confirm the mode, ask Claude _"Which Jedify tools do you have?"_ — Editor mode includes `make_edit` and `get_graph`; Builder mode includes `create_semantic_function` and `list_semantic_functions`.
