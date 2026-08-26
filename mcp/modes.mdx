@@ -66,14 +66,20 @@ Describe the dashboard or app you want; your agent builds it using **semantic fu
 
 ## Switching modes
 
-Asker is the default mode. The **Claude connector runs in Asker mode only** — Editor and Builder are not yet available through it.
+Asker is the default mode. How you select another one depends on how you connect.
 
-For **hosted agents and other MCP clients**, the mode is selected in the server URL:
+**Claude connector.** Runs in Asker mode; Editor and Builder are not available through it — use a local client.
 
-| Server URL                               | Mode              |
-| ---------------------------------------- | ----------------- |
-| `https://be.jedify.com/mcp`              | Asker _(default)_ |
-| `https://be.jedify.com/mcp?mode=editor`  | Editor            |
-| `https://be.jedify.com/mcp?mode=builder` | Builder           |
+**Local client (browser sign-in).** Add the matching flag to the proxy `args`:
 
-The URL parameter takes precedence over everything else: an API key created in the app carries Asker mode on its own, and `?mode=` overrides it. See [Connect](/mcp/connect) for the full setup.
+| `args`                                    | Mode              |
+| ----------------------------------------- | ----------------- |
+| `["-y", "@jedify/mcp-auth"]`              | Asker _(default)_ |
+| `["-y", "@jedify/mcp-auth", "--editor"]`  | Editor            |
+| `["-y", "@jedify/mcp-auth", "--builder"]` | Builder           |
+
+`--editor` requires `@jedify/mcp-auth` v1.1.1 or later. Setting `MCP_MODE` to `editor` or `builder` in the `env` block is equivalent; the flag wins if both are set.
+
+**API key — local client or hosted agent.** The flag is ignored: the mode comes from the key, and keys created in the app carry Asker mode. Select the mode in the server URL instead — `?mode=editor` or `?mode=builder`. For a hosted agent that is `https://be.jedify.com/mcp?mode=editor`; for the local proxy, set `REMOTE_MCP_URL` to `https://be.jedify.com/mcp/message?mode=editor` in the `env` block. The URL parameter takes precedence over every other setting, so it works with the browser sign-in too.
+
+See [Connect](/mcp/connect) for the full setup in each client.

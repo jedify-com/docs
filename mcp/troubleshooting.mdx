@@ -19,14 +19,19 @@ _"What data entities are available in our Jedify platform?"_
 
 ### Jedify tools not available
 
-**Symptoms**: Claude doesn't list the Jedify connector, or says the Jedify tools are unavailable.
+**Symptoms**: your client doesn't list the Jedify connector or tools, or says they're unavailable.
 
 **Solutions**:
 
-1. **Check the connector is enabled**: in Claude, open **Settings → Connectors** — Jedify should be listed and connected. If it's missing, connect it from [claude.ai/directory/jedify](https://claude.ai/directory/jedify) or ask your workspace admin to enable it for you.
-2. **Hosted agent or other MCP client?** Check the server URL: it must be `https://be.jedify.com/mcp`, with `?mode=editor` or `?mode=builder` for the other modes — no other path.
-3. **Reconnect**: disconnect the connector, connect it again, and sign in.
-4. **Remove the old proxy**: if your client's MCP configuration still has a `jedify` entry using `@jedify/mcp-auth`, delete it — the connector replaces it.
+1. **Claude connector**: open **Settings → Connectors** — Jedify should be listed and connected. If it's missing, connect it from [claude.ai/directory/jedify](https://claude.ai/directory/jedify) or ask your workspace admin to enable it for you.
+2. **Local client — check the config file location**:
+   - **Claude Desktop** — macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`; Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+   - **Cursor** — macOS/Linux: `~/.cursor/mcp.json`; Windows: `%APPDATA%\Cursor\mcp.json`
+   - **Claude Code** — `~/.claude.json`
+3. **Verify JSON format**: no trailing commas, no missing quotes.
+4. **Restart your client**: quit completely and reopen.
+5. **Check Node.js**: run `node --version` to confirm Node.js 18+ is installed.
+6. **Hosted agent or other MCP client?** Check the server URL: it must be `https://be.jedify.com/mcp`, with `?mode=editor` or `?mode=builder` for the other modes — no other path.
 
 See [Connect](/mcp/connect) for the full setup steps.
 
@@ -42,23 +47,25 @@ See [Connect](/mcp/connect) for the full setup steps.
 
 ### Sign-in page doesn't open
 
-**Symptoms**: you click **Connect** on the Jedify connector but no sign-in page appears.
+**Symptoms**: sign-in is required but no browser or sign-in window appears.
 
 **Solutions**:
 
-1. **Allow pop-ups**: the sign-in opens in a new window — allow pop-ups for Claude in your browser and try again.
-2. **Check your default browser**: in Claude Desktop and Claude Code, make sure a default browser is set in your system settings.
-3. **Check security software**: antivirus or firewall tools can block the sign-in window.
+1. **Claude connector**: allow pop-ups for Claude in your browser and click **Connect** again.
+2. **Local client**: look for the sign-in URL in your client's output and open it manually; make sure a default browser is set in your system settings.
+3. **Check security software**: antivirus or firewall tools can block the browser launch.
 
 ### API key not working
 
-**Symptoms**: you provided an API key but requests still aren't authenticated.
+**Symptoms**: you set `JEDIFY_API_KEY` (or entered an API key in your platform) but requests still aren't authenticated.
 
 **Solutions**:
 
 1. **Use a key created in Jedify**: create it under **Settings → API Keys** — keys created there are bound to you. A key issued any other way must be user-bound.
 2. **Check the key is still active**: keys can carry an expiry and can be deactivated or revoked under **Settings → API Keys**. Create a new one if in doubt.
-3. **Check where you entered it**: it belongs in your platform's **API key** (or **token**) field for the Jedify MCP server.
+3. **Local proxy — check the version**: API-key authentication requires `@jedify/mcp-auth` **v1.1.0 or later**.
+4. **Local proxy — check the `env` block**: confirm `JEDIFY_API_KEY` is inside `env`, not `args`. If it's unset, the proxy falls back to the browser login.
+5. **Hosted agent**: the key belongs in the platform's **API key** (or **token**) field for the Jedify MCP server.
 
 See [Authentication](/mcp/authentication) for the full configuration.
 
@@ -72,9 +79,10 @@ See [Authentication](/mcp/authentication) for the full configuration.
 
 **Solutions**:
 
-1. **Confirm Builder mode**: Builder mode isn't available through the Claude connector, which runs in Asker mode. For hosted agents and other MCP clients, the server URL must be `https://be.jedify.com/mcp?mode=builder` — the mode comes from the URL, whether you sign in or use an API key (see [Switching modes](/mcp/modes#switching-modes)).
-2. **Check for existing functions**: your account may not have any functions yet — create one from a validated question with `create_semantic_function`.
-3. **Broaden your search**: try a single keyword, or call `list_semantic_functions` with no filter.
+1. **Confirm Builder mode**: Builder mode isn't available through the Claude connector (Asker only). In a local client, your proxy `args` must include `--builder`; for hosted agents, the server URL must be `https://be.jedify.com/mcp?mode=builder` (see [Switching modes](/mcp/modes#switching-modes)).
+2. **Using an API key?** `--builder` is ignored — the mode comes from the key, and keys created in the app are Asker. Set it in the server URL instead — `"REMOTE_MCP_URL": "https://be.jedify.com/mcp/message?mode=builder"` for the local proxy, `?mode=builder` on the hosted URL (see [Select a mode with an API key](/mcp/connect#select-a-mode-with-an-api-key)).
+3. **Check for existing functions**: your account may not have any functions yet — create one from a validated question with `create_semantic_function`.
+4. **Broaden your search**: try a single keyword, or call `list_semantic_functions` with no filter.
 
 ### SDK calls return 401
 
@@ -99,7 +107,11 @@ See [Authentication](/mcp/authentication) for the full configuration.
 
 **Symptoms**: `make_edit`, `get_graph`, or the test-set tools are missing.
 
-**Solution**: Editor mode isn't available through the Claude connector, which runs in Asker mode. For hosted agents and other MCP clients, the server URL must be `https://be.jedify.com/mcp?mode=editor` — the mode comes from the URL, whether you sign in or use an API key (see [Switching modes](/mcp/modes#switching-modes)).
+**Solutions**:
+
+1. **Confirm Editor mode**: Editor mode isn't available through the Claude connector (Asker only). In a local client, your proxy `args` must include `--editor`; for hosted agents, the server URL must be `https://be.jedify.com/mcp?mode=editor` (see [Switching modes](/mcp/modes#switching-modes)).
+2. **Check the proxy version**: `--editor` requires `@jedify/mcp-auth` v1.1.1 or later, and `npx` may be running a cached older version — use `"@jedify/mcp-auth@latest"` in `args` once to refresh it.
+3. **Using an API key?** `--editor` is ignored — the mode comes from the key, and keys created in the app are Asker. Set it in the server URL instead — `"REMOTE_MCP_URL": "https://be.jedify.com/mcp/message?mode=editor"` for the local proxy, `?mode=editor` on the hosted URL (see [Select a mode with an API key](/mcp/connect#select-a-mode-with-an-api-key)).
 
 ### A versioning tool says it isn't available for this account
 
@@ -166,7 +178,7 @@ See [Authentication](/mcp/authentication) for the full configuration.
 
 Before contacting support, collect:
 
-- Your client (Claude web, Claude Desktop, Claude Code, or the hosted platform) and operating system
+- Your client (Claude connector, Claude Desktop, Cursor, Claude Code, or the hosted platform) and operating system
 - What you were trying to do
 - The exact error message
 - Whether authentication completed
