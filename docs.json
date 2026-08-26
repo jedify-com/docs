@@ -157,8 +157,8 @@
             "group": "MCP",
             "pages": [
               "mcp/overview",
-              "mcp/modes",
               "mcp/connect",
+              "mcp/modes",
               "mcp/authentication",
               {
                 "group": "Asker mode",

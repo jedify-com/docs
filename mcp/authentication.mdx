@@ -6,7 +6,8 @@ description: "Sign in, or use an API key."
 
 How you authenticate depends on your client:
 
-- **Desktop apps** (Claude Desktop, Cursor, Claude Code) — **sign in** when prompted. The first time you use a Jedify tool, your browser opens to your organization's login page; sign in and return to your client. Sessions refresh automatically.
+- **Claude connector** — **sign in** when you connect. Your organization's Jedify login page opens; sign in and return to Claude. Sessions refresh automatically.
+- **Local clients** (Claude Desktop, Cursor, Claude Code running the `@jedify/mcp-auth` proxy) — **sign in** when prompted. The first time you use a Jedify tool, your browser opens to your organization's login page; sign in and return to your client. Sessions refresh automatically.
 - **Hosted agents and apps**, and any headless or shared setup — use an **API key**.
 
 A finished app or dashboard always uses an API key, since no one is present to sign in.
@@ -17,7 +18,7 @@ Create one in Jedify under **Settings → API Keys**: give it a name and, option
 
 The key is **bound to you** — it carries your identity and permissions. Anyone can create keys for themselves; administrators can also see and revoke every key in the account.
 
-**Mode.** A key created in the app runs in **Asker** mode. To use Editor or Builder mode with an API key, select the mode in the server URL (`?mode=editor` or `?mode=builder`) — the proxy's `--editor` and `--builder` flags don't apply while a key is in use. See [Select a mode with an API key](/mcp/connect#select-a-mode-with-an-api-key).
+**Mode.** A key created in the app runs in **Asker** mode. To use Editor or Builder mode with an API key, select the mode in the server URL (`?mode=editor` or `?mode=builder`) — `REMOTE_MCP_URL` for the local proxy, the server URL for a hosted agent. See [Editor and Builder modes](/mcp/connect#editor-and-builder-modes).
 
 <Warning>
 A published app uses one API key for everyone who opens it, so **every viewer sees data at that key's permission level** — not their own. For sensitive data (HR, finance), use a key whose access matches what all viewers should see.
