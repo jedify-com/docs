@@ -66,9 +66,9 @@ Describe the dashboard or app you want; your agent builds it using **semantic fu
 
 ## Switching modes
 
-**In Claude**, each mode is a separate connector — **Jedify Production** (Asker), **Jedify Production Editor**, and **Jedify Production Builder**. Connect the one you need; there is nothing to configure. See [Connect](/mcp/connect).
+Asker is the default mode. The **Claude connector runs in Asker mode only** — Editor and Builder are not yet available through it.
 
-**Everywhere else** — hosted agents and other MCP clients — the mode is selected in the server URL. Asker is the default; no parameter needed.
+For **hosted agents and other MCP clients**, the mode is selected in the server URL:
 
 | Server URL                               | Mode              |
 | ---------------------------------------- | ----------------- |
@@ -76,4 +76,4 @@ Describe the dashboard or app you want; your agent builds it using **semantic fu
 | `https://be.jedify.com/mcp?mode=editor`  | Editor            |
 | `https://be.jedify.com/mcp?mode=builder` | Builder           |
 
-The URL parameter takes precedence over everything else: an API key created in the app carries Asker mode on its own, and `?mode=` overrides it.
+The URL parameter takes precedence over everything else: an API key created in the app carries Asker mode on its own, and `?mode=` overrides it. See [Connect](/mcp/connect) for the full setup.
