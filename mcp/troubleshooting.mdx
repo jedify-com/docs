@@ -23,9 +23,9 @@ _"What data entities are available in our Jedify platform?"_
 
 **Solutions**:
 
-1. **Check the connector is enabled**: in Claude, click **+ → Connectors** — Jedify should be listed and connected. If it's missing, connect it from [claude.ai/directory/jedify](https://claude.ai/directory/jedify) or ask your workspace admin to enable it for you.
-2. **Check the server URL**: it must be `https://be.jedify.com/mcp`, with `?mode=editor` or `?mode=builder` for the other modes — no other path.
-3. **Reconnect**: disconnect the Jedify connector, connect it again, and sign in.
+1. **Check the connector is enabled**: in Claude, open **Settings → Connectors** — the Jedify connector for your mode should be listed and connected. If it's missing, search the directory for **Jedify** (Asker: [claude.ai/directory/jedify](https://claude.ai/directory/jedify)) or ask your workspace admin to enable the Jedify connectors for you.
+2. **Hosted agent or other MCP client?** Check the server URL: it must be `https://be.jedify.com/mcp`, with `?mode=editor` or `?mode=builder` for the other modes — no other path.
+3. **Reconnect**: disconnect the connector, connect it again, and sign in.
 4. **Remove the old proxy**: if your client's MCP configuration still has a `jedify` entry using `@jedify/mcp-auth`, delete it — the connector replaces it.
 
 See [Connect](/mcp/connect) for the full setup steps.
@@ -72,7 +72,7 @@ See [Authentication](/mcp/authentication) for the full configuration.
 
 **Solutions**:
 
-1. **Confirm Builder mode**: the server URL must be `https://be.jedify.com/mcp?mode=builder` — the mode comes from the URL, whether you sign in or use an API key (see [Switching modes](/mcp/modes#switching-modes)). In Claude, Builder mode is its own custom connector — the directory connector is Asker only.
+1. **Confirm Builder mode**: in Claude, connect the **Jedify Production Builder** connector — **Jedify Production** is Asker only. For hosted agents, the server URL must be `https://be.jedify.com/mcp?mode=builder`; the mode comes from the URL, whether you sign in or use an API key (see [Switching modes](/mcp/modes#switching-modes)).
 2. **Check for existing functions**: your account may not have any functions yet — create one from a validated question with `create_semantic_function`.
 3. **Broaden your search**: try a single keyword, or call `list_semantic_functions` with no filter.
 
@@ -99,7 +99,7 @@ See [Authentication](/mcp/authentication) for the full configuration.
 
 **Symptoms**: `make_edit`, `get_graph`, or the test-set tools are missing.
 
-**Solution**: the server URL must be `https://be.jedify.com/mcp?mode=editor` — the mode comes from the URL, whether you sign in or use an API key (see [Switching modes](/mcp/modes#switching-modes)). In Claude, Editor mode is its own custom connector — the directory connector is Asker only.
+**Solution**: in Claude, connect the **Jedify Production Editor** connector — **Jedify Production** is Asker only. For hosted agents, the server URL must be `https://be.jedify.com/mcp?mode=editor`; the mode comes from the URL, whether you sign in or use an API key (see [Switching modes](/mcp/modes#switching-modes)).
 
 ### A versioning tool says it isn't available for this account
 
