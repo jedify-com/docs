@@ -45,7 +45,7 @@ Use a local client configuration for **Editor or Builder mode**, or when you wan
 
 ### Editor and Builder modes
 
-Add the block for your mode to your client's MCP configuration:
+The mode is selected by the `?mode=` parameter on the server URL the proxy talks to, set through `REMOTE_MCP_URL`. Add the block for your mode to your client's MCP configuration:
 
 <Tabs>
   <Tab title="Editor mode">
@@ -54,7 +54,10 @@ Add the block for your mode to your client's MCP configuration:
       "mcpServers": {
         "jedify-editor": {
           "command": "npx",
-          "args": ["-y", "@jedify/mcp-auth", "--editor"]
+          "args": ["-y", "@jedify/mcp-auth"],
+          "env": {
+            "REMOTE_MCP_URL": "https://be.jedify.com/mcp/message?mode=editor"
+          }
         }
       }
     }
@@ -66,7 +69,10 @@ Add the block for your mode to your client's MCP configuration:
       "mcpServers": {
         "jedify-builder": {
           "command": "npx",
-          "args": ["-y", "@jedify/mcp-auth", "--builder"]
+          "args": ["-y", "@jedify/mcp-auth"],
+          "env": {
+            "REMOTE_MCP_URL": "https://be.jedify.com/mcp/message?mode=builder"
+          }
         }
       }
     }
@@ -74,10 +80,10 @@ Add the block for your mode to your client's MCP configuration:
   </Tab>
 </Tabs>
 
-Setting `MCP_MODE` to `editor` or `builder` in an `env` block does the same; the flag wins if both are set. You can keep both blocks side by side.
+You can keep both blocks side by side. The URL parameter takes precedence over every other setting, so it selects the mode whether you sign in through the browser or use an API key.
 
 <Note>
-`--editor` requires `@jedify/mcp-auth` **v1.1.1 or later**. `npx` can keep running a version it cached earlier — if the flag has no effect, use `"@jedify/mcp-auth@latest"` in `args` once to refresh it.
+`REMOTE_MCP_URL` is the one reliable way to select a mode for the proxy. Its `--editor` / `--builder` flags and `MCP_MODE` variable are ignored whenever an API key is in use, and older cached proxy versions ignore them entirely — don't rely on them.
 </Note>
 
 ### Config file location
@@ -107,29 +113,7 @@ Restart your client. The first time you use a Jedify tool, you'll [sign in](/mcp
 
 ### Authenticate with an API key
 
-To skip the browser login — on a headless machine, a shared environment, or a CI setup — set `JEDIFY_API_KEY` in an `env` block. When it's present, the proxy authenticates every request with the key instead of prompting you to sign in:
-
-```json
-{
-  "mcpServers": {
-    "jedify": {
-      "command": "npx",
-      "args": ["-y", "@jedify/mcp-auth"],
-      "env": {
-        "JEDIFY_API_KEY": "your-api-key"
-      }
-    }
-  }
-}
-```
-
-<Note>
-Create the key in Jedify under **Settings → API Keys**. It is bound to you and carries your identity and permissions, so no email or sign-in is needed. If `JEDIFY_API_KEY` is unset, the proxy falls back to the browser login. Requires `@jedify/mcp-auth` **v1.1.0 or later**.
-</Note>
-
-### Select a mode with an API key
-
-When you authenticate with an API key, the server takes the mode from the key itself and **ignores `--editor`, `--builder`, and `MCP_MODE`**. Keys created in the app carry Asker mode. To use another mode, put it in the server URL through `REMOTE_MCP_URL` — the URL parameter takes precedence over every other setting:
+To skip the browser login — on a headless machine, a shared environment, or a CI setup — add `JEDIFY_API_KEY` to the `env` block. When it's present, the proxy authenticates every request with the key instead of prompting you to sign in:
 
 ```json
 {
@@ -146,7 +130,11 @@ When you authenticate with an API key, the server takes the mode from the key it
 }
 ```
 
-Replace `editor` with `builder` for Builder mode. The URL parameter also works with the browser login, so it is the one setting that selects the mode in every setup.
+Leave out `REMOTE_MCP_URL` for Asker mode.
+
+<Note>
+Create the key in Jedify under **Settings → API Keys**. It is bound to you and carries your identity and permissions, so no email or sign-in is needed. If `JEDIFY_API_KEY` is unset, the proxy falls back to the browser login. Requires `@jedify/mcp-auth` **v1.1.0 or later**. A key created in the app carries Asker mode on its own — the `?mode=` in `REMOTE_MCP_URL` takes precedence, which is why the same URL works with or without a key.
+</Note>
 
 To confirm the mode, ask your agent _"Which Jedify tools do you have?"_ — Editor mode includes `make_edit` and `get_graph`; Builder mode includes `create_semantic_function` and `list_semantic_functions`.
 

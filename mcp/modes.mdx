@@ -66,20 +66,12 @@ Describe the dashboard or app you want; your agent builds it using **semantic fu
 
 ## Switching modes
 
-Asker is the default mode. How you select another one depends on how you connect.
+Asker is the default mode. Where you select another one depends on how you connect:
 
-**Claude connector.** Runs in Asker mode; Editor and Builder are not available through it — use a local client.
+|                                                          | Editor                                    | Builder                                    |
+| -------------------------------------------------------- | ----------------------------------------- | ------------------------------------------ |
+| **Claude connector**                                     | Not available — use a local client        | Not available — use a local client         |
+| **Local client** — `REMOTE_MCP_URL` in the `env` block   | `https://be.jedify.com/mcp/message?mode=editor` | `https://be.jedify.com/mcp/message?mode=builder` |
+| **Hosted agent or other MCP client** — server URL        | `https://be.jedify.com/mcp?mode=editor`   | `https://be.jedify.com/mcp?mode=builder`   |
 
-**Local client (browser sign-in).** Add the matching flag to the proxy `args`:
-
-| `args`                                    | Mode              |
-| ----------------------------------------- | ----------------- |
-| `["-y", "@jedify/mcp-auth"]`              | Asker _(default)_ |
-| `["-y", "@jedify/mcp-auth", "--editor"]`  | Editor            |
-| `["-y", "@jedify/mcp-auth", "--builder"]` | Builder           |
-
-`--editor` requires `@jedify/mcp-auth` v1.1.1 or later. Setting `MCP_MODE` to `editor` or `builder` in the `env` block is equivalent; the flag wins if both are set.
-
-**API key — local client or hosted agent.** The flag is ignored: the mode comes from the key, and keys created in the app carry Asker mode. Select the mode in the server URL instead — `?mode=editor` or `?mode=builder`. For a hosted agent that is `https://be.jedify.com/mcp?mode=editor`; for the local proxy, set `REMOTE_MCP_URL` to `https://be.jedify.com/mcp/message?mode=editor` in the `env` block. The URL parameter takes precedence over every other setting, so it works with the browser sign-in too.
-
-See [Connect](/mcp/connect) for the full setup in each client.
+The `?mode=` parameter takes precedence over every other setting, so it works the same with the browser sign-in and with an API key (a key created in the app carries Asker mode on its own). See [Connect](/mcp/connect) for the full setup in each client.

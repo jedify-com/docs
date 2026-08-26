@@ -79,10 +79,9 @@ See [Authentication](/mcp/authentication) for the full configuration.
 
 **Solutions**:
 
-1. **Confirm Builder mode**: Builder mode isn't available through the Claude connector (Asker only). In a local client, your proxy `args` must include `--builder`; for hosted agents, the server URL must be `https://be.jedify.com/mcp?mode=builder` (see [Switching modes](/mcp/modes#switching-modes)).
-2. **Using an API key?** `--builder` is ignored — the mode comes from the key, and keys created in the app are Asker. Set it in the server URL instead — `"REMOTE_MCP_URL": "https://be.jedify.com/mcp/message?mode=builder"` for the local proxy, `?mode=builder` on the hosted URL (see [Select a mode with an API key](/mcp/connect#select-a-mode-with-an-api-key)).
-3. **Check for existing functions**: your account may not have any functions yet — create one from a validated question with `create_semantic_function`.
-4. **Broaden your search**: try a single keyword, or call `list_semantic_functions` with no filter.
+1. **Confirm Builder mode**: Builder mode isn't available through the Claude connector (Asker only). In a local client, set `"REMOTE_MCP_URL": "https://be.jedify.com/mcp/message?mode=builder"` in the `env` block — `--builder` and `MCP_MODE` are not reliable; for hosted agents, the server URL must be `https://be.jedify.com/mcp?mode=builder` (see [Switching modes](/mcp/modes#switching-modes)).
+2. **Check for existing functions**: your account may not have any functions yet — create one from a validated question with `create_semantic_function`.
+3. **Broaden your search**: try a single keyword, or call `list_semantic_functions` with no filter.
 
 ### SDK calls return 401
 
@@ -107,11 +106,7 @@ See [Authentication](/mcp/authentication) for the full configuration.
 
 **Symptoms**: `make_edit`, `get_graph`, or the test-set tools are missing.
 
-**Solutions**:
-
-1. **Confirm Editor mode**: Editor mode isn't available through the Claude connector (Asker only). In a local client, your proxy `args` must include `--editor`; for hosted agents, the server URL must be `https://be.jedify.com/mcp?mode=editor` (see [Switching modes](/mcp/modes#switching-modes)).
-2. **Check the proxy version**: `--editor` requires `@jedify/mcp-auth` v1.1.1 or later, and `npx` may be running a cached older version — use `"@jedify/mcp-auth@latest"` in `args` once to refresh it.
-3. **Using an API key?** `--editor` is ignored — the mode comes from the key, and keys created in the app are Asker. Set it in the server URL instead — `"REMOTE_MCP_URL": "https://be.jedify.com/mcp/message?mode=editor"` for the local proxy, `?mode=editor` on the hosted URL (see [Select a mode with an API key](/mcp/connect#select-a-mode-with-an-api-key)).
+**Solution**: Editor mode isn't available through the Claude connector (Asker only). In a local client, set `"REMOTE_MCP_URL": "https://be.jedify.com/mcp/message?mode=editor"` in the `env` block — `--editor` and `MCP_MODE` are not reliable; for hosted agents, the server URL must be `https://be.jedify.com/mcp?mode=editor` (see [Switching modes](/mcp/modes#switching-modes)).
 
 ### A versioning tool says it isn't available for this account
 
