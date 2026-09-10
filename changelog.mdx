@@ -4,6 +4,22 @@ icon: "clock-rotate-left"
 description: "Product updates and release notes for Jedify. Jump to a release using the dates listed alongside this page."
 ---
 
+<Update label="2026-09-10" description="MCP tools by role">
+  ## MCP tools load by role
+
+  Your agent's Jedify tools now follow your **role**, not a configuration file. Sign in and the server returns what your role allows:
+
+  | Your role in Jedify | Modes your agent gets    |
+  | ------------------- | ------------------------ |
+  | **Tenant Admin**    | Asker + Editor + Builder |
+  | **Data expert**     | Asker + Editor + Builder |
+  | **User**            | Asker                    |
+
+  This applies to every way of connecting, the Jedify connector in Claude included - Editor and Builder tools are no longer connector-only or proxy-only. If you kept a `REMOTE_MCP_URL` with `?mode=editor` or `?mode=builder` in an MCP config, you can drop it; keep it only to deliberately restrict a client to one mode, which can narrow your role's tools but never extend them. API keys are unchanged: a key created in the app still runs in Asker mode unless the server URL selects another.
+
+  See [Which modes you get](/mcp/modes#which-modes-you-get).
+</Update>
+
 <Update label="2026-08-18" description="Model Versioning (Beta)">
   ## Model Versioning
 

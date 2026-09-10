@@ -31,7 +31,7 @@ _"What data entities are available in our Jedify platform?"_
 3. **Verify JSON format**: no trailing commas, no missing quotes.
 4. **Restart your client**: quit completely and reopen.
 5. **Check Node.js**: run `node --version` to confirm Node.js 18+ is installed.
-6. **Hosted agent or other MCP client?** Check the server URL: it must be `https://be.jedify.com/mcp`, with `?mode=editor` or `?mode=builder` for the other modes — no other path.
+6. **Hosted agent or other MCP client?** Check the server URL: it must be `https://be.jedify.com/mcp` — no other path.
 
 See [Connect](/mcp/connect) for the full setup steps.
 
@@ -79,9 +79,11 @@ See [Authentication](/mcp/authentication) for the full configuration.
 
 **Solutions**:
 
-1. **Confirm Builder mode**: Builder mode isn't available through the Claude connector (Asker only). In a local client, set `"REMOTE_MCP_URL": "https://be.jedify.com/mcp/message?mode=builder"` in the `env` block — `--builder` and `MCP_MODE` are not reliable; for hosted agents, the server URL must be `https://be.jedify.com/mcp?mode=builder` (see [Switching modes](/mcp/modes#switching-modes)).
-2. **Check for existing functions**: your account may not have any functions yet — create one from a validated question with `create_semantic_function`.
-3. **Broaden your search**: try a single keyword, or call `list_semantic_functions` with no filter.
+1. **Check your role**: Builder tools are loaded for **Tenant Admin** and **Data expert** roles only — a **User** gets Asker tools. Ask an administrator to check your role under **Settings → Users** (see [Which modes you get](/mcp/modes#which-modes-you-get)).
+2. **Using an API key?** A key runs in Asker mode on its own. Add `?mode=builder` to the server URL — `"REMOTE_MCP_URL": "https://be.jedify.com/mcp/message?mode=builder"` for the local proxy, `https://be.jedify.com/mcp?mode=builder` for a hosted agent.
+3. **Remove a leftover `?mode=`**: a `?mode=asker` or `?mode=editor` left in an old config narrows your tools even when your role allows Builder.
+4. **Check for existing functions**: your account may not have any functions yet — create one from a validated question with `create_semantic_function`.
+5. **Broaden your search**: try a single keyword, or call `list_semantic_functions` with no filter.
 
 ### SDK calls return 401
 
@@ -106,7 +108,11 @@ See [Authentication](/mcp/authentication) for the full configuration.
 
 **Symptoms**: `make_edit`, `get_graph`, or the test-set tools are missing.
 
-**Solution**: Editor mode isn't available through the Claude connector (Asker only). In a local client, set `"REMOTE_MCP_URL": "https://be.jedify.com/mcp/message?mode=editor"` in the `env` block — `--editor` and `MCP_MODE` are not reliable; for hosted agents, the server URL must be `https://be.jedify.com/mcp?mode=editor` (see [Switching modes](/mcp/modes#switching-modes)).
+**Solutions**:
+
+1. **Check your role**: Editor tools are loaded for **Tenant Admin** and **Data expert** roles only — a **User** gets Asker tools. Ask an administrator to check your role under **Settings → Users** (see [Which modes you get](/mcp/modes#which-modes-you-get)).
+2. **Using an API key?** A key runs in Asker mode on its own. Add `?mode=editor` to the server URL — `"REMOTE_MCP_URL": "https://be.jedify.com/mcp/message?mode=editor"` for the local proxy, `https://be.jedify.com/mcp?mode=editor` for a hosted agent.
+3. **Remove a leftover `?mode=`**: a `?mode=asker` or `?mode=builder` left in an old config narrows your tools even when your role allows Editor.
 
 ### A versioning tool says it isn't available for this account
 

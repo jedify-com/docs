@@ -4,9 +4,9 @@ icon: 'toggle-on'
 description: 'Jedify MCP runs in three modes — Asker, Editor, and Builder. Same connection, different tools.'
 ---
 
-Jedify's MCP server exposes three modes. The connection and authentication are identical — the mode only changes which tools your client sees.
+Jedify's MCP server exposes three modes. The connection and authentication are identical — the mode only changes which tools your client sees, and [your role decides which modes you get](#which-modes-you-get).
 
-- **Asker** _(default)_ — ask questions in plain language; get data back.
+- **Asker** — ask questions in plain language; get data back.
 - **Editor** — have your agent make validated changes to your semantic layer, verify them, and publish only when you confirm.
 - **Builder** — have your agent build data apps and dashboards using Jedify's semantic functions.
 
@@ -64,14 +64,20 @@ Describe the dashboard or app you want; your agent builds it using **semantic fu
   </Card>
 </CardGroup>
 
-## Switching modes
+## Which modes you get
 
-Asker is the default mode. Where you select another one depends on how you connect:
+Your **role in Jedify** decides which modes your agent sees. There is nothing to configure: the connection is the same for everyone, and the server returns the tools your role allows when you sign in.
 
-|                                                          | Editor                                    | Builder                                    |
-| -------------------------------------------------------- | ----------------------------------------- | ------------------------------------------ |
-| **Claude connector**                                     | Not available — use a local client        | Not available — use a local client         |
-| **Local client** — `REMOTE_MCP_URL` in the `env` block   | `https://be.jedify.com/mcp/message?mode=editor` | `https://be.jedify.com/mcp/message?mode=builder` |
-| **Hosted agent or other MCP client** — server URL        | `https://be.jedify.com/mcp?mode=editor`   | `https://be.jedify.com/mcp?mode=builder`   |
+| Your role in Jedify | Modes your agent gets       |
+| ------------------- | --------------------------- |
+| **Tenant Admin**    | Asker + Editor + Builder    |
+| **Data expert**     | Asker + Editor + Builder    |
+| **User**            | Asker                       |
 
-The `?mode=` parameter takes precedence over every other setting, so it works the same with the browser sign-in and with an API key (a key created in the app carries Asker mode on its own). See [Connect](/mcp/connect) for the full setup in each client.
+Roles are managed in Jedify under **Settings → Users**. If your agent is missing Editor or Builder tools, ask an administrator to check your role.
+
+### Restricting to a single mode
+
+You can narrow what an agent sees by adding `?mode=asker`, `?mode=editor`, or `?mode=builder` to the server URL — useful when you want an agent scoped to one job. It can only narrow your role's modes, never extend them: `?mode=editor` on a **User** account still returns Asker tools.
+
+An API key created in the app carries Asker mode on its own, so a hosted agent or a published app using that key sees Asker tools unless the URL selects another mode. See [Connect](/mcp/connect) for the setup in each client.
