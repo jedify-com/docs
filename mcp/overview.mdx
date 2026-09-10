@@ -8,11 +8,13 @@ The Model Context Protocol (MCP) lets an AI agent — Claude, Cursor, or a hoste
 
 There are three modes:
 
-- **Asker** _(default)_ — ask questions in plain language and get data back.
+- **Asker** — ask questions in plain language and get data back.
 - **Editor** — have your agent make validated changes to your semantic layer, verify them, and publish only when you confirm.
 - **Builder** — have your agent build data apps and dashboards using Jedify's semantic functions.
 
 Every mode shares the core question tools. Editor adds semantic-layer editing, versioning, and test sets; Builder adds function management and the SDK.
+
+You don't choose a mode when you connect — **your role in Jedify decides which modes you get**. Tenant Admins and Data experts get all three; Users get Asker. See [Modes](/mcp/modes#which-modes-you-get).
 
 <Note>
 **Building a dashboard or app?** Read [Connect](/mcp/connect) → [Semantic functions](/mcp/builder/semantic-functions) → [Examples](/mcp/builder/examples). **Evolving the semantic layer?** See [Editor tools](/mcp/editor/tools-reference). **Just asking questions?** See [Asker examples](/mcp/asker/use-cases).
@@ -22,10 +24,10 @@ Every mode shares the core question tools. Editor adds semantic-layer editing, v
 
 <CardGroup cols={2}>
   <Card title="Modes" icon="toggle-on" href="/mcp/modes">
-    Asker, Editor, or Builder — and how to switch.
+    Asker, Editor, or Builder — and which ones your role gets.
   </Card>
   <Card title="Connect" icon="plug" href="/mcp/connect">
-    The Claude connector, a local client for Editor and Builder mode, or a hosted agent.
+    The Claude connector, a local client, or a hosted agent.
   </Card>
   <Card title="Authentication" icon="key" href="/mcp/authentication">
     Sign in, or use an API key.
