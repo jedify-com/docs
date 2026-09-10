@@ -80,4 +80,10 @@ Roles are managed in Jedify under **Settings → Users**. If your agent is missi
 
 You can narrow what an agent sees by adding `?mode=asker`, `?mode=editor`, or `?mode=builder` to the server URL — useful when you want an agent scoped to one job. It can only narrow your role's modes, never extend them: `?mode=editor` on a **User** account still returns Asker tools.
 
+|                                                        | Where the mode goes                                                                      |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| **Claude connector**                                   | Not settable — you get your role's modes                                                 |
+| **Local client** (`@jedify/mcp-auth`)                  | `REMOTE_MCP_URL` in the `env` block: `https://be.jedify.com/mcp/message?mode=editor` — see [Restricting the proxy to one mode](/mcp/connect#restricting-the-proxy-to-one-mode) |
+| **Hosted agent or other MCP client**                   | The server URL: `https://be.jedify.com/mcp?mode=editor`                                  |
+
 An API key created in the app carries Asker mode on its own, so a hosted agent or a published app using that key sees Asker tools unless the URL selects another mode. See [Connect](/mcp/connect) for the setup in each client.

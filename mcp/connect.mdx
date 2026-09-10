@@ -55,8 +55,32 @@ Use a local client configuration in a client that has no Jedify connector, or wh
 That single block is all you need. There is no mode setting: after you sign in, the server returns the tools your [role](/mcp/modes#which-modes-you-get) allows — Editor and Builder tools appear automatically for Tenant Admins and Data experts.
 
 <Note>
-Configured `REMOTE_MCP_URL` with `?mode=editor` or `?mode=builder` before? You can drop it. Keep it only if you deliberately want that client restricted to one mode; it can narrow your role's tools, never extend them.
+Configured `REMOTE_MCP_URL` with `?mode=editor` or `?mode=builder` before? You can drop it — your role now decides. Keep it only to deliberately restrict that client to one mode, as below.
 </Note>
+
+### Restricting the proxy to one mode
+
+The proxy talks to the URL in `REMOTE_MCP_URL`, and a `?mode=` on it narrows the client to a single package — handy for an agent you want scoped to one job, or to keep a shared machine on Asker tools:
+
+```json
+{
+  "mcpServers": {
+    "jedify-editor": {
+      "command": "npx",
+      "args": ["-y", "@jedify/mcp-auth"],
+      "env": {
+        "REMOTE_MCP_URL": "https://be.jedify.com/mcp/message?mode=editor"
+      }
+    }
+  }
+}
+```
+
+Use `?mode=asker`, `?mode=editor`, or `?mode=builder`. Note the path: the proxy talks to `/mcp/message`, not `/mcp`. You can keep several such blocks side by side under different server names.
+
+<Warning>
+`?mode=` can only narrow what your role allows, never extend it — `?mode=editor` on a **User** account still gets Asker tools. `REMOTE_MCP_URL` is also the one reliable way to set a mode for the proxy: its `--editor` / `--builder` flags and `MCP_MODE` variable are ignored whenever an API key is in use, and older cached proxy versions ignore them entirely.
+</Warning>
 
 ### Config file location
 
@@ -106,7 +130,7 @@ Create the key in Jedify under **Settings → API Keys**. It is bound to you and
 </Note>
 
 <Warning>
-A key created in the app carries **Asker** mode on its own, regardless of your role. To use Editor or Builder tools with a key, select the mode on the URL the proxy talks to — `"REMOTE_MCP_URL": "https://be.jedify.com/mcp/message?mode=editor"` — which takes precedence over the key's own mode.
+A key created in the app carries **Asker** mode on its own, regardless of your role. To use Editor or Builder tools with a key, add `REMOTE_MCP_URL` alongside it as shown in [Restricting the proxy to one mode](#restricting-the-proxy-to-one-mode) — the URL parameter takes precedence over the key's own mode, so the same block works with or without a key.
 </Warning>
 
 To see what your agent got, ask it _"Which Jedify tools do you have?"_ — Editor tools include `make_edit` and `get_graph`; Builder tools include `create_semantic_function` and `list_semantic_functions`.

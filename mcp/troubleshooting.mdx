@@ -80,7 +80,7 @@ See [Authentication](/mcp/authentication) for the full configuration.
 **Solutions**:
 
 1. **Check your role**: Builder tools are loaded for **Tenant Admin** and **Data expert** roles only — a **User** gets Asker tools. Ask an administrator to check your role under **Settings → Users** (see [Which modes you get](/mcp/modes#which-modes-you-get)).
-2. **Using an API key?** A key runs in Asker mode on its own. Add `?mode=builder` to the server URL — `"REMOTE_MCP_URL": "https://be.jedify.com/mcp/message?mode=builder"` for the local proxy, `https://be.jedify.com/mcp?mode=builder` for a hosted agent.
+2. **Using an API key?** A key runs in Asker mode on its own. Add `?mode=builder` to the server URL — `"REMOTE_MCP_URL": "https://be.jedify.com/mcp/message?mode=builder"` for the local proxy (see [Restricting the proxy to one mode](/mcp/connect#restricting-the-proxy-to-one-mode)), `https://be.jedify.com/mcp?mode=builder` for a hosted agent.
 3. **Remove a leftover `?mode=`**: a `?mode=asker` or `?mode=editor` left in an old config narrows your tools even when your role allows Builder.
 4. **Check for existing functions**: your account may not have any functions yet — create one from a validated question with `create_semantic_function`.
 5. **Broaden your search**: try a single keyword, or call `list_semantic_functions` with no filter.
@@ -111,7 +111,7 @@ See [Authentication](/mcp/authentication) for the full configuration.
 **Solutions**:
 
 1. **Check your role**: Editor tools are loaded for **Tenant Admin** and **Data expert** roles only — a **User** gets Asker tools. Ask an administrator to check your role under **Settings → Users** (see [Which modes you get](/mcp/modes#which-modes-you-get)).
-2. **Using an API key?** A key runs in Asker mode on its own. Add `?mode=editor` to the server URL — `"REMOTE_MCP_URL": "https://be.jedify.com/mcp/message?mode=editor"` for the local proxy, `https://be.jedify.com/mcp?mode=editor` for a hosted agent.
+2. **Using an API key?** A key runs in Asker mode on its own. Add `?mode=editor` to the server URL — `"REMOTE_MCP_URL": "https://be.jedify.com/mcp/message?mode=editor"` for the local proxy (see [Restricting the proxy to one mode](/mcp/connect#restricting-the-proxy-to-one-mode)), `https://be.jedify.com/mcp?mode=editor` for a hosted agent.
 3. **Remove a leftover `?mode=`**: a `?mode=asker` or `?mode=builder` left in an old config narrows your tools even when your role allows Editor.
 
 ### A versioning tool says it isn't available for this account
