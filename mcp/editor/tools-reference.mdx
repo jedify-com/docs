@@ -17,11 +17,11 @@ Your agent gets these tools in [Editor mode](/mcp/modes), on top of every [Asker
 
     On success, the response tells your agent which flow it is in:
 
-    - **`status: "committed"`** with a `branch` — the edit is a **pending change**. Your agent is switched to it, so its follow-up questions and `get_graph` run against the pending change, not the live model. This is the flow on accounts with [Model Versioning](/semantic-fusion/versioning/overview).
+    - **`status: "committed"`** with a `branch` — the edit is a **pending change**. Your agent is switched to it, so its follow-up questions and `get_graph` run against the pending change, not the live model. This is the flow on accounts with [Context Graph Versioning](/semantic-fusion/versioning/overview).
     - **`status: "processing"`** with a `changeset_id` — the edit was **submitted for review**. Your agent polls `sl_get_edit_state` until each operation is `confirmed`, and a Data Expert then approves the resulting edit sessions in Jedify before they can be published.
   </Step>
   <Step title="Verify">
-    Ask questions — they run against the pending change. Run a test set against it with `ask_benchmark` to check that known answers did not regress. Where Model Versioning is enabled, `compare_changes` shows exactly what differs from the live model.
+    Ask questions — they run against the pending change. Run a test set against it with `ask_benchmark` to check that known answers did not regress. Where Context Graph Versioning is enabled, `compare_changes` shows exactly what differs from the live model.
   </Step>
   <Step title="Publish or discard">
     `publish_change` makes the change live. It requires explicit confirmation: the first call returns `needs_confirmation` and your agent asks you before calling again with `confirm: true`. `discard_change` abandons the pending change instead.
@@ -29,7 +29,7 @@ Your agent gets these tools in [Editor mode](/mcp/modes), on top of every [Asker
 </Steps>
 
 <Note>
-Nothing goes live until you confirm. Your agent must ask before it publishes, and on accounts without Model Versioning a Data Expert also approves the edit in Jedify first.
+Nothing goes live until you confirm. Your agent must ask before it publishes, and on accounts without Context Graph Versioning a Data Expert also approves the edit in Jedify first.
 </Note>
 
 ## Tools
@@ -54,7 +54,7 @@ Nothing goes live until you confirm. Your agent must ask before it publishes, an
 
 ### Verify and version
 
-These tools are available when [Model Versioning](/semantic-fusion/versioning/overview) is enabled for your account. On other accounts they return an error saying the operation isn't available — `make_edit`, `publish_change`, and `discard_change` are the editing flow there.
+These tools are available when [Context Graph Versioning](/semantic-fusion/versioning/overview) is enabled for your account. On other accounts they return an error saying the operation isn't available — `make_edit`, `publish_change`, and `discard_change` are the editing flow there.
 
 | Tool | What your agent uses it for |
 | --- | --- |
@@ -121,4 +121,4 @@ Listed only when your account has a connected API source (such as HubSpot). API 
 
 **Relationships** specify a cardinality (`one_to_one`, `one_to_many`, `many_to_one`, `many_to_many`), a join type (`INNER`, `LEFT`, `RIGHT`, `FULL`, `CROSS`), and join keys — equality by default, or `between` with a high bound.
 
-**Semantic dimensions** are declared on an entity by column (`from_column` or `semantic_id`) with a name and a generic definition. They are shared: if the column already has a dimension, the existing one is linked and your name and definition are kept aside. Dimensions are add-only through `make_edit`; on accounts with Model Versioning, `unlink_dimensions` on `update_node` drops an entity's link to a dimension.
+**Semantic dimensions** are declared on an entity by column (`from_column` or `semantic_id`) with a name and a generic definition. They are shared: if the column already has a dimension, the existing one is linked and your name and definition are kept aside. Dimensions are add-only through `make_edit`; on accounts with Context Graph Versioning, `unlink_dimensions` on `update_node` drops an entity's link to a dimension.

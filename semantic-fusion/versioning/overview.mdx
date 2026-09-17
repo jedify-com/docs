@@ -1,12 +1,12 @@
 ---
-title: 'Model Versioning'
+title: 'Context Graph Versioning'
 icon: 'code-branch'
-description: 'Review, test, and publish changes to your Semantic Fusion™ model - and restore any earlier version - from inside Jedify.'
+description: 'Review, test, and publish changes to your Context Graph - and restore any earlier version - from inside Jedify.'
 ---
 
-Model Versioning gives you control over how your Semantic Fusion™ model changes. Every edit is reviewed and can be tested against real prompts before it goes live, and any recent version can be restored - all from the Jedify app.
+Context Graph Versioning gives you control over how your Context Graph changes. Every edit is reviewed and can be tested against real prompts before it goes live, and any recent version can be restored - all from the Jedify app.
 
-This works because your Context Graph is represented as a Git-managed, text-based (YAML) model.
+This works because your Context Graph is stored as a Git-managed, text-based (YAML) structure.
 
 ## What you get
 
@@ -41,10 +41,10 @@ Merging a branch publishes a new version on **main**. See [Review, merge, and re
 
 ## Rollout
 
-Once Model Versioning is enabled for your account, two things change:
+Once Context Graph Versioning is enabled for your account, two things change:
 
-- Model edits go through **skills** instead of the UI.
-- The model is represented as a file-based, Git-backed structure.
+- Context Graph edits go through **skills** instead of the UI.
+- The Context Graph is stored as a file-based, Git-backed structure.
 
 ## What stays editable in the UI
 
@@ -55,7 +55,7 @@ Not everything moves to skills. You can still edit the following directly in Jed
 - **Dimensions** - new dimensions are still created in the UI and approved through the regular process.
 
 <Note>
-  Dimensions created after Model Versioning is enabled do not appear in the node's YAML file.
+  Dimensions created after Context Graph Versioning is enabled do not appear in the node's YAML file.
 </Note>
 
 ## Storage
