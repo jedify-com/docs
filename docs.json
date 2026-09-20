@@ -72,19 +72,13 @@
             ]
           },
           {
-            "group": "Editing the Model",
+            "group": "Growing the Context Graph",
             "pages": [
-              "semantic-fusion/editing/overview",
-              "semantic-fusion/editing/prerequisites",
-              "semantic-fusion/editing/what-can-be-edited",
-              "semantic-fusion/editing/editing-flow",
-              "semantic-fusion/editing/editing-entities",
-              "semantic-fusion/editing/definitions-vs-sql",
-              "semantic-fusion/editing/version-control"
+              "semantic-fusion/use-cases/growing-the-context-graph"
             ]
           },
           {
-            "group": "Model Versioning",
+            "group": "Context Graph Versioning",
             "pages": [
               "semantic-fusion/versioning/overview",
               "semantic-fusion/versioning/versions-menu",
@@ -263,6 +257,13 @@
     ]
   },
   "redirects": [
+    { "source": "/semantic-fusion/editing/overview", "destination": "/semantic-fusion/use-cases/growing-the-context-graph" },
+    { "source": "/semantic-fusion/editing/prerequisites", "destination": "/semantic-fusion/use-cases/growing-the-context-graph" },
+    { "source": "/semantic-fusion/editing/what-can-be-edited", "destination": "/semantic-fusion/use-cases/growing-the-context-graph" },
+    { "source": "/semantic-fusion/editing/editing-flow", "destination": "/semantic-fusion/use-cases/growing-the-context-graph" },
+    { "source": "/semantic-fusion/editing/editing-entities", "destination": "/semantic-fusion/use-cases/growing-the-context-graph" },
+    { "source": "/semantic-fusion/editing/definitions-vs-sql", "destination": "/semantic-fusion/use-cases/growing-the-context-graph" },
+    { "source": "/semantic-fusion/editing/version-control", "destination": "/semantic-fusion/versioning/overview" },
     { "source": "/mcp/claude-setup", "destination": "/mcp/connect" },
     { "source": "/mcp/cursor-setup", "destination": "/mcp/builder/semantic-functions" },
     { "source": "/mcp/tools-reference", "destination": "/mcp/asker/tools-reference" },

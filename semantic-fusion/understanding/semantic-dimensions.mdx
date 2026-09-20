@@ -41,8 +41,8 @@ The threshold is configurable per account if your data has unusual distribution.
 ### Lifecycle
 
 1. **Create from the Semantic Catalog.** Open the [Semantic Catalog](/semantic-fusion/catalog/overview), navigate to the column you want to ground (_Schema → Tables → Columns_), and enable the **Grounding toggle** on the column drawer. Give the dimension a name and definition, and provide the SQL that returns its distinct values. Jedify validates the query and classifies the dimension as _categorical_ or _indexed_ automatically. Only columns can be turned into dimensions — schemas and tables can't.
-2. **Auto-link.** The new dimension is attached to any entity whose attributes or base query reference the same source column, so you don't have to wire it up manually. See [Linking a semantic dimension to an entity](/semantic-fusion/editing/editing-entities#linking-a-semantic-dimension-to-an-entity) for the manual case.
-3. **Publish.** Like other parts of the Semantic Fusion™ Model, dimensions follow the standard staging → production flow (see [Version Control & Collaboration](/semantic-fusion/editing/version-control)).
+2. **Auto-link.** The new dimension is attached to any entity whose attributes or base query reference the same source column, so you don't have to wire it up manually. To attach a dimension by hand, ask the `/sl-edit` skill; see [Growing the Context Graph](/semantic-fusion/use-cases/growing-the-context-graph).
+3. **Publish.** Like other parts of the Semantic Fusion™ Model, dimensions follow the standard staging → production flow (see [Context Graph Versioning](/semantic-fusion/versioning/overview)).
 4. **Refresh.** Jedify periodically refreshes the values from your data source so the dimension stays in sync as your data changes. The refresh interval is configurable per dimension.
 
 ### Linked columns
@@ -81,6 +81,6 @@ If a column doesn't qualify, Jedify will tell you which condition failed. The mo
 ### Related
 
 - [Semantic Entities](/semantic-fusion/understanding/semantic-entities) — how dimensions fit into Concepts and Metrics
-- [Editing Semantic Entities](/semantic-fusion/editing/editing-entities) — how to attach a dimension to an entity
-- [Version Control & Collaboration](/semantic-fusion/editing/version-control) — staging vs production flow
+- [Growing the Context Graph](/semantic-fusion/use-cases/growing-the-context-graph) — how to extend entities, including attaching a dimension, with `/sl-edit`
+- [Context Graph Versioning](/semantic-fusion/versioning/overview) — how a change is reviewed and published
 - [Fixing an Incorrect Response](/semantic-fusion/use-cases/fixing-incorrect-response) — when grounding produces the wrong column or value

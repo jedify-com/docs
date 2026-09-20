@@ -1,0 +1,438 @@
+---
+title: "Growing the Context Graph"
+sidebarTitle: "End-to-end guide"
+icon: "diagram-project"
+description: "How data teams extend, validate and publish Jedify's Context Graph one increment at a time, with the /sl-edit skill and a re-runnable test set per domain."
+---
+
+<div className="cg-hero">
+  <div className="cg-hero-eyebrow">Increment loop · 7 steps · one domain at a time</div>
+
+  You already have a Context Graph. This guide is about growing it safely: one domain or one to two entities at a time, each proven with real questions and covered by a re-runnable test set before the next one depends on it. Every AI edit is driven by the `/sl-edit` skill and lands pending your review in Jedify.
+
+  Swap the `[bracketed]` parts of any prompt for your own entities, fields and languages.
+</div>
+
+## The loop at a glance
+
+<div className="cg-table">
+
+| # | Step | What you do | Prompt shape |
+| --- | --- | --- | --- |
+| 1 | [Scope the increment](#step-1-scope-the-increment) | Pick one domain or one to two entities, add any new tables to the catalog, gather objectives in every language plus a source of truth. | Objectives: [list, per language]. New tables: [x], [y]. Source of truth: [report]. |
+| 2 | [Build with /sl-edit](#step-2-build-with-sl-edit) | Prompt `/sl-edit` with the objectives, tables and languages; the skill designs the entities and submits them for your review. | "Use /sl-edit. Objectives: [...]. New tables added: [...]. Build a Metric for [x], connect it to [Concepts]. Users ask in [languages]." |
+| 3 | [Initial check](#step-3-initial-check) | Ask a few narrow questions on a fixed date and check both the answer and the SQL. | "What was [metric] on [date]? Show me the SQL." |
+| 4 | [Refine](#step-4-refine) | Hand back the question, the SQL and the gap; the skill proposes a surgical fix you approve in Jedify. | "I asked [question], got [X], expected [Y] from [source]. SQL: [paste]. Where is the gap?" |
+| 5 | [Coverage check](#step-5-coverage-check-optional) (optional) | If existing sets overlap this entity or its neighbours, see what they already cover before writing new questions. | "Which test sets touch [entity]? What do their cases cover?" |
+| 6 | [Build the test set](#step-6-build-the-test-set) | Run a batch of checks from a known source and add only the correct answers to the test set. | "Create a test set for [entity], generate ground-truth questions from [report], run them; add only after I confirm." |
+| 7 | [Publish](#step-7-publish-and-run-the-sets-when-needed) | Publish. Run sets only if something changed after Step 6 or you touched a linked neighbour. | "Run the neighbours' sets and show anything that regressed." Then publish. |
+
+</div>
+
+## Before you start
+
+Ten minutes here saves a day of rework later. Have these inputs ready. If the graph's building blocks are new to you, the [appendix](#a1-how-the-graph-thinks) explains them in one table.
+
+### What you need
+
+- **The Jedify MCP connected.** The tools you get follow your role in Jedify: a data expert receives the full set for reading the graph, proposing edits, asking questions and managing test sets. There is no separate mode to switch on. See [Connect](/mcp/connect) and [Modes](/mcp/modes).
+- **The skill.** In Jedify, open the Context Graph and click **Edit your model with AI** to download the skills. Reference `/sl-edit` in every editing prompt.
+- **An objective list.** The business questions or KPIs this increment must answer, written the way your users actually ask them. A list is the normal shape, not a single question.
+- **The tables.** If the increment introduces new tables, [add them to the Semantic Catalog](/semantic-fusion/catalog/adding-tables) first and list them in your prompt. The skill builds only on tables in the catalog and will tell you when an objective cannot be covered with what is there.
+- **A source of truth, and any context that describes the data.** A report, a dashboard number, an existing SQL query, a catalog sheet: something with known numbers the skill can ground definitions against and you can verify answers against. Alongside it, whatever explains the data and guides the build: MD files, written docs, field descriptions, business rules. The skill reads these and carries the terminology into definitions.
+- **The languages your users ask in.** If your users ask Jedify in more than one language, the graph has to carry all of them. Decide this before the first prompt; retrofitting terminology later means touching every node again.
+
+### The loop, one increment at a time
+
+Don't build the whole graph in one pass. Work in small increments so every entity is proven before the next one depends on it. Each increment runs the same cycle: scope, build, check, refine, cover, verify, publish. Then repeat per entity or domain until the graph is complete.
+
+<div className="cg-callout">
+
+**Changes reach staging after review.** An edit is pending until someone approves it in Jedify. Questions and test runs see the graph as approved so far. A candidate that fails a check goes back to Refine, not straight to Publish.
+
+</div>
+
+<div className="cg-callout">
+
+**Cadence.** Before go-live and on a regular cadence, run all sets to guard numbers and language across the whole graph.
+
+</div>
+
+## One increment, step by step
+
+Each step says what you do, gives a prompt you can paste, and notes what the agent does behind the scenes and when the step is done.
+
+<div className="cg-steps">
+<Steps>
+  <Step title="Scope the increment" id="step-1-scope-the-increment">
+    Pick one domain or one to two entities, add any new tables to the catalog, and gather objectives in every language plus a source of truth.
+
+    **Objective list**
+
+    ```text
+    Total orders and gross revenue per day; average order value; orders by fulfilment status; revenue by store and by product category.
+    ```
+
+    If your users ask in a second language, repeat the list in that language as well.
+
+    <Accordion title="Details">
+      - **Pick one domain, or one to two entities.** A Metric and the Concept it slices by is a natural pair. If you are adding a Concept, plan to connect the Metrics that should reach it.
+      - **If new tables are involved,** add them to the Semantic Catalog first and note them for the prompt. The skill builds only on catalog tables.
+      - **Collect the source of truth and the context** for this domain: the report or dashboard with known numbers, the SQL someone trusts, and any MD files or docs that describe the data and its business rules.
+      - **List the languages.** Write two or three of your objectives in each language your users ask in, so the terminology they actually use reaches the graph.
+    </Accordion>
+
+    <div className="cg-meta">
+      <div><span>Behind the scenes</span> nothing yet. This step is yours.</div>
+      <div><span>Done when</span> you have objectives in every language, any new tables in the catalog, and at least one known number to check against.</div>
+    </div>
+  </Step>
+
+  <Step title="Build with /sl-edit" id="step-2-build-with-sl-edit">
+    Prompt `/sl-edit` with the objectives, tables and languages; the skill designs the entities and submits them for your review.
+
+    **Example prompts**
+
+    ```text
+    Use /sl-edit. Objectives: [list, in every language your users ask in]. New tables added: [x], [y]. Build a Metric for orders and revenue and connect it to the existing Store and Product concepts. Our users ask in [languages]: write every definition with a restatement in each language, decode status labels in each, and add example questions in each.
+    ```
+
+    ```text
+    Build a Concept for [customer] information from [table] and connect the relevant Metrics to it. Fields are clean; keep them all as attributes.
+    ```
+
+    ```text
+    Not sure if [entity] should be a Metric or a Concept. Here is how it will be used: [usage]. Advise, then build it.
+    ```
+
+    <Accordion title="Details">
+      Give the skill the objectives, the tables, the languages, and how the entity will be used: Metric for measures and KPIs, Concept for descriptive or attribution use. If you are unsure, ask it to advise first. The skill does the rest in a fixed order, and it pauses for you at defined points.
+
+      **A. It reads the current graph and your query history.** The skill fetches the live graph so it evaluates coverage against what exists, then builds a reference library from your warehouse's recent business queries on the tables involved. It shows you a short report on that history (who queries what, which tables have no history) and waits for your go-ahead before designing anything.
+
+      **B. It decides what actually needs to change.** For each objective: is the calculation already covered? Is the business term covered, in each language? Often the answer is "add an attribute" or "add a relation", not "new node". A new Metric is the last resort, and the skill has to say what existing node cannot cover the objective. When an objective rests on a fact table with no query history, it shows you the proposed SQL and asks before building.
+
+      **C. It presents the change set, then submits only when you say so.** You get a plain summary per objective (covered / new node / attribute added / not covered, and why) plus the list of edits it will submit. Say yes, and the edits land in Jedify pending your review. Nothing goes live on its own. Relations are added from the Metric to the Concept.
+
+      **Multilingual: what "in both languages" has to mean.** Objectives in each language, so the skill sees the actual terms. Node and attribute definitions with a short restatement in each additional language (the pattern that works: the English text, then the same in the second language). Decoded labels in each language, for example "Delivered ([local term])". Example questions in each language on the node. And later, test cases in each, so a terminology miss in one language fails a test instead of surprising a user.
+    </Accordion>
+
+    <div className="cg-meta">
+      <div><span>Behind the scenes</span> reads the graph and schema, pulls query history, asks a few verification questions, validates SQL against the warehouse before submitting, submits edits for review.</div>
+      <div><span>Done when</span> edits are pending in Jedify and you have approved the ones you want. Step 3 runs against the approved graph.</div>
+    </div>
+  </Step>
+
+  <Step title="Initial check" id="step-3-initial-check">
+    Ask a few narrow questions on a fixed date and check both the answer and the SQL.
+
+    **Example prompts**
+
+    ```text
+    What was total gross revenue on 12 March 2026? Show me the SQL. I want to check it against the daily report.
+    ```
+
+    ```text
+    Break orders on 12 March 2026 down by fulfilment status. Use the real status values so I can compare to the source.
+    ```
+
+    <Accordion title="Details">
+      Prove the entity before you trust it. Ask a few narrow questions and confirm two things: the answer matches a number you know, and the generated SQL does what you expect. Start with core totals on a fixed date before touching complex attributes and relations. If your users ask in more than one language, ask the same questions in each.
+    </Accordion>
+
+    <div className="cg-meta">
+      <div><span>Behind the scenes</span> each question runs through Jedify end to end and returns the answer, the SQL, the data, and which entities were used.</div>
+      <div><span>Done when</span> three to five questions per language return the right number with SQL you agree with. Anything off goes to Step 4.</div>
+    </div>
+  </Step>
+
+  <Step title="Refine" id="step-4-refine">
+    Hand back the question, the SQL and the gap; the skill proposes a surgical fix you approve in Jedify.
+
+    **Example prompts**
+
+    ```text
+    I asked: How many orders were delivered on 12 March 2026? Jedify answered 1,340. The daily ops report says 1,207. Generated SQL: [paste]. The report counts distinct orders; the fact table looks like one row per shipment, so I think the count is picking up split shipments. Check the grain and, if that is it, fix the delivered-orders measure to count distinct order IDs.
+    ```
+
+    ```text
+    I asked for gross revenue by store on 12 March 2026. Three stores are off versus the report, the rest match. Generated SQL: [paste]. The join to Store uses store_code; the report keys on store_id, and those three stores changed code last year. Check the Orders → Store relation key.
+    ```
+
+    ```text
+    I asked how many orders were cancelled on 12 March 2026 in [language] and it went to the Returns entity instead of Orders; the English version routes correctly. Update the Orders definition and example questions so the [language] term for cancelled routes to it.
+    ```
+
+    ```text
+    Average order value came back 131.9 against 152.7 in the report; revenue matched. So the denominator is off. Generated SQL: [paste]. Tell me what the attribute divides by and whether cancelled orders should be in it.
+    ```
+
+    <Accordion title="Details">
+      - **Hand the skill three things:** the question you asked, the SQL Jedify generated, and the discrepancy you saw. It probes the graph and the data and proposes a surgical fix: usually one attribute's SQL, one filter in the base query, one definition clause, or a missing relation.
+      - **Edit in place.** Attribute SQL, definitions and relations can be changed directly; name the attribute and the change. Re-prompting cancels the pending session and replaces it.
+      - **Check the language too.** If a question in one language routed to the wrong node while the same question in another worked, the fix is terminology in the definition or an example question, not SQL.
+      - **Widen once stable.** Move to complex attributes, relations, and dimension breakdowns using real values from the data.
+
+      **What a good refine prompt contains:** the question as you asked it, the SQL Jedify generated, the number you got and the number you expected with where the expected one comes from, and, if you have one, your hypothesis. The skill can find the gap without a hypothesis; with one it gets there in a single turn.
+    </Accordion>
+
+    <div className="cg-meta">
+      <div><span>Behind the scenes</span> re-runs the failing SQL, compares with and without filters or joins, reads the entity definitions, submits the fix for review.</div>
+      <div><span>Done when</span> the questions from Step 3 return correct numbers in every language, after the fix is approved.</div>
+    </div>
+  </Step>
+
+  <Step title="Coverage check (optional)" id="step-5-coverage-check-optional">
+    Optional. If existing sets overlap this entity or its neighbours, see what they already cover before writing new questions.
+
+    **Example prompts**
+
+    ```text
+    Which test sets touch [Orders] or the concepts it relates to? For each case, tell me which attributes and relations its SQL exercises, then give me a table of [Orders]' attributes, dimensions and relations with covered / not covered and the language of each covering question.
+    ```
+
+    ```text
+    I changed the [Store] relation on [Orders]. Which existing cases go through it? Those are the ones to re-run.
+    ```
+
+    <Accordion title="Details">
+      Skip this on a fresh domain. Do it when the entity you built or changed overlaps an area that already has test sets, or is linked to neighbouring concepts that have them. Every case in a set records the question, the SQL it ran and the entities it touched, so the skill can map existing cases to the attributes, dimensions and relations they exercise. That tells you two things: what you don't need to write again, and which existing sets to re-run after your change.
+    </Accordion>
+
+    <div className="cg-meta">
+      <div><span>Behind the scenes</span> lists the account's test sets, reads the cases of the relevant ones, reads the entity, and joins the two.</div>
+      <div><span>Done when</span> you know which gaps to write questions for in Step 6, and which existing sets to run in Step 7. Or you skipped it.</div>
+    </div>
+  </Step>
+
+  <Step title="Build the test set for the domain" id="step-6-build-the-test-set">
+    Run a batch of checks from a known source and add only the correct answers to the test set.
+
+    **Example prompts**
+
+    ```text
+    Create a test set for the [Orders] entity, then generate ground-truth questions from the attached report: one specific date, real dimension values, single-number answers, a few attributes bundled per question, each question in every language our users ask in. Run them and show me answer and SQL for each. Only add a question after I confirm the answer checks out.
+    ```
+
+    ```text
+    From this SQL / dashboard: [paste], build cases covering every measure on [entity]; combine attributes and values, and merge measures where it saves questions. Run them, show me the results, and add the ones I approve.
+    ```
+
+    ```text
+    Questions 1, 2, 4 and 7 match the report. Add those to the [Orders] set. Question 3 is off: don't add it, and tell me why the answer differs from the report.
+    ```
+
+    <Accordion title="Details">
+      Once the entity looks good, run a batch of checks and turn every correct answer into a re-runnable case. This is how each domain earns a regression suite you can trust on every future change. The whole loop runs through the skill: it creates the set, generates the questions, runs them, and adds the ones you confirm. Nothing is added blindly.
+
+      **A. Run a batch of checks.** Give the skill a source: a report with known numbers, an existing SQL, a dashboard. Ask it to generate ground-truth questions from it following the rules below, in every language your users ask in, and to run them. Ask for a certain coverage of attributes rather than a number of questions: cover all the measures, combine attributes with real values, bundle several measures into one question where it saves cases.
+
+      **B. Verify, then add.** The skill shows you each answer and its SQL, and flags questions that cannot become cases (no data, too many rows, no SQL). You compare the rest with your source. Only when an answer is correct does it go into the test set. A wrong answer goes back to Step 4 first; a wrong question gets rewritten. The set keeps its own copy of every case, so later work in your thread never changes it.
+
+      **How to structure the sets**
+
+      - Create a test set per domain or per entity: a set of questions relevant to it.
+      - For ground truth, store atomic, focused questions that exercise the different calculations in the entity:
+        - Anchor on a specific day, week or month. Avoid relative time windows.
+        - Use real values from the data to test dimensions.
+        - Prefer questions that return a single number or a few values together, not categories or TOP-N.
+        - You can bundle several attributes into one question, and combine other entities to test relations.
+        - Write the same fact in each language your users ask in. Two phrasings of one number is a language test for free.
+      - Create broader sets too, covering more areas or holding more complex questions, to confirm the graph keeps its consistency and language.
+
+      See [Test Sets](/semantic-fusion/test-sets) for which questions are eligible and how runs are scored.
+    </Accordion>
+
+    <div className="cg-meta">
+      <div><span>Behind the scenes</span> asks the questions in parallel batches, waits for the results, reads each one's eligibility flag, then creates the set or adds to it with only the ids you approved. Duplicates of questions already in the set are rejected.</div>
+      <div><span>Done when</span> every measure, dimension and relation that matters has at least one confirmed case, in each language.</div>
+    </div>
+  </Step>
+
+  <Step title="Publish, and run the sets when needed" id="step-7-publish-and-run-the-sets-when-needed">
+    Publish. Run sets only if something changed after Step 6 or you touched a linked neighbour.
+
+    **Example prompts**
+
+    ```text
+    I changed [attribute] on [Orders]. Run its set and its neighbours' sets, and show me anything that regressed.
+    ```
+
+    ```text
+    Run all sets before we publish. Flag any drift in numbers or language.
+    ```
+
+    <Accordion title="Details">
+      - **Running the sets here is optional.** If you built the test set in Step 6 and nothing changed since, every case in it just ran and you reviewed the results; publishing straight away is fine. Run sets only when something calls for it: you changed an entity after its set was built, you touched a relation (run the linked neighbours' sets), or Step 5 pointed at existing sets that overlap.
+      - **A failing case is a question, not a score.** Ask for the question, the previous result and the new result, and decide: the graph regressed, the data moved, or the case was wrong.
+      - **Publish once whatever you ran is green.** Then scope the next increment.
+
+      **Cadence.** On every change to an entity: its set, and its neighbours' if linked. Before going live, and then on a regular cadence: all sets, to guard consistency and language across the whole graph.
+    </Accordion>
+  </Step>
+</Steps>
+</div>
+
+## Example: an Orders increment
+
+A fictional retailer whose analysts ask Jedify in English. Store and Product concepts already exist. Numbers are illustrative.
+
+### Steps 1 and 2: scope and build
+
+**Inputs**
+
+- Tables added: `PROD.SALES.FACT_ORDERS`, `PROD.SALES.DIM_STORES`, `PROD.SALES.DIM_PRODUCTS`
+- Source of truth: the daily sales report for March 2026
+- Languages: English
+
+**Objectives**
+
+- Orders and gross revenue per day; average order value
+- Orders by fulfilment status; revenue by store and by product category
+
+<div className="cg-table">
+
+| Objective | Skill decision | Why |
+| --- | --- | --- |
+| Orders, revenue, AOV per day | New Metric "Orders" | No existing node measures order events. Attributes: Order count, Gross revenue, Average order value, Order date. Definition and example questions in English. |
+| Orders by fulfilment status | Attribute + decoded labels | Status is a property of the order event and no Concept owns it. Decoded as Delivered, Cancelled, In transit. |
+| Revenue by store / by category | Two relations: Orders → Store, Orders → Product | Store name and product category already live on their Concepts. Relations, not copied columns. |
+
+</div>
+
+### Steps 3 and 4: initial check and refine
+
+<div className="cg-table">
+
+| Question | Answer | Report | Verdict |
+| --- | --- | --- | --- |
+| Gross revenue on 12 March 2026? | 184,320 | 184,320 | Match |
+| How many orders were delivered on 12 March 2026? | 1,207 | 1,207 | Match |
+| Average order value on 12 March 2026? | 131.9 | 152.7 | Low by 14% |
+
+</div>
+
+**Refine prompt**
+
+```text
+AOV for 12 March came back 131.9; the report says 152.7. Here is the SQL: [paste]. Revenue matched, so I suspect the denominator. Check whether cancelled orders are being counted.
+```
+
+The skill confirms: the report's AOV divides by delivered orders, the attribute divided by all orders. It proposes changing one attribute's SQL to `SUM(gross_amount) / COUNT(DISTINCT CASE WHEN status = 'DELIVERED' THEN order_id END)` and adding one clause to the attribute definition. You approve it in Jedify; the question now returns 152.7.
+
+### Step 5: coverage check
+
+Orders relates to Store and Product, which already have sets, so Step 5 is worth doing. Two existing sets touch Orders: "Sales daily" (built from last quarter's dashboard) and "Stores". The skill reads their cases and maps them to the entity:
+
+<div className="cg-table">
+
+| Element on Orders | Covered by | Status |
+| --- | --- | --- |
+| Order count | Sales daily, 3 cases | Covered |
+| Gross revenue | Sales daily, 4 cases; Stores, 1 case | Covered |
+| Average order value | none | Not covered |
+| Fulfilment status | none | Not covered |
+| Relation → Store | Stores, 1 case (revenue by store) | Covered |
+| Relation → Product | none | Not covered |
+
+</div>
+
+### Step 6: build the test set
+
+The skill creates the "Orders" test set, proposes one question per gap from the March report following the ground-truth rules, runs them, and reports. You compare with the report and decide.
+
+<div className="cg-table">
+
+| # | Candidate | Eligible | Verified | Added |
+| --- | --- | --- | --- | --- |
+| 1 | Average order value for delivered orders on 12 March 2026 | yes | yes | added |
+| 2 | Orders on 12 March 2026 by fulfilment status | yes | "In transit" bucket missing | back to refine |
+| 3 | Gross revenue for store "Riverside" on 12 March 2026 | yes | yes | added |
+| 4 | Revenue by product category, week of 9 March 2026 | yes | yes | added |
+| 5 | Top 10 products by revenue in March 2026 | no: ranking, not ground truth | | dropped |
+
+</div>
+
+Case 2 exposed a label gap: the raw status `IN_TRANSIT` was not decoded, so the breakdown dropped a bucket. One attribute edit, re-run, then added. That is the test set doing its job before anyone else hits the gap.
+
+### Step 7: run and publish
+
+The "Orders" set (4 cases) just ran in Step 6, so only "Sales daily" and "Stores" are run now. Both green. Orders is published. Next increment: Returns, which will relate to Orders, so Orders' set is on the neighbour list from day one.
+
+## Appendix: good to know
+
+Not required to run the loop. Two sections that explain the skill's decisions: how the graph is built, and the rules the skill applies when it edits it.
+
+### A1. How the graph thinks
+
+The Context Graph is a graph of nodes. Knowing what each part is for tells you where a change belongs, and makes the skill's questions back to you make sense. For the full picture, see [Understanding the model](/semantic-fusion/understanding/overview).
+
+<div className="cg-table">
+
+| Part | What it is | What goes there |
+| --- | --- | --- |
+| **Concept** | A business entity: Customer, Order, Store, Product. Answers "tell me about / list / filter the X". | Descriptive fields as attributes (dates, flags, IDs, labels); categorical fields as dimensions (status, city, category). Never aggregations. |
+| **Metric** | A computed measurement: Revenue, Conversion Rate, Retention. Answers "how many / how much / how often". | Measures as attributes (COUNT, SUM, AVG, rates); a leading date as an attribute; dimensions only for slicers no Concept owns. |
+| **Base query** | The universe of rows a node stands on. Flat, row-preserving SELECT. | Grain keys, permanent filters (deleted, test rows), join keys. No GROUP BY, no analytics. |
+| **Attributes** | Fields or measures selected off the base query. | On a Concept: one column or a simple CASE. On a Metric: the aggregation. |
+| **Dimensions** | Shared categorical slicers, defined once per source column and reused across nodes. | Human-readable categories only. Never IDs, never dates, never numbers. |
+| **Relations** | Edges that let a question reach another node's fields. | Metric → Concept, many → one, on the Concept's primary identifier. This is how "revenue by product category" works: the relation, not a copied column. |
+| **Definition** | The text the routing layer reads to decide whether a node answers a question. | What the thing is in the business, in every language your users use. Not example questions, not SQL mechanics. |
+
+</div>
+
+<div className="cg-callout">
+
+**Why definitions carry the languages.** Routing starts from the words in the question. If a user asks in one language and the definition that should answer them carries its terms only in another, the question can land on the wrong node or on nothing, even though the calculation is there. A definition that carries the business terms in every language your users ask in, decoded labels in each, and example questions in each language give Jedify something to match whichever language the question comes in.
+
+</div>
+
+### A2. Rules the skill enforces
+
+You don't have to police these; `/sl-edit` does. Knowing them makes your prompts sharper and your reviews faster, and explains why the skill sometimes answers "add a relation" when you asked for a column.
+
+<div className="cg-rules">
+<AccordionGroup>
+  <Accordion title="Always edit through /sl-edit">
+    It fetches the current graph, builds only on tables in the Semantic Catalog, validates SQL against the warehouse before submitting, and leaves every change pending your review. Edits stay structured and reversible rather than ad hoc.
+  </Accordion>
+  <Accordion title="Base query: structure only, no analytics">
+    A flat, row-preserving SELECT: grain keys, permanent universe filters (deleted, test rows), join keys for relations. No aggregations, no GROUP BY, no CASE analytics; those live in attributes. Concept base queries are single-table; other entities' fields are reached through relations, never joined in.
+  </Accordion>
+  <Accordion title="Attributes select from the base query">
+    On a Concept: grain-level descriptive fields (dates, flags, labels, IDs), no aggregation. On a Metric: the computed measures (COUNT, SUM, AVG, rates). Every column the base query selects maps to an attribute, a dimension, or a declared relation.
+  </Accordion>
+  <Accordion title="Relations go Metric → Concept, many → one">
+    Only where a join to the Concept's primary identifier exists. No Metric → Metric, no Concept → Concept unless it is a real hierarchy. "Revenue by product category" is a relation to Product, not a category column copied onto Revenue.
+  </Accordion>
+  <Accordion title="IDs are never dimensions; dates are never dimensions">
+    A foreign key becomes a relation; a grain key becomes an attribute. Dates, booleans and numbers are attributes. Dimensions are human-readable categories only, and on a Metric only when no Concept owns the field.
+  </Accordion>
+  <Accordion title="Extend before you create">
+    A new Metric needs a distinct business phenomenon that no existing node covers, even with a different filter or time window. Otherwise the answer is an attribute on an existing node, a dimension breakdown, or a relation. Two nodes with the same label are never allowed.
+  </Accordion>
+  <Accordion title="Definitions describe business reality, in every language">
+    A Concept definition says what the entity is: identity, population, lifecycle. A Metric definition says what phenomenon it measures and how. No label restatements, no SQL mechanics. Domain terminology appears in each language your users ask in; example questions live in their own field, also in each language.
+  </Accordion>
+  <Accordion title="Custom instructions are the exception">
+    Only for a rule an attribute, dimension or definition cannot hold. If the logic can live in the structure, put it there. Reach for custom instructions last.
+  </Accordion>
+</AccordionGroup>
+</div>
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Editor tools reference" icon="wrench" href="/mcp/editor/tools-reference">
+    The MCP tools the skill uses to read the graph, make an edit, verify it and publish.
+  </Card>
+  <Card title="Test Sets" icon="vial" href="/semantic-fusion/test-sets">
+    Which questions are eligible as cases and how runs are scored.
+  </Card>
+  <Card title="Context Graph Versioning" icon="code-branch" href="/semantic-fusion/versioning/overview">
+    How a pending change is reviewed, merged and published.
+  </Card>
+  <Card title="Adding tables to the catalog" icon="plus" href="/semantic-fusion/catalog/adding-tables">
+    Bring new tables into the Semantic Catalog before you build on them.
+  </Card>
+</CardGroup>
