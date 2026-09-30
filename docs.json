@@ -267,7 +267,8 @@
     { "source": "/mcp/claude-setup", "destination": "/mcp/connect" },
     { "source": "/mcp/cursor-setup", "destination": "/mcp/builder/semantic-functions" },
     { "source": "/mcp/tools-reference", "destination": "/mcp/asker/tools-reference" },
-    { "source": "/mcp/use-cases", "destination": "/mcp/asker/use-cases" }
+    { "source": "/mcp/use-cases", "destination": "/mcp/asker/use-cases" },
+    { "source": "/docs/claude-desktop-installation", "destination": "/mcp/connect" }
   ],
   "logo": {
     "light": "/logo/light.svg",
