@@ -243,6 +243,44 @@
         ]
       },
       {
+        "tab": "Self-hosted",
+        "icon": "server",
+        "groups": [
+          {
+            "group": "Get started",
+            "pages": [
+              "self-hosted/overview",
+              "self-hosted/requirements"
+            ]
+          },
+          {
+            "group": "Install",
+            "pages": [
+              "self-hosted/install",
+              "self-hosted/identity",
+              "self-hosted/model-gateway",
+              "self-hosted/first-run"
+            ]
+          },
+          {
+            "group": "Operate",
+            "pages": [
+              "self-hosted/upgrades",
+              "self-hosted/troubleshooting",
+              "self-hosted/airgapped"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "self-hosted/reference/values",
+              "self-hosted/reference/secrets",
+              "self-hosted/reference/terraform"
+            ]
+          }
+        ]
+      },
+      {
         "tab": "Changelog",
         "icon": "clock-rotate-left",
         "groups": [

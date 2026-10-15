@@ -1,0 +1,204 @@
+---
+title: "Identity and sign-in"
+icon: "id-badge"
+description: "Connect your OIDC identity provider through Zitadel, grant roles, keep self-registration off and sign-in pinned to one organization, and understand the MCP server's second sign-in client."
+---
+
+Zitadel is the identity layer built into a self-hosted installation. Your users sign in with the accounts they already have: Zitadel federates to your own OIDC identity provider (Okta, Microsoft Entra ID, Google, or any other OIDC provider), which appears as the button on the sign-in page.
+
+The [install](/self-hosted/install) already ran `scripts/zitadel-setup.sh` once. This page connects your provider, grants the first roles, and explains the settings that keep sign-in safe.
+
+## What the setup script configures
+
+| Object | Configuration |
+| --- | --- |
+| Your organization (`--org-name`) | Holds every person who uses Jedify. The web app pins sign-in to it. |
+| Zitadel's own `ZITADEL` organization | Holds only the instance administrator. Created by Zitadel itself. |
+| The `jedify` project | Role keys `Tenant Admin`, `Data expert` and `User`, with role assertion on, so tokens carry the user's roles |
+| The `jedify-fe` application | The web app: a public client with PKCE and no secret. Redirect URI `https://<application host>/auth/zitadel/callback`. |
+| The `jedify-mcp` application | The MCP server: a confidential client. Redirect URI `https://<application host>/auth/callback`. |
+| Your identity provider | A generic OIDC provider at instance level, shown as a sign-in button. People are created on their first sign-in and linked by email to a user who already exists. |
+| The login policy | Self-registration off, unknown usernames not confirmed, no sign-in by phone |
+
+The script writes every setting the application reads into your application configuration secret, so you never edit Zitadel settings into `values/jedify-be.yaml`. See [Settings the application reads](#settings-the-application-reads).
+
+## Connect your identity provider
+
+<Steps>
+  <Step title="Register Jedify with your identity provider">
+    **Decision, in your identity provider's console.** Register a web application that uses the OIDC authorization code flow:
+
+    | Setting | Value |
+    | --- | --- |
+    | Application type | Web application, OIDC, authorization code |
+    | Redirect URI | `https://<your Zitadel host>/idps/callback`, for example `https://auth.jedify.example.com/idps/callback` |
+    | Scopes | `openid`, `profile`, `email` |
+    | PKCE | Allowed or required. The script sends a PKCE challenge; `--oidc-no-pkce` turns that off. |
+    | Claims in the ID token | `email`, `given_name` and `family_name` |
+
+    <Warning>
+    Zitadel's automatic user creation **requires both `given_name` and `family_name`**. A directory that sends only an email and a username fails every first sign-in, and the only evidence is in the Zitadel login pod's log:
+
+    ```text
+    Error auto-creating user: invalid SetHumanProfile.GivenName: value length must be between 1 and 200 runes, inclusive
+    ```
+
+    Nothing reaches the user or Zitadel's own log. Confirm the claims before you connect the provider, or create users in Zitadel ahead of their first sign-in.
+    </Warning>
+
+    <Tabs>
+      <Tab title="Okta">
+        Create an OIDC web application with the Authorization Code grant type, set its sign-in redirect URI to the value above, and assign the people or groups who should use Jedify. The issuer is your Okta domain, for example `https://example.okta.com`.
+      </Tab>
+      <Tab title="Microsoft Entra ID">
+        Create an app registration with a **Web** platform redirect URI set to the value above, and create a client secret. Add `given_name` and `family_name` to the ID token as optional claims. The issuer is `https://login.microsoftonline.com/<tenant id>/v2.0`.
+
+        Entra ID accepts a plain `http` redirect URI at registration and then fails the sign-in with `AADSTS500117: The reply uri specified in the request isn't using a secure scheme`. Zitadel must be served over HTTPS; see [HTTPS everywhere](#https-everywhere).
+      </Tab>
+      <Tab title="Google">
+        Create an OAuth client of type **Web application** in the Google Cloud console, with the redirect URI above. You can't create this kind of client from the command line. Configure the OAuth consent screen as **Internal** to limit sign-in to your Google Workspace domain. The issuer is `https://accounts.google.com`.
+
+        Google refuses any redirect URI that isn't `https`, and reports it on Google's side, not in any Jedify log.
+      </Tab>
+    </Tabs>
+
+    When you're done, note the issuer URL and the client ID, and keep the client secret for the next step.
+  </Step>
+  <Step title="Store the client secret in Secret Manager">
+    The script reads the client secret from Secret Manager, so the secret is never typed on a command line or printed. Paste it at the prompt:
+
+    ```bash
+    read -rs OIDC_CLIENT_SECRET   # paste the client secret, then press Enter
+    printf '%s' "$OIDC_CLIENT_SECRET" | gcloud secrets create "${PREFIX}-oidc-client-secret" \
+      --project "$PROJECT_ID" --replication-policy=automatic --data-file=-
+    unset OIDC_CLIENT_SECRET
+    ```
+
+    To verify, list the secret's versions. Expected: one version, `enabled`.
+
+    ```bash
+    gcloud secrets versions list "${PREFIX}-oidc-client-secret" --project "$PROJECT_ID"
+    ```
+  </Step>
+  <Step title="Add your provider as the sign-in button">
+    Run the setup script again, from the release bundle's directory, with the same `--org-name` as before:
+
+    ```bash
+    ./scripts/zitadel-setup.sh --org-name "$ORG_NAME" \
+      --oidc-issuer "https://example.okta.com" \
+      --oidc-client-id "<client id>" \
+      --oidc-client-secret-sm "${PREFIX}-oidc-client-secret" \
+      --oidc-name "Okta"
+    ```
+
+    `--oidc-name` is the button's label (default `Okta`). The script finds the provider by this name on later runs, so keep it the same. The three `--oidc-*` connection options go together.
+
+    Expected: the script prints `sign-in button '<name>' - its redirect URI: https://<your Zitadel host>/idps/callback` and ends with `==> done`. That redirect URI must match the one you registered in step 1.
+
+    To verify, open `https://<your application host>` in a browser. Zitadel's sign-in page shows your provider's button.
+  </Step>
+  <Step title="Grant the first roles">
+    A person signing in for the first time is created with **no role**, so Jedify shows them nothing. After their first sign-in, grant them a role:
+
+    ```bash
+    ./scripts/zitadel-setup.sh --org-name "$ORG_NAME" grant alice@example.com 'Tenant Admin'
+    ```
+
+    The role is one of `Tenant Admin`, `Data expert` or `User`, spelled exactly like that. [Role-Based Access Control](/settings/rbac) describes what each one can do.
+
+    Expected: `alice@example.com now holds 'Tenant Admin' on the jedify project`. Roles travel in the sign-in token, so ask the person to sign out and sign in again.
+
+    The command fails with `they must sign in once first` until the person has signed in. To grant a role before anyone signs in, create the user in Zitadel's console, in your organization, with a verified email address; their first sign-in through your provider then links to that user by email.
+  </Step>
+</Steps>
+
+## Settings that matter
+
+### Self-registration off
+
+Zitadel's sign-in page offers **self-registration by default**, so anyone who can reach it can create an account. The setup script turns it off on the instance's login policy, together with two neighbouring settings: unknown usernames aren't confirmed (otherwise the page tells a visitor whether an address exists), and nobody signs in by phone.
+
+A self-registered account holds no role and sees no data, so this is about unauthenticated account creation, not data access. Hiding a sign-up link in the web app wouldn't help: the registration form belongs to Zitadel's sign-in page, so it has to be policy.
+
+An organization can override the instance's login policy. Your organization inherits the instance policy until someone customizes the organization's login settings in Zitadel's console; if you do, keep registration off there too.
+
+### One organization
+
+Your organization holds every person who uses Jedify, and the web app names it: `frontend.zitadel.orgId` in `values/jedify-infra.yaml`, which the [install](/self-hosted/install) set. It adds a scope to every sign-in request that makes Zitadel **refuse users from any other organization**. Leave it empty only if you deliberately run several organizations on one Zitadel instance.
+
+Pinning your organization doesn't cost you administrator access. Instance administration lives in Zitadel's own `ZITADEL` organization, through Zitadel's console, which the pin doesn't touch. The instance administrator can't sign in to Jedify itself, by design: if someone needs to use the product for support, give them a user in your organization, and keep the administrator identity for administration only.
+
+To sign in to Zitadel's console as the instance administrator, open `https://<your Zitadel host>/ui/console` and sign in as `admin@zitadel.<your Zitadel host>`. The installation generated the password once, into a Kubernetes Secret:
+
+```bash
+kubectl -n jedify get secret zitadel-bootstrap-admin \
+  -o jsonpath='{.data.ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD}' | base64 -d; echo
+```
+
+### Roles in the token
+
+The script turns on role assertion on the `jedify` project (`projectRoleAssertion`). Without it, tokens carry **no roles claim**, and turning on role assertion only on the application isn't enough.
+
+The failure is quiet. The API resolves roles through Zitadel's management API, so it still treats a user as, say, a Tenant Admin. The web app reads roles from the token, so it shows the same user with no roles at all, and nothing reports an error. If you manage the project in Zitadel's console, keep project-level role assertion on.
+
+### HTTPS everywhere
+
+Zitadel builds its own callback URLs from `zitadel.zitadel.configmapConfig.ExternalSecure`, which is `true` in the bundle's values. Keep it `true`: with `false`, Zitadel hands your provider an `http://` callback, which Google refuses and Microsoft Entra ID fails with `AADSTS500117`. TLS ends at the Gateway, so Zitadel's pods speak plain HTTP inside the cluster while every URL they publish is `https`.
+
+`zitadel.zitadel.configmapConfig.ExternalDomain` must equal your Zitadel host **exactly**. It's part of the issuer of every token Zitadel mints, and a mismatch answers `Instance not found`, which looks like a broken client rather than a configuration error.
+
+### Settings the application reads
+
+The setup script writes these keys into your application configuration secret. Don't also set them in `values/jedify-be.yaml`: a plain environment variable there overrides the secret's value.
+
+| Key | Value | Why it matters |
+| --- | --- | --- |
+| `AUTH_PROVIDER` | `zitadel` | The application's default is a hosted identity provider your installation can't reach |
+| `ZITADEL_ISSUER` | `https://<your Zitadel host>` | Compared with the `iss` claim of every token, so it must be the browser-facing URL, never an in-cluster address |
+| `ZITADEL_API_URL` | Zitadel's in-cluster Service | Management calls stay inside the cluster |
+| `ZITADEL_HOST_HEADER` | Your Zitadel host | Zitadel picks the instance from the request's host. Without this header, in-cluster calls get a `404` that the application reports as `UserNotFound`. |
+| `ZITADEL_ALLOW_INSECURE_HTTP` | `true` | Allows the plain-HTTP in-cluster management address |
+| `ZITADEL_ORG_ID` | Your organization's ID | |
+| `ZITADEL_PROJECT_ID`, `ZITADEL_AUDIENCES` | The `jedify` project's ID | Zitadel also has a built-in project that sorts first in a listing. A token issued for it fails with `Token validation failed: Audience doesn't match`. |
+| `ZITADEL_FE_CLIENT_ID` | The web app's client ID | |
+| `ZITADEL_MCP_CLIENT_ID`, `ZITADEL_MCP_CLIENT_SECRET` | The MCP server's client | See [MCP server sign-in](#mcp-server-sign-in) |
+| `MCP_SERVER_URL` | `https://<your application host>` | The MCP server's root URL |
+| `ZITADEL_MCP_JWT_SIGNING_KEY` | Generated on the first run, kept on every later run | Signs the tokens the MCP server issues |
+
+The application also needs `ZITADEL_PAT`, a token for Zitadel's management API. You don't set it: Zitadel's setup job mints it into a Kubernetes Secret, and the platform chart reads it live into the application's configuration, so a re-minted token propagates on its own. Without it, sign-in works and the first authenticated request fails with a `500`.
+
+## MCP server sign-in
+
+AI agents and other MCP clients reach Jedify through the MCP server at `https://<your application host>/mcp`. The MCP server runs an OAuth authorization server of its own in front of Zitadel, so it needs its own Zitadel application, `jedify-mcp`, next to the web app's:
+
+| Setting | Value |
+| --- | --- |
+| Client type | Confidential, with a client secret |
+| Grant types | Authorization code and refresh token |
+| Tokens | JWT access tokens, with roles in the access and ID tokens |
+| Redirect URI | One: `https://<your application host>/auth/callback` |
+| Development mode | Off. It relaxes redirect-URI checking, which has no place in your installation. |
+
+The setup script creates it and records its settings. Three things to keep in mind:
+
+- **`MCP_SERVER_URL` is the server root**, `https://<your application host>`, not the `/mcp` path.
+- **Generate the signing key once.** The MCP server signs the tokens it issues with `ZITADEL_MCP_JWT_SIGNING_KEY`, so a new key signs every MCP client out. The script keeps the existing key on every run.
+- **The OAuth server answers on nine paths, not one:** `/mcp`, `/authorize`, `/token`, `/register`, `/revoke`, `/consent`, `/auth/callback`, `/.well-known/oauth-authorization-server` and `/.well-known/oauth-protected-resource`. The bundle's values route all nine to the MCP server through `gateway.mcpPathPrefixes`. If you override that list, keep all nine: a list in your values replaces the chart's, and a missing path falls through to the API, which answers `404` in the middle of an authorization with nothing logged. Both discovery documents must come from the MCP server, or a strict client sees two spellings of the issuer and refuses to connect.
+
+Until its settings exist, the MCP server refuses to start rather than serve without authentication:
+
+```text
+RuntimeError: Zitadel MCP auth is not configured: MCP_SERVER_URL,
+ZITADEL_MCP_CLIENT_ID, ZITADEL_MCP_CLIENT_SECRET unset.
+```
+
+To fix it, run the setup script. It restarts the MCP server after writing the settings.
+
+To verify the MCP server's discovery documents, both should answer with JSON that names your application host:
+
+```bash
+curl -sS "https://$APP_HOST/.well-known/oauth-authorization-server" | jq -r .issuer
+curl -sS "https://$APP_HOST/.well-known/oauth-protected-resource" | jq .
+```
+
+To connect an MCP client that supports OAuth, give it `https://<your application host>/mcp` as the server URL. The client discovers the MCP server's authorization endpoints, and your users sign in through Zitadel and your identity provider. [MCP Overview](/mcp/overview) describes the tools your users get.

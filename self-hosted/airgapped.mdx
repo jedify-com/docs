@@ -1,0 +1,189 @@
+---
+title: "Airgapped installations"
+icon: "shield-halved"
+description: "Run with no public internet: Google APIs over Private Google Access, every image mirrored into your Artifact Registry with all its architectures, what still needs a path out, and why helm test fails."
+---
+
+In an airgapped installation, the cluster has no route to the public internet. Google API traffic and everything else take different paths, and each needs its own preparation:
+
+- **Google APIs** keep working with no internet at all, through Private Google Access.
+- **Images** come from your own Artifact Registry, so you mirror every one of them, not only Jedify's.
+- **Everything else** the installation calls (your identity provider, your warehouse) needs a path you allow explicitly.
+
+## Google APIs without the internet
+
+Private Google Access on the node subnet, plus three private DNS zones, routes every Google API call to Google's restricted addresses, inside Google's network. Three zones, because a private zone covers only its own domain, and the services the installation depends on don't all live under `googleapis.com`:
+
+| Zone | Covers | Restricted addresses |
+| --- | --- | --- |
+| `googleapis.com` | Vertex AI, Secret Manager, Cloud Storage, and the `sts`, `iamcredentials` and `securetoken` endpoints behind every keyless call | `199.36.153.4/30` |
+| `pkg.dev` | Artifact Registry: where your images come from | `199.36.153.4/30` |
+| `firestore.goog` | **The database**: Firestore's MongoDB-compatible endpoint | `199.36.153.2/31` |
+
+A route sends `199.36.153.0/24` to the default internet gateway. That's a next-hop type, not a trip through the internet: Google publishes no internet routes to these addresses, so they're reachable only from inside a VPC. The restricted addresses reach only services that VPC Service Controls supports, so the path fails closed.
+
+<Warning>
+Firestore has **its own** restricted addresses, `199.36.153.2/31`, separate from `199.36.153.4/30`. If you build the zones yourself and point `firestore.goog` at the shared addresses, the database is unreachable while every other Google call works.
+</Warning>
+
+When OpenTofu creates the network, it creates the zones and the route (`enable_private_google_access_dns`, on by default there). In an existing network it doesn't: your network must resolve `googleapis.com`, `pkg.dev`, `gcr.io` and `firestore.goog` to private or restricted addresses, and route to them. See [What an existing network must provide](/self-hosted/requirements#what-an-existing-network-must-provide).
+
+Vertex AI works over this path, with one limit: **embeddings need a regional location**, never `global`. See [Choose the location](/self-hosted/model-gateway#choose-the-location).
+
+## Mirror every image
+
+An airgapped cluster can't reach `ghcr.io`, `docker.io` or `quay.io`, so every image the charts use must be in your Artifact Registry, and every chart must point at it. Images missing from your mirror fail **first** and cascade: External Secrets can't start, so no secret is ever synced, so the application also sits in `CreateContainerConfigError`, which reads as an application problem rather than a registry one.
+
+<Steps>
+  <Step title="List the images">
+    Print the exact list the charts you're installing render, tags included, rather than copying a list from documentation. Run this from the release bundle's directory **before** you repoint any image key, with your values otherwise filled in:
+
+    ```bash
+    {
+      helm template jedify-infra "./jedify-infra-$JEDIFY_VERSION.tgz" -n jedify -f values/jedify-infra.yaml \
+        --api-versions external-secrets.io/v1/ExternalSecret
+      helm template jedify-be "./jedify-be-$JEDIFY_VERSION.tgz" -n jedify-be -f values/jedify-be.yaml
+    } | grep -E '^\s*(- )?image:' | sed -E 's/^[[:space:]]*(- )?image:[[:space:]]*//; s/"//g' | sort -u > images.txt
+    cat images.txt
+    ```
+
+    The `--api-versions` flag stands in for the External Secrets CRDs a live cluster would have; without it, the chart refuses to render with Zitadel on.
+
+    As of release 2026.10.10, with Zitadel on and cert-manager off, the list holds these images. Your tags come from the charts:
+
+    | Image | Comes from | Repoint with | Installed when |
+    | --- | --- | --- | --- |
+    | `jedify-be`, `jedify-sandbox` | The release registry | `componentsDefaults.image.repository`, `sandboxPod.image.repository` in `values/jedify-be.yaml` | Always |
+    | `jedify-fe` | The release registry | `frontend.image.repository` | Always |
+    | `external-secrets/external-secrets` | `ghcr.io` | `external-secrets.image.repository`, `external-secrets.webhook.image.repository` and `external-secrets.certController.image.repository`: all three | Always |
+    | `berriai/litellm` | `ghcr.io` | `litellm-helm.image.repository` | With the bundled proxy |
+    | `sockudo/sockudo` | `docker.io` | `sockudo.image.repository` | Always |
+    | `stakater/reloader` | `ghcr.io` | `reloader.image.repository` | Always |
+    | `zitadel/zitadel`, `zitadel/zitadel-login` | `ghcr.io` | `zitadel.image.repository`, `zitadel.login.image.repository` | Always, with Zitadel |
+    | `wait4x/wait4x`, `alpine/k8s` | `docker.io` | `zitadel.imageRegistry`, see below | Always, with Zitadel. `alpine/k8s` also runs the egress masquerade job. |
+    | `jetstack/cert-manager-controller`, `-cainjector`, `-webhook`, `-startupapicheck` | `quay.io` | `cert-manager.imageRegistry` | With cert-manager on |
+    | `busybox` | `docker.io` | No setting | `helm test` only: see [Helm test](#helm-test) |
+  </Step>
+  <Step title="Copy them">
+    Copy Jedify's three images from the release registry, then every other image into the same path under your repository, without its registry host:
+
+    ```bash
+    export IMAGES="$(tofu -chdir=terraform output -raw artifact_registry_repository)"
+    gcloud auth print-access-token | crane auth login "${IMAGES%%/*}" -u oauth2accesstoken --password-stdin
+
+    for img in jedify-be jedify-sandbox jedify-fe; do
+      crane copy "$RELEASE_REGISTRY/$img:$JEDIFY_VERSION" "$IMAGES/$img:$JEDIFY_VERSION"
+    done
+
+    grep -v -e "^$IMAGES/" -e "^$RELEASE_REGISTRY/" -e '^busybox' images.txt | while read -r src; do
+      case "${src%%/*}" in
+        *.*) ref="$src" ;;              # carries a registry host
+        *)   ref="docker.io/$src" ;;    # Docker Hub
+      esac
+      crane copy "$ref" "$IMAGES/${ref#*/}"
+    done
+    ```
+
+    Run the copy from a machine that reaches both the public registries and your Artifact Registry.
+  </Step>
+  <Step title="Point the charts at your mirror">
+    ```bash
+    yq -i '
+      .["external-secrets"].image.repository = strenv(IMAGES) + "/external-secrets/external-secrets" |
+      .["external-secrets"].webhook.image.repository = strenv(IMAGES) + "/external-secrets/external-secrets" |
+      .["external-secrets"].certController.image.repository = strenv(IMAGES) + "/external-secrets/external-secrets" |
+      .["litellm-helm"].image.repository = strenv(IMAGES) + "/berriai/litellm" |
+      .sockudo.image.repository = strenv(IMAGES) + "/sockudo/sockudo" |
+      .reloader.image.repository = strenv(IMAGES) + "/stakater/reloader" |
+      .zitadel.image.repository = strenv(IMAGES) + "/zitadel/zitadel" |
+      .zitadel.login.image.repository = strenv(IMAGES) + "/zitadel/zitadel-login" |
+      .zitadel.imageRegistry = strenv(IMAGES) |
+      .frontend.image.repository = strenv(IMAGES) + "/jedify-fe"
+    ' values/jedify-infra.yaml
+    yq -i '
+      .componentsDefaults.image.repository = strenv(IMAGES) + "/jedify-be" |
+      .sandboxPod.image.repository = strenv(IMAGES) + "/jedify-sandbox"
+    ' values/jedify-be.yaml
+    ```
+
+    With cert-manager on, also set `.["cert-manager"].imageRegistry = strenv(IMAGES)`: one setting repoints all four of its images, under the `jetstack/` path the copy loop used.
+
+    <Note>
+    `zitadel.imageRegistry` works differently from the other keys. Zitadel's chart **prepends** it (default `docker.io`) to its two helper images, so set the registry and keep the helpers under their original paths, as the copy loop did. Setting their `repository` alone renders `docker.io/<your registry>/...`.
+    </Note>
+
+    To verify, render the list again. Expected: every image starts with your repository, apart from `busybox`.
+
+    ```bash
+    {
+      helm template jedify-infra "./jedify-infra-$JEDIFY_VERSION.tgz" -n jedify -f values/jedify-infra.yaml \
+        --api-versions external-secrets.io/v1/ExternalSecret
+      helm template jedify-be "./jedify-be-$JEDIFY_VERSION.tgz" -n jedify-be -f values/jedify-be.yaml
+    } | grep -E '^\s*(- )?image:' | sed -E 's/^[[:space:]]*(- )?image:[[:space:]]*//; s/"//g' | sort -u
+    ```
+  </Step>
+</Steps>
+
+### Copy every architecture
+
+Every image is published for `arm64` and `amd64` (Jedify's own from release 2026.10.2), and the node a pod lands on decides which one it pulls. A `docker pull` followed by `docker push` copies only your workstation's architecture, and a pod on the other kind of node then fails with `no match for platform in manifest`, which reads as a missing image.
+
+Copy the whole multi-architecture index instead: `crane copy <source> <destination>`, or `skopeo copy --all docker://<source> docker://<destination>`. To check a copy, list its platforms:
+
+```bash
+crane manifest "$IMAGES/jedify-be:$JEDIFY_VERSION" \
+  | jq -r '.manifests[]?.platform | select(.os != "unknown") | "\(.os)/\(.architecture)"'
+```
+
+Expected: `linux/amd64` and `linux/arm64`.
+
+### Pull policy
+
+The bundle sets `pullPolicy: IfNotPresent` on the LiteLLM proxy, whose chart defaults to `Always`. With `Always`, every pod start pulls again, which makes your registry a dependency of every restart instead of only of the install. Every image is pinned to a tag, so `Always` would never fetch anything newer.
+
+## Helm test
+
+`helm test` runs three test pods (two from the LiteLLM chart, one from sockudo's) that use the `busybox` image from Docker Hub, with no registry, no tag and no setting to change either. They run only when you call `helm test`, never during an install or upgrade. On an airgapped cluster `helm test` fails to pull them, and that says nothing about the installation's health.
+
+## What still needs a path out
+
+| Destination | Used by | What to do |
+| --- | --- | --- |
+| Your identity provider's endpoints | Zitadel, which calls your provider's token and key endpoints from the cluster | Allow them through your egress path. A sign-in can't complete without them. |
+| Your data warehouse | The pipeline components | Allow the warehouse's hosts. For Snowflake that includes the OCSP hosts on port 80: see [Network](/self-hosted/first-run#network). |
+| Your model gateway | The application | Only if you [use your own gateway](/self-hosted/model-gateway#use-your-own-gateway) instead of Vertex AI |
+| `raw.githubusercontent.com` | LiteLLM, which fetches its model cost map at startup, in the proxy and in every application pod | Allow it, or expect that fetch to fail at every start |
+
+From your workstation, or wherever you run the install:
+
+- **The release registry**, to pull the release and copy images. The charts carry all their dependencies, so installing them reaches no chart repository.
+- **`registry.opentofu.org`**, which `tofu init` reaches for providers. To run OpenTofu offline, mirror the providers first, then point OpenTofu at the mirror. The lock file in the bundle doesn't make `tofu init` offline on its own.
+
+  ```bash
+  tofu -chdir=terraform providers mirror -platform=linux_amd64 -platform=darwin_arm64 "$PWD/tofu-providers"
+  cat > tofurc <<EOF
+  provider_installation {
+    filesystem_mirror {
+      path    = "$PWD/tofu-providers"
+      include = ["registry.opentofu.org/*/*"]
+    }
+  }
+  EOF
+  export TF_CLI_CONFIG_FILE="$PWD/tofurc"
+  ```
+
+  List the platforms of every machine that runs OpenTofu in `-platform`.
+
+## Lock it down
+
+Private Google Access is routing, not enforcement. The zones keep Google traffic off Cloud NAT; they don't stop anything from reaching the internet. The installation doesn't create the controls that do. If your policy requires them, add:
+
+- a VPC Service Controls perimeter around the project;
+- the `constraints/compute.vmExternalIpAccess` organization policy;
+- a default-deny egress firewall, with an allow to `199.36.153.0/24` and to each destination above.
+
+Restrict the Kubernetes API too: with the default public endpoint and an empty `master_authorized_networks`, any address on the internet can reach it. See [Control-plane access](/self-hosted/requirements#control-plane-access).
+
+## Certificates
+
+Let's Encrypt isn't an option: ACME needs the internet. Use a certificate from a certificate authority your users' devices trust, either as the `jedify-tls` Secret or through cert-manager with your own CA issuer. See [DNS and TLS](/self-hosted/requirements#dns-and-tls).

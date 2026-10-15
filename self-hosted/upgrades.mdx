@@ -1,0 +1,186 @@
+---
+title: "Upgrades"
+icon: "circle-up"
+description: "Move a self-hosted installation to a new release: carry your values forward, apply OpenTofu, upgrade the three Helm releases in order, and check the result. Plus the settings that must never change."
+---
+
+A release is one version across six artifacts: the bundle, both charts and three images. Upgrade all of them together, to the same version. A version names a set tested together and makes no compatibility promise, so compare the new bundle with your current one before you change anything.
+
+## Before you upgrade
+
+<Steps>
+  <Step title="Pull the new release next to the current one">
+    Set the version you're moving to, and pull it into a new directory. Keep your current bundle directory: it holds your filled-in values and `terraform.tfvars`.
+
+    ```bash
+    export OLD_BUNDLE_DIR="$BUNDLE_DIR"
+    export JEDIFY_VERSION="<new version>"
+    cd "$(dirname "$OLD_BUNDLE_DIR")"
+    oras pull "$RELEASE_REGISTRY/bundles/jedify-deploy:$JEDIFY_VERSION"
+    tar -xzf "jedify-deploy-$JEDIFY_VERSION.tar.gz"
+    cd "jedify-deploy-$JEDIFY_VERSION"
+    helm pull "oci://$RELEASE_REGISTRY/charts/jedify-infra" --version "$JEDIFY_VERSION"
+    helm pull "oci://$RELEASE_REGISTRY/charts/jedify-be" --version "$JEDIFY_VERSION"
+    export BUNDLE_DIR="$PWD"
+    ```
+
+    Log in to the registry first if your session expired: see step 2 of the [install](/self-hosted/install).
+
+    To verify, list the new directory. Expected: both charts at the new version, and `scripts`, `terraform` and `values`.
+
+    ```bash
+    ls "$BUNDLE_DIR"
+    ```
+  </Step>
+  <Step title="See what changed">
+    Compare the new values templates and OpenTofu configuration with the ones your current installation started from. Unpack your current version's bundle into a scratch directory to compare against an untouched copy:
+
+    ```bash
+    CURRENT_VERSION="$(helm -n jedify list -f '^jedify-infra$' -o json | jq -r '.[0].chart' | sed 's/^jedify-infra-//')"
+    mkdir -p /tmp/jedify-current && cd /tmp/jedify-current
+    oras pull "$RELEASE_REGISTRY/bundles/jedify-deploy:$CURRENT_VERSION"
+    tar -xzf "jedify-deploy-$CURRENT_VERSION.tar.gz"
+    diff -ru "jedify-deploy-$CURRENT_VERSION/values" "$BUNDLE_DIR/values"
+    diff -ru "jedify-deploy-$CURRENT_VERSION/terraform" "$BUNDLE_DIR/terraform"
+    cd "$BUNDLE_DIR"
+    ```
+
+    **Decision.** Read every change. A new key in a values template is a setting the new release expects; a changed comment often explains a changed default. Check [Notes for specific versions](#notes-for-specific-versions) too.
+  </Step>
+  <Step title="Carry your settings forward">
+    Copy your OpenTofu variables, then bring your values edits into the new templates rather than copying your old files over them, so you keep any new keys:
+
+    ```bash
+    cp "$OLD_BUNDLE_DIR/terraform/terraform.tfvars" terraform/
+    diff -u values/jedify-infra.yaml "$OLD_BUNDLE_DIR/values/jedify-infra.yaml"
+    diff -u values/jedify-be.yaml "$OLD_BUNDLE_DIR/values/jedify-be.yaml"
+    diff -u values/jedify-be-workers.yaml "$OLD_BUNDLE_DIR/values/jedify-be-workers.yaml"
+    ```
+
+    Re-apply each of your edits to the new files: the same `yq` commands the [install](/self-hosted/install) used work here. Three things to watch:
+
+    - **Image tags.** `values/jedify-be.yaml` pins the application and sandbox images to the release's version. Keep the new file's tags, and keep your registry in `componentsDefaults.image.repository` and `sandboxPod.image.repository`. The web app's tag follows the chart version when `frontend.image.tag` is empty.
+    - **Lists replace.** If you overrode a list (`litellm.modelList`, `gateway.healthChecks`, `gateway.mcpPathPrefixes`, `externalSecret.plainEnv`), compare it with the new chart's version: your list replaces the chart's whole list, including entries a new release added.
+    - **The architecture.** If you run amd64, switch the `nodeSelector` blocks in both new files again.
+
+    To verify, compare your merged files with your old ones. Expected: the only differences are the ones the new release introduced.
+  </Step>
+  <Step title="Copy the new images">
+    If you copy images into your own Artifact Registry, copy the new version's images before you upgrade anything. Run the same loop as the install's [copy step](/self-hosted/install), and for an airgapped installation, [mirror every image](/self-hosted/airgapped#mirror-every-image) the new charts render.
+
+    To verify, list the platforms each new image holds, as in the install. Expected: `linux/amd64` and `linux/arm64`.
+  </Step>
+</Steps>
+
+## Upgrade
+
+<Steps>
+  <Step title="Apply OpenTofu">
+    Use the new bundle's OpenTofu configuration with the same state bucket and prefix:
+
+    ```bash
+    tofu -chdir=terraform init -backend-config="bucket=${PREFIX}-tfstate" -backend-config="prefix=jedify"
+    tofu -chdir=terraform plan -out=jedify.tfplan
+    ```
+
+    Read the plan. Look for any resource OpenTofu wants to **replace**, especially the cluster, Cloud SQL, Memorystore or Firestore. If you didn't expect one, stop and ask Jedify support before you apply.
+
+    ```bash
+    tofu -chdir=terraform apply jedify.tfplan
+    rm terraform/jedify.tfplan
+    ```
+
+    To verify, plan again. Expected: `No changes.`
+
+    ```bash
+    tofu -chdir=terraform plan
+    ```
+  </Step>
+  <Step title="Upgrade the platform chart">
+    After the first install, the platform chart is always one command:
+
+    ```bash
+    helm upgrade jedify-infra "./jedify-infra-$JEDIFY_VERSION.tgz" \
+      --namespace jedify -f values/jedify-infra.yaml --wait --timeout 20m
+    ```
+
+    Zitadel migrates its database in a setup job during the upgrade. If the upgrade fails on that job with a deadline error, delete the failed job and run the same command again: the job keeps its failed state until it's deleted.
+
+    ```bash
+    kubectl -n jedify delete job jedify-infra-zitadel-setup
+    ```
+
+    To verify, check the release and the secrets. Expected: `jedify-infra` is `deployed` at the new chart version, and every ExternalSecret shows `SecretSynced`.
+
+    ```bash
+    helm -n jedify list
+    kubectl get externalsecret -A
+    ```
+  </Step>
+  <Step title="Upgrade the application's two releases">
+    ```bash
+    helm upgrade jedify-be "./jedify-be-$JEDIFY_VERSION.tgz" \
+      --namespace jedify-be -f values/jedify-be.yaml
+    helm upgrade jedify-be-workers "./jedify-be-$JEDIFY_VERSION.tgz" \
+      --namespace jedify-be -f values/jedify-be.yaml -f values/jedify-be-workers.yaml
+
+    for d in $(kubectl -n jedify-be get deploy -o name); do
+      kubectl -n jedify-be rollout status "$d" --timeout=15m
+    done
+    ```
+
+    Expected: every rollout reports `successfully rolled out`.
+  </Step>
+</Steps>
+
+<Warning>
+Always pass your values files with `-f`. Don't use `helm upgrade --reuse-values`: it reuses the values stored with the previous release and doesn't pick up the new chart's defaults, so a setting a new release added is simply missing.
+</Warning>
+
+## After the upgrade
+
+Run these checks after every upgrade.
+
+| Check | Command | Expected |
+| --- | --- | --- |
+| Releases | `helm list -A` | `jedify-infra`, `jedify-be` and `jedify-be-workers` are `deployed`, at the new version |
+| Images | `kubectl -n jedify-be get deploy -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.template.spec.containers[0].image}{"\n"}{end}'` | Every image is tagged with the new version |
+| Pods | `kubectl -n jedify get pods` and `kubectl -n jedify-be get pods` | All `Running` and ready, apart from `Completed` CronJob and setup pods |
+| Secrets | `kubectl get externalsecret -A` | All `SecretSynced` |
+| Gateway | `kubectl -n jedify get gateway jedify-gateway` | `PROGRAMMED` is `True`, with the same address as before |
+| API | `curl -sS -o /dev/null -w '%{http_code}\n' "https://$APP_HOST/api/readiness"` | `200` |
+| Models | [Verify the models](/self-hosted/model-gateway#verify-the-models) | A reply from every name |
+| Sign-in | Sign in to the web app, and ask a question with a known answer | The answer, with live progress |
+
+A changed model list restarts the proxy through Reloader. If a model added by the new release answers `Invalid model name`, restart the proxy: see [Change the model list](/self-hosted/model-gateway#change-the-model-list).
+
+## Settings that must never change
+
+Some settings are fixed once the installation holds data. Changing them in an upgrade loses data, signs people out, or moves things your clients depend on.
+
+| Setting | What a change does |
+| --- | --- |
+| `firestore_location` | Can't be changed. Moving means a second database and a migration. |
+| `datastore_connectivity` | Replaces Cloud SQL and the cache. Their data doesn't move with them. |
+| `cloudsql_psc_endpoint` | Moves the database to a new address: the old endpoint is destroyed and the connection string rewritten. |
+| `name_prefix` | Names every resource, so OpenTofu plans to replace them. |
+| The model behind `text-embedding-ada-002` | Needs a full rebuild of every account's embeddings. See [the embedding model](/self-hosted/model-gateway#the-embedding-model-is-a-one-time-choice). |
+| `CREDS_KEY` | Saved data-source credentials can no longer be decrypted. |
+| Zitadel's masterkey (`<prefix>-zitadel-masterkey`) | A new masterkey against the existing database is indistinguishable from corruption to Zitadel. |
+| `ZITADEL_MCP_JWT_SIGNING_KEY` | Signs every MCP client out. |
+| The Gateway class | Reallocates the address, so DNS has to follow. |
+
+## Rolling back
+
+Don't roll back on your own. Zitadel migrates its database during an upgrade, and OpenTofu may have changed resources, so returning the charts to an older version doesn't return everything else with them. Contact Jedify support at [support@jedify.com](mailto:support@jedify.com) with your current and target versions, and the [diagnostics](/self-hosted/troubleshooting#collect-diagnostics-for-jedify-support).
+
+## Notes for specific versions
+
+<AccordionGroup>
+  <Accordion title="Upgrading from 2026.10.8 or earlier: the Arm compute class changed">
+    Release 2026.10.9 moved Arm pods from the Scale-Out compute class to `autopilot-arm`. Scale-Out brings up Arm machines in three regions only, so on those releases every pod could stay `Pending` in other regions. The upgrade reschedules every pod once. `autopilot-arm` needs GKE `1.35.3-gke.1389000` or later; the OpenTofu plan warns if your cluster is older.
+  </Accordion>
+  <Accordion title="Upgrading from 2026.10.1 or earlier: images for amd64">
+    From 2026.10.2, every image is published for both `arm64` and `amd64`. Earlier releases publish Jedify's own images for `arm64` only, so an amd64 cluster needs 2026.10.2 or later.
+  </Accordion>
+</AccordionGroup>

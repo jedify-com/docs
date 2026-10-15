@@ -1,0 +1,191 @@
+---
+title: "Troubleshooting"
+icon: "bug"
+description: "Symptoms, causes and fixes for a self-hosted installation, from the OpenTofu apply to the first question, and how to collect diagnostics for Jedify support."
+---
+
+Most failures in a self-hosted installation don't look like what caused them: a missing route reads as a CORS error, a wrong model name as a hung pipeline, a missing role as an empty page. Find your symptom below; error text is quoted exactly as it appears.
+
+If nothing here matches, [collect diagnostics](#collect-diagnostics-for-jedify-support) and contact Jedify support.
+
+## OpenTofu
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| `API has not been used in project ... before or it is disabled` | An API OpenTofu needs before it can enable the others is off | Enable `serviceusage.googleapis.com` and `cloudresourcemanager.googleapis.com` (see [APIs](/self-hosted/requirements#apis)), then apply again. A newly enabled API can take a few minutes to take effect. |
+| The bucket can't be created, with a name-taken error that reads like a permissions problem | `name_prefix` names the Cloud Storage bucket, and bucket names are unique across all of Google Cloud | Choose a prefix specific to your organization |
+| `Error 400: Database ID '<name>' is not available in project '<project>'. Please retry in 281 seconds.` | Firestore holds a deleted database's name for about five minutes | Wait for the time in the message, then apply again |
+| Cloud SQL refuses the machine tier | The edition and the tier disagree: `ENTERPRISE` takes `db-custom-*` tiers, `ENTERPRISE_PLUS` only `db-perf-optimized-N-*` | Set `postgres_edition` and `postgres_tier` to a matching pair |
+| `GKE Autopilot provisions Arm nodes only in ...` | Your region has no Autopilot Arm nodes | Run amd64: see [Arm or amd64 nodes](/self-hosted/requirements#arm-or-amd64-nodes) |
+| A warning that the cluster's GKE version is older than `1.35.3-gke.1389000` | The cluster predates the `autopilot-arm` compute class, so Arm pods stay `Pending` | Upgrade the control plane with the `gcloud container clusters upgrade` command the warning prints, or run amd64 |
+| `enable_private_endpoint is on and master_authorized_networks is empty` | Only the cluster's own nodes and pods can reach the API server | List your VPN's ranges in `master_authorized_networks` |
+| `Subnet <name> must carry the secondary ranges named in existing_network` or `Subnet <name> is not in network <name>` | `existing_network` names a subnet or range that doesn't match the network | Correct the names, or have your network team add the range |
+| `Private Google Access is OFF on subnet <name>` | Nodes can't reach Google APIs without it | Turn Private Google Access on for the subnet |
+| `Cloud SQL's automatic PSC endpoint has no address` | With `cloudsql_psc_endpoint = "connection_policy"`, the network has no `google-cloud-sql` Service Connection Policy in your region | Create the policy (`create_cloudsql_connection_policy`, or your network team), naming the endpoint subnet |
+| `Error 403: Write access to project '<project>' was denied` on the Model Armor floor setting | Model Armor is a purchased entitlement. Enabling its API isn't enough, and the error doesn't mention entitlements. | Set `model_armor_mode = "off"`, or obtain the entitlement from Google first |
+| `tofu destroy` removed some resources and then refused the cluster and the database | `deletion_protection` is working. A destroy isn't transactional: it removes what it can first. | Expected. To really remove the installation, see [Remove the installation](/self-hosted/reference/terraform#remove-the-installation). |
+
+## Installing the charts
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| `This is a first install, and Zitadel cannot be part of it` | Zitadel's setup jobs need secrets that External Secrets, installed by the same release, hasn't synced yet | Install in two passes: see steps 12 and 13 of the [install](/self-hosted/install) |
+| `... is required: ...` naming a `tofu output` | A required value is empty | Fill it from the output the message names |
+| ``sockudo: replicaCount is 2 but config.adapterDriver is `local` `` | Two realtime replicas without shared state would silently lose events between pods | Keep `sockudo.config.adapterDriver: redis`, or run one replica |
+| ``gateway.healthChecks entry for "<service>" sets timeoutSec but no `logging` `` | A backend timeout policy turns the load balancer's request logging off unless it's set explicitly | Add `logging: true` to the entry |
+| Helm aborts on Zitadel's setup job with `DeadlineExceeded` | Zitadel's migrations, on a new cluster that's still pulling images, outlasted the job's deadline | `kubectl -n jedify delete job jedify-infra-zitadel-setup`, then run the same `helm upgrade` again. The job keeps its failed state until it's deleted. |
+| Zitadel's setup job never completes, with `Back-off pulling image "docker.io/alpine/k8s:<version>"` | The helper image's tag can't be pulled: it isn't in your mirror, or someone removed the pinned tag and the chart asked for one Docker Hub doesn't publish | Keep `zitadel.tools.kubectl.image.tag` at the bundle's value, and mirror that image |
+| `kubectl` or `helm` times out from your VPN | A private endpoint with your VPN's range missing from `master_authorized_networks`, or a VPN that enters the network in another region | Add the range; set `private_endpoint_global_access = true` for another region |
+| `Warning: Key 'kubernetes.io/arch' is not recommended with node selector` for every pod | Expected on Arm: the label is what lets pods onto Arm nodes | Nothing |
+| `helm test` fails on an airgapped cluster | The charts' test pods use the `busybox` image from Docker Hub, with no setting to change it | Nothing: it doesn't reflect the installation's health. See [Airgapped installations](/self-hosted/airgapped#helm-test). |
+
+## Pods and images
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| `ImagePullBackOff` | The image isn't in the registry the pod pulls from, or a chart still points at the original registry | Copy the image, and set the chart's repository key: see [Mirror every image](/self-hosted/airgapped#mirror-every-image) |
+| `no match for platform in manifest` | The image was copied for one architecture only | Copy the whole index with `crane copy`, or `skopeo copy --all` |
+| An invalid image reference, such as `image: ":"` | An image repository is empty in your values | Set `componentsDefaults.image.repository`, `sandboxPod.image.repository` or `frontend.image.repository` |
+| Pods stay `Pending` and no node is ever added | Arm pods in a region or on a GKE version without `autopilot-arm`, or a selector missing the `kubernetes.io/arch` label | See [Arm or amd64 nodes](/self-hosted/requirements#arm-or-amd64-nodes) |
+| Application pods stay in `CreateContainerConfigError` | The `app-secrets` Secret doesn't exist yet: its ExternalSecret can't read your Secret Manager object, or `realtime.sockudo.smKey` is set in `values/jedify-be.yaml` | `kubectl -n jedify-be describe externalsecret app-secrets` names what it couldn't read. Leave `realtime.sockudo.smKey` empty: the platform chart supplies those keys. |
+| The LiteLLM proxy and sockudo in `CreateContainerConfigError` after the first platform pass | Their secrets are created by the second pass | Run the second pass |
+| The API crashes at start with `NameError: _CORS_ORIGINS` | `ENV` is unset, or isn't one of `local`, `ci`, `dev`, `staging`, `production` | Set `ENV` to `production` in `values/jedify-be.yaml` |
+| Every application component crashes at start, naming the realtime client (`Invalid app id`, or a `TypeError`) | `app_id` in the realtime secret isn't numeric, or the realtime keys are missing | Fix `${PREFIX}-sockudo-app`: see [secrets reference](/self-hosted/reference/secrets#realtime-credentials) |
+| A component crash-loops with clean logs that end mid-start | The process is waiting on something and the liveness probe kills it: Memorystore with transit encryption on (port 6378, which the application doesn't dial), a short in-cluster hostname that doesn't resolve across namespaces, or a slow first start without the startup probe | Keep `redis_transit_encryption = "DISABLED"`; use the fully qualified addresses in the bundle's values; keep `componentsDefaults.startupProbe.enabled: true` |
+| `ValueError: MONGO_URI carries a database path` | The connection string has a database path | Use the URI `mongo_uri_command` prints, unchanged. The database comes from `MONGO_DB`. |
+| `IAM authority does not have the permission 'datastore.indexes.create'` | The application's identity can't create Firestore indexes, which it does at start | The configuration grants `roles/datastore.indexAdmin`; apply OpenTofu again, and check the Workload Identity binding |
+| Every pod is healthy, and every Google API call fails with a permission error | A Workload Identity binding names a different namespace or ServiceAccount than the one the pod runs as | Keep the namespaces (`jedify`, `jedify-be`) and ServiceAccounts in line with `infra_namespace`, `kubernetes_namespace` and `kubernetes_service_account` |
+| The application refuses to start, naming the capability flags that replaced `IS_ON_PREM` | `IS_ON_PREM` is set | Remove it |
+| `RuntimeError: Zitadel MCP auth is not configured: MCP_SERVER_URL, ZITADEL_MCP_CLIENT_ID, ZITADEL_MCP_CLIENT_SECRET unset.` | The MCP server's settings don't exist yet | Run `scripts/zitadel-setup.sh` |
+
+## Gateway and TLS
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| The Gateway is `Accepted` but never `Programmed`, and has no address. Its `Programmed` condition says `An active proxy-only subnetwork is required in the same region and VPC as the forwarding rule.` | The region has no proxy-only subnet | Create one: `create_proxy_only_subnet = true`, or your network team. See [Network](/self-hosted/requirements#network). |
+| `want address purpose=SHARED_LOADBALANCER_VIP, got GCE_ENDPOINT` | The reserved address for the internal Gateway was created without its purpose | Delete it and reserve it again with `--purpose SHARED_LOADBALANCER_VIP`; `--addresses <ip>` keeps the same IP |
+| `Error GWCER102: Secret jedify/jedify-tls not found` | The Gateway's TLS Secret doesn't exist | Create it: step 11 of the [install](/self-hosted/install) |
+| A host answers `503` `no healthy upstream` while its pods are ready | The load balancer health-checks `GET /` unless a policy says otherwise, and a service whose root isn't `200` is marked down. Usually a `gateway.healthChecks` list in your values that left out entries. Right after a rollout, it's the load balancer's health checks catching up, for 30 to 90 seconds. | Restore every entry of the chart's `gateway.healthChecks` list. After a rollout, wait. |
+| An HTTPRoute's `status` is empty, and every request to its host returns `404` | The route names a Gateway that doesn't exist, so no controller claims it | Keep `gateway.gatewayName: jedify-gateway` and `gateway.gatewayNamespace: jedify` in `values/jedify-be.yaml` |
+| A route shows `ResolvedRefs=False` and its host stops serving | The application's CORS middleware for another Gateway implementation is on | Keep `gateway.corsMiddleware.enabled: false` |
+| The browser gets a different certificate from the Google-managed one, which shows `ACTIVE` | A certificate map attaches only to the global class; on a regional class it's silently ignored | Use `gke-l7-global-external-managed`, or serve your own certificate. Check what's served with `openssl s_client`, not the certificate's status. |
+| The Gateway's address changed | GKE allocated it with the Gateway, and a reinstall or a class change released it | Reserve an address and set `gateway.addressName`; update DNS |
+| cert-manager challenges stay pending with `gateway api is not enabled` | cert-manager needs Gateway API support in its controller configuration; it isn't a feature gate | Set `cert-manager.config.enableGatewayAPI: true`, as in the [values reference](/self-hosted/reference/values#certificates) |
+| A long answer or an agent run stops at about 30 seconds, and the browser reports `net::ERR_FAILED` with nothing logged on the server | The load balancer's default backend timeout is a 30-second total deadline, and the backend lost its timeout policy | Keep `timeoutSec: 3600` on the `api` and `mcp-server` entries of `gateway.healthChecks` |
+
+## Sign-in
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| A blank page saying `Jedify is not configured for sign in`, naming missing settings | The web app has no Zitadel client, project or organization ID | Set `frontend.zitadel` and upgrade the platform chart: step 16 of the [install](/self-hosted/install) |
+| A first sign-in fails, and the Zitadel login pod's log shows `Error auto-creating user: invalid SetHumanProfile.GivenName: value length must be between 1 and 200 runes, inclusive` | Your identity provider doesn't send `given_name` and `family_name` | Add both claims, or create users in Zitadel before they sign in |
+| `AADSTS500117: The reply uri specified in the request isn't using a secure scheme.` from Microsoft Entra ID, or Google refuses the redirect URI | Zitadel offers an `http://` callback | Keep `ExternalSecure: true` and serve Zitadel over HTTPS |
+| `Instance not found` | `zitadel.zitadel.configmapConfig.ExternalDomain` doesn't match the host Zitadel is served on | Set it to your Zitadel host exactly |
+| `{"code":5, "message":"Not Found"}` on the sign-in redirect | Zitadel's sign-in UI (`/ui/v2`) isn't routed to its own service | Use the chart's Zitadel route unchanged |
+| A user signs in and sees nothing | First sign-ins carry no role | [Grant a role](/self-hosted/identity#connect-your-identity-provider) |
+| The web app shows a user with no roles while the API treats them as an administrator | Project-level role assertion is off, so tokens carry no roles | Turn on `projectRoleAssertion` on the `jedify` project |
+| `Token validation failed: Audience doesn't match` | The token was issued for another project, such as Zitadel's built-in one | `ZITADEL_PROJECT_ID` and `ZITADEL_AUDIENCES` must hold the `jedify` project's ID; run the setup script |
+| `UserNotFound` for a user who exists, and Zitadel logs `unable to set instance using origin` | In-cluster management calls don't carry your Zitadel host | `ZITADEL_HOST_HEADER` must be your Zitadel host; run the setup script, and don't override it in values |
+| Sign-in works, and the first authenticated request returns `500` with `neither ZITADEL_PAT nor ZITADEL_PAT_FILE is set` | The application has no token for Zitadel's management API | Keep `zitadelSecrets.patSecretName` at its default, with Zitadel enabled |
+| The API logs `auth provider: descope (AuthService)` at start, and every sign-in fails | `AUTH_PROVIDER` isn't `zitadel` | Run the setup script, which sets it |
+| `they must sign in once first` from the `grant` command | The person doesn't exist in your organization yet | Ask them to sign in once, or create them in Zitadel's console |
+| A person from another organization can't sign in | The web app pins sign-in to your organization | Expected |
+| Sign-in fails for a minute or two, then recovers on its own | Zitadel moved between nodes with no second replica to serve | Keep Zitadel and its sign-in UI at two replicas with their disruption budgets, as the chart sets them |
+| An MCP client's authorization never completes | A path the MCP server's OAuth server answers isn't routed to it | Keep all nine `gateway.mcpPathPrefixes`: see [the MCP server's sign-in client](/self-hosted/identity#mcp-server-sign-in) |
+| An MCP client refuses to connect with `IssuerMismatchError` | The two OAuth discovery documents come from different services | Route both `/.well-known/oauth-*` paths to the MCP server, as the bundle's values do |
+
+## Models
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| A question stays in progress for ever, and a component logs `WORKER TIMEOUT` | A model name maps to a Vertex AI model that isn't offered to your project or location. The proxy lists it anyway, then the completion fails and the worker waits until it's killed. | [Verify the models](/self-hosted/model-gateway#verify-the-models), and change the failing entry |
+| `Invalid model name passed in model=<name>` | Your proxy or gateway doesn't serve a name the application calls | Add it: see [the model names](/self-hosted/model-gateway#the-model-names-the-application-calls) |
+| Analyst mode returns no data for questions that work elsewhere | `claude-opus-4-7` is missing | Add it |
+| Agent runs fail at once, while ordinary questions work | `claude-sonnet-5` is missing | Add it |
+| A question fails with no explanation, the launcher logs `No groundable columns found`, and the proxy refuses `/embeddings: Invalid model name passed in model=text-embedding-ada-002` | The embedding name is missing | Add it, before your first build |
+| `The service you are trying to access is not available on Google's Restricted VIPs` | The embedding model uses the `global` location | Use a regional location for embeddings |
+| `403` from the model gateway | The proxy's Google identity lacks `roles/aiplatform.user`, or its Workload Identity binding doesn't match the namespace and ServiceAccount it runs as (`infra_namespace`, `litellm_service_account`); embeddings at the `global` location; or, with your own gateway, its allowlist doesn't include the addresses the cluster calls from (your node subnet, with egress masquerade on) | Check each in that order, and [verify the models](/self-hosted/model-gateway#verify-the-models) after each change |
+| `CERTIFICATE_VERIFY_FAILED` | An endpoint's certificate comes from a private certificate authority | Turn on `trustExtraCA`: see [private certificate authority](/self-hosted/model-gateway#a-gateway-behind-a-private-certificate-authority) |
+| Pods don't start, and the `ca-bundle` init container fails | `trustExtraCA` is on and `EXTRA_CA_PEM_B64` is missing or invalid | Add a valid key, or turn the switch off |
+| The proxy doesn't start | `LITELLM_PROXY_API_KEY` is missing from your application configuration secret, or holds a published example key such as `sk-1234` | Generate one: step 7 of the [install](/self-hosted/install) |
+| A changed model list isn't served | The proxy reads its list only when it starts | `kubectl -n jedify rollout restart deploy/jedify-infra-litellm` |
+
+## Data and builds
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| `AccountNotFound: no such account <id>` during a build or a question | Your organization has no account record | See [the account record](/self-hosted/first-run#create-the-account-record) |
+| Uploads fail with `500` and `Exception: Error uploading file` | `STORAGE_BUCKET_NAME` is unset. `GCS_BUCKET_NAME` and `AWS_BUCKET_NAME` are retired and read by nothing. | Set `STORAGE_BUCKET_NAME` to `tofu output -raw storage_bucket` |
+| Steps stop with `connection closed`, and questions stay in progress | Firestore closed an idle pooled connection, and with retryable writes off nothing retried it | Use the URI `mongo_uri_command` prints, which includes `maxIdleTimeMS=60000` |
+| The semantic dimensions list returns `500` with `Collation is not supported.` when sorted by name | Firestore doesn't support MongoDB collations | Sort by anything else. Known limitation. |
+| Dimension lookups return nothing, with no errors | The queue workers release isn't installed, so grounding jobs are never run | Install `jedify-be-workers` |
+| Regression runs stay `PENDING`, or an edit session stays "already in progress" | The periodic CronJobs aren't enabled | Keep the bundle's `cronjobs` block in `values/jedify-be.yaml` |
+| The grounding worker is `OOMKilled` again and again | Its concurrency was raised: parallel jobs share one pod's memory | Keep concurrency at its default, and raise `workers.grounding-worker.replicas` instead |
+| A warehouse connection test or a build never finishes | A call from the cluster is blocked, and blocked calls hang. For Snowflake, often the OCSP hosts on port 80. | Allow every host `SYSTEM$ALLOWLIST()` lists: see [network](/self-hosted/first-run#network) |
+| Saved data-source credentials stopped working | `CREDS_KEY` changed | Restore the previous key |
+| Context Graph Versioning returns an error about a missing bucket name | The feature isn't supported in a self-hosted installation | Known limitation |
+
+## Realtime
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| The browser logs `WebSocket connection to 'wss://<host>/pusher/app/<key>' failed`, and nothing appears on the server | The realtime route doesn't exist (`gateway.host` is empty in the platform values), so the request reaches the API | Set `gateway.host` and upgrade the platform chart |
+| sockudo logs `"socket handling failed", error: "Application does not exist"`; the browser shows a bare connection failure or a `502` | The web app holds an old realtime key: it reads the key only when its pods start | `kubectl -n jedify rollout restart deploy/jedify-infra-frontend` |
+| The console logs `Pusher connection error` about every 30 seconds | Websockets are ended at the load balancer's default 30-second limit | Keep `sockudoRoute.timeoutSec` at `86400` |
+| Realtime stops working after Memorystore transit encryption was turned on, and only sockudo's log shows why | sockudo's two replicas share state through Memorystore, and its Redis driver can't speak TLS | Keep `redis_transit_encryption = "DISABLED"` |
+| Every realtime publish fails with `404 {"code":"app_not_found"}` | sockudo doesn't hold the credentials the application signs with | Both read `${PREFIX}-sockudo-app`; after changing it, restart sockudo and the web app |
+
+<Tip>
+Don't judge realtime by a `101 Switching Protocols` response. sockudo completes the websocket upgrade first and checks the key afterwards, so a wrong key also gets `101`, followed by a closed connection. A working connection's first message is `pusher:connection_established`. If you test with `curl`, pass `--http1.1`: over HTTP/2 the upgrade is rejected with `400` before it reaches sockudo.
+</Tip>
+
+## CORS
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| After sign-in, the browser blocks every API call, and the same calls answer `200` to `curl` | Your origin isn't in `CORS_WHITELISTED_URLS` | See [Allow your origin for CORS](/self-hosted/first-run#allow-your-origin-for-cors) |
+| `No 'Access-Control-Allow-Origin' header is present` right after a rollout | The load balancer answered with a `5xx`, which carries no CORS header | Check the status code first: see [cold starts](/self-hosted/first-run#a-cold-start-can-look-like-a-cors-error) |
+
+## Collect diagnostics for Jedify support
+
+This collects read-only information into one archive. It reads no Secret and no secret value.
+
+```bash
+OUT="jedify-diagnostics-$(date +%Y%m%d-%H%M%S)"
+mkdir -p "$OUT"
+
+kubectl version > "$OUT/versions.txt" 2>&1
+helm list -A > "$OUT/helm-releases.txt" 2>&1
+kubectl get nodes -L kubernetes.io/arch,cloud.google.com/compute-class -o wide > "$OUT/nodes.txt" 2>&1
+kubectl get gateway,httproute,healthcheckpolicies,gcpbackendpolicies -A -o wide > "$OUT/routing.txt" 2>&1
+kubectl -n jedify describe gateway jedify-gateway > "$OUT/gateway.txt" 2>&1
+kubectl -n jedify-be describe httproute app-routes > "$OUT/app-routes.txt" 2>&1
+kubectl get clustersecretstore,externalsecret -A > "$OUT/external-secrets.txt" 2>&1
+
+for ns in jedify jedify-be; do
+  kubectl -n "$ns" get deploy,cronjob,job,pod,svc,pdb -o wide > "$OUT/$ns-resources.txt" 2>&1
+  kubectl -n "$ns" get events --sort-by=.lastTimestamp > "$OUT/$ns-events.txt" 2>&1
+  kubectl -n "$ns" describe pods > "$OUT/$ns-pods.txt" 2>&1
+  for pod in $(kubectl -n "$ns" get pods -o name); do
+    kubectl -n "$ns" logs "$pod" --all-containers --tail=500 > "$OUT/$ns-${pod#pod/}.log" 2>&1
+  done
+done
+
+helm -n jedify get values jedify-infra > "$OUT/values-jedify-infra.yaml" 2>&1
+helm -n jedify-be get values jedify-be > "$OUT/values-jedify-be.yaml" 2>&1
+helm -n jedify-be get values jedify-be-workers > "$OUT/values-jedify-be-workers.yaml" 2>&1
+
+tar -czf "$OUT.tar.gz" "$OUT"
+echo "$OUT.tar.gz"
+```
+
+Review the archive before you send it. Your values hold no secrets by design (every credential lives in Secret Manager), but they do hold your hostnames and project's names, and logs can include fragments of your users' questions and data.
+
+<Warning>
+Never send Jedify, or anyone, the output of these. Each one prints credentials:
+
+- `kubectl get secret ... -o yaml`, or any command that reads a Secret's data
+- `env` or `printenv` inside an application pod: every key of your application configuration secret is in its environment
+- `gcloud secrets versions access`
+- OpenTofu's state, or a saved plan file: both hold the generated database passwords
+</Warning>

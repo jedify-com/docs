@@ -1,0 +1,149 @@
+---
+title: "First run"
+icon: "flag-checkered"
+description: "What to settle after a healthy-looking install and before your first build: CORS, cold starts that look like CORS errors, your organization's account record, your data warehouse's network and authentication, and checking the first build."
+---
+
+A finished install passes every health check and can still fail the first time someone uses it. Each item on this page fails late, after the deploy looks done, and most of them fail in the browser, where no server-side test sees them. Work through them in order before your first build.
+
+## Allow your origin for CORS
+
+The API answers cross-origin requests only from the origins in `CORS_WHITELISTED_URLS`, in `values/jedify-be.yaml`. With `ENV=production`, the API's built-in list holds Jedify's own domains, not yours.
+
+The [install](/self-hosted/install) set `CORS_WHITELISTED_URLS` to your application host, `https://<your application host>`, which is the origin the web app runs on.
+
+If it's wrong, the page loads and the user signs in, and then the browser blocks every API call. Nothing fails on the server, and the same calls answer `200` to `curl`.
+
+To verify, send a browser-style preflight request from your origin. Expected: `200`. An origin that isn't allowed gets `400`.
+
+```bash
+curl -sS -o /dev/null -w '%{http_code}\n' -X OPTIONS "https://$APP_HOST/api/readiness" \
+  -H "Origin: https://$APP_HOST" -H 'Access-Control-Request-Method: GET'
+```
+
+To change it, edit the `CORS_WHITELISTED_URLS` entry in `values/jedify-be.yaml`, then upgrade both application releases:
+
+```bash
+helm upgrade jedify-be "./jedify-be-$JEDIFY_VERSION.tgz" \
+  --namespace jedify-be -f values/jedify-be.yaml
+helm upgrade jedify-be-workers "./jedify-be-$JEDIFY_VERSION.tgz" \
+  --namespace jedify-be -f values/jedify-be.yaml -f values/jedify-be-workers.yaml
+```
+
+## A cold start can look like a CORS error
+
+Two kinds of slowness follow every rollout:
+
+- **The first authenticated request of each new pod** takes around 80 seconds: its caches are cold, and it makes its first round trip to Zitadel's management API. After that, requests take well under a second. One slow first call after a rollout isn't a fault.
+- **The load balancer lags behind the pods.** A new pod is ready before the load balancer's own health checks mark it healthy, 30 to 90 seconds later.
+
+In those windows the load balancer itself can answer a request with a `502`, `503` or `504`. A response from the load balancer carries **no `Access-Control-Allow-Origin` header**, so the browser's console fills with `No 'Access-Control-Allow-Origin' header is present` for endpoints whose CORS is configured correctly.
+
+Before you change any CORS setting, check the status code. In the browser's network panel, look at the failing request's status; or call the same endpoint with `curl` and your origin:
+
+```bash
+curl -sS -o /dev/null -D - "https://$APP_HOST/api/readiness" -H "Origin: https://$APP_HOST"
+```
+
+If it answers `200` with an `access-control-allow-origin` header, CORS is fine and the earlier failure was timing. Retry after a minute.
+
+## Create the account record
+
+<Warning>
+This is a manual step today, and the first build fails without it.
+</Warning>
+
+A Zitadel organization isn't yet a Jedify account. When someone signs in, your Zitadel organization's ID becomes their account ID, but nothing creates the matching account record. So the first build, or the first question, fails in the launcher component **after** sign-in succeeded:
+
+```text
+AccountNotFound: no such account <your organization ID>
+```
+
+The record lives in the `accounts` collection of the application's database. It needs:
+
+| Field | Value |
+| --- | --- |
+| `account_id` | Your Zitadel organization's ID |
+| `brief` | Required |
+| `business_model` | Required |
+
+To find your organization's ID:
+
+```bash
+gcloud secrets versions access latest --secret "${PREFIX}-app-config" --project "$PROJECT_ID" \
+  | jq -r .ZITADEL_ORG_ID
+```
+
+There's no self-service command for this yet. Send that ID to Jedify support at [support@jedify.com](mailto:support@jedify.com) before your first build, and they'll help you create the record.
+
+To verify after the record exists, check the launcher's log for the error. Expected: `0`.
+
+```bash
+kubectl -n jedify-be logs deploy/launcher --since=24h | grep -c 'AccountNotFound'
+```
+
+## Connect your data warehouse
+
+### Network
+
+Your warehouse sees **your installation's** addresses, not Jedify's. The IP addresses listed on the hosted service's connector pages don't apply to a self-hosted installation.
+
+- **Through Cloud NAT** (a network OpenTofu created): allow the NAT's addresses. Cloud NAT allocates them automatically, so check them again after any change to the NAT.
+
+  ```bash
+  gcloud compute routers get-status "${PREFIX}-router" \
+    --region "$REGION" --project "$PROJECT_ID" --format='yaml(result.natStatus)'
+  ```
+
+  The addresses are under `autoAllocatedNatIps`.
+- **Through your own network's egress** (an existing network): ask your network team which addresses traffic leaves from.
+- **Over a private connection** to the warehouse: with [egress masquerade](/self-hosted/requirements#egress-masquerade) on, allow your node subnet; with it off, allow your pod range.
+
+Your egress firewall must also allow the warehouse's own hosts. For Snowflake, run this in Snowflake and allow every host it returns, on the port it lists:
+
+```sql
+SELECT SYSTEM$ALLOWLIST();
+```
+
+That includes the account host and its stage hosts on port 443, and the OCSP hosts on **port 80**. Snowflake's drivers check certificate revocation over plain HTTP on port 80, so a firewall that allows only 443 still stalls the connection.
+
+A blocked call from the cluster hangs instead of failing fast, so a missing allowlist entry shows up as a connection test or a build that never finishes.
+
+### Authentication
+
+- **Snowflake.** Use key-pair authentication with a dedicated service user, exactly as [Snowflake Data Connector](/settings/data-connectors/snowflake) describes. Skip its step about allowlisting Jedify's IP addresses, and allow your own as described above.
+- **BigQuery.** The connector takes an uploaded credentials file: a service-account key, or a Workload Identity Federation configuration (`external_account`). It can't use the pod's own Workload Identity, even though the pods run as a Google service account. If you don't want a long-lived key, use a Workload Identity Federation configuration. See [BigQuery Data Connector](/settings/data-connectors/bigquery).
+- **A warehouse behind a private certificate authority.** Turn on `trustExtraCA`, as [A gateway behind a private certificate authority](/self-hosted/model-gateway#a-gateway-behind-a-private-certificate-authority) describes; it covers every endpoint the application calls.
+
+## Run the first build and check it
+
+<Steps>
+  <Step title="Confirm the background tasks are scheduled">
+    The application's periodic tasks run as CronJobs. Without them, regression runs never leave `PENDING`, and stuck jobs are never cleaned up.
+
+    ```bash
+    kubectl -n jedify-be get cronjobs
+    ```
+
+    Expected: `automated-agents`, `check-component-jobs`, `kill-hanging-edits`, `kill-processing-inquiries`, `manage-regression-tests` and `refresh-semantic-dimensions`, each with a recent `LAST SCHEDULE` (the daily one after its first run).
+  </Step>
+  <Step title="Connect your warehouse and build">
+    Sign in as a user with the `Tenant Admin` role. Connect your warehouse under **Settings → Data Connectors** (see [Data Connectors](/settings/data-connectors/overview)), then add the tables Jedify should learn from to the Semantic Catalog (see [Adding tables](/semantic-fusion/catalog/adding-tables)). Jedify builds your Semantic Fusion™ model from them.
+  </Step>
+  <Step title="Check the logs while it builds">
+    ```bash
+    for d in launcher taxonomy-builder grounding-worker; do
+      echo "== $d"
+      kubectl -n jedify-be logs "deploy/$d" --since=1h \
+        | grep -E 'AccountNotFound|Invalid model name|No groundable columns|CERTIFICATE_VERIFY_FAILED|WORKER TIMEOUT' | tail -5
+    done
+    ```
+
+    Expected: nothing under any heading. Each pattern has an entry in [Troubleshooting](/self-hosted/troubleshooting).
+  </Step>
+  <Step title="Ask a first question">
+    Ask a narrow question you know the answer to, such as a count for one day, and check both the answer and the SQL. See [Ask Jedify](/using-jedify/ask-jedify).
+
+    Expected: progress appears live while the question runs, and the answer matches your source. If progress doesn't appear until you reload the page, realtime isn't connected: see [Realtime](/self-hosted/troubleshooting#realtime). If the question stays in progress for ever, check the models: see [Verify the models](/self-hosted/model-gateway#verify-the-models).
+  </Step>
+</Steps>
