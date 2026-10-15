@@ -9,7 +9,7 @@ Every step below is a command and a check. Don't move to the next step until the
 Run every command in one shell session: later steps reuse variables that earlier steps set. After step 2, run them from the release bundle's directory.
 
 <Note>
-Complete the [requirements](/self-hosted/requirements) first. The first OpenTofu apply alone takes 15 to 20 minutes, most of it the cluster.
+Complete the [requirements](/self-hosted/gcp/requirements) first. The first OpenTofu apply alone takes 15 to 20 minutes, most of it the cluster.
 </Note>
 
 ## At a glance
@@ -23,7 +23,7 @@ Complete the [requirements](/self-hosted/requirements) first. The first OpenTofu
 | [Zitadel](#zitadel) | 15 to 16 | B |
 | [Application chart](#application-chart) | 17 to 19 | B |
 
-See [Two roles](/self-hosted/overview#two-roles) for what Role A and Role B mean.
+See [Two roles](/self-hosted/gcp/overview#two-roles) for what Role A and Role B mean.
 
 ## Get the release
 
@@ -129,11 +129,11 @@ See [Two roles](/self-hosted/overview#two-roles) for what Role A and Role B mean
     EOF
     ```
 
-    **Decision.** Add any of these that apply. Each is described in the [OpenTofu reference](/self-hosted/reference/terraform), and `terraform/terraform.tfvars.example` shows them with comments.
+    **Decision.** Add any of these that apply. Each is described in the [OpenTofu reference](/self-hosted/gcp/reference/terraform), and `terraform/terraform.tfvars.example` shows them with comments.
 
     | Add | When |
     | --- | --- |
-    | `node_architecture = "amd64"` | You run amd64 nodes. See [Arm or amd64 nodes](/self-hosted/requirements#arm-or-amd64-nodes). |
+    | `node_architecture = "amd64"` | You run amd64 nodes. See [Arm or amd64 nodes](/self-hosted/gcp/requirements#arm-or-amd64-nodes). |
     | `existing_network = { ... }` and its toggles | You deploy into a network your network team runs |
     | `datastore_connectivity = "psc"` | You use Private Service Connect instead of Private Services Access |
     | `enable_private_endpoint = true`, `private_endpoint_global_access`, `private_endpoint_subnetwork` | The control plane must be reachable only from inside your network |
@@ -208,7 +208,7 @@ See [Two roles](/self-hosted/overview#two-roles) for what Role A and Role B mean
     ```
 
     <Note>
-    The platform chart's other images come from `ghcr.io` and `docker.io`. If your cluster can't reach them, copy those too before step 12: see [Airgapped installations](/self-hosted/airgapped#mirror-every-image).
+    The platform chart's other images come from `ghcr.io` and `docker.io`. If your cluster can't reach them, copy those too before step 12: see [Airgapped installations](/self-hosted/gcp/airgapped#mirror-every-image).
     </Note>
   </Step>
   <Step title="Create the application configuration secret" stepNumber={7}>
@@ -232,9 +232,9 @@ See [Two roles](/self-hosted/overview#two-roles) for what Role A and Role B mean
     | `AUTH_PROVIDER` | Must be `zitadel`. The application's default is a hosted identity provider your installation can't reach. |
     | `CREDS_KEY` | A Fernet key that encrypts the data-source credentials you save in Jedify. Keep it: a new key can't decrypt credentials saved under the old one. |
     | `COMPONENT_AUTH_TOKEN` | Authenticates calls between the application's components. Without it they answer each other with `401`. |
-    | `LITELLM_PROXY_API_KEY` | The key the application sends to the model proxy, and the proxy's master key. Without it the proxy doesn't start. If you'll [use your own gateway](/self-hosted/model-gateway#use-your-own-gateway), put the key your gateway issued here instead. |
+    | `LITELLM_PROXY_API_KEY` | The key the application sends to the model proxy, and the proxy's master key. Without it the proxy doesn't start. If you'll [use your own gateway](/self-hosted/gcp/model-gateway#use-your-own-gateway), put the key your gateway issued here instead. |
 
-    The Zitadel setup script adds more keys to this object later. The [secrets reference](/self-hosted/reference/secrets) lists every key.
+    The Zitadel setup script adds more keys to this object later. The [secrets reference](/self-hosted/gcp/reference/secrets) lists every key.
 
     To verify, list the keys (not the values). Expected: `AUTH_PROVIDER`, `COMPONENT_AUTH_TOKEN`, `CREDS_KEY`, `LITELLM_PROXY_API_KEY`.
 
@@ -314,7 +314,7 @@ See [Two roles](/self-hosted/overview#two-roles) for what Role A and Role B mean
     ```
   </Step>
   <Step title="Set the Gateway, TLS, egress and architecture choices" stepNumber={10}>
-    **Decision.** The defaults are an internal Gateway (`gke-l7-rilb`) that serves your own certificate from the Secret `jedify-tls`, egress masquerade off, and Arm nodes. Open each item below that differs from your choices in [Requirements](/self-hosted/requirements), and run only those commands.
+    **Decision.** The defaults are an internal Gateway (`gke-l7-rilb`) that serves your own certificate from the Secret `jedify-tls`, egress masquerade off, and Arm nodes. Open each item below that differs from your choices in [Requirements](/self-hosted/gcp/requirements), and run only those commands.
 
     <AccordionGroup>
       <Accordion title="If you reserved an address for the Gateway">
@@ -425,7 +425,7 @@ See [Two roles](/self-hosted/overview#two-roles) for what Role A and Role B mean
     echo "$GATEWAY_IP"
     ```
 
-    Expected: `PROGRAMMED` is `True` and the `ADDRESS` column holds an IP. If it stays empty, see [the Gateway isn't programmed](/self-hosted/troubleshooting#gateway-and-tls).
+    Expected: `PROGRAMMED` is `True` and the `ADDRESS` column holds an IP. If it stays empty, see [the Gateway isn't programmed](/self-hosted/gcp/troubleshooting#gateway-and-tls).
 
     **Decision, outside the cluster.** In your DNS, create `A` records for `$APP_HOST` and `$AUTH_HOST` pointing at `$GATEWAY_IP`. With the internal Gateway, put them in a zone your users resolve on your network.
 
@@ -462,7 +462,7 @@ See [Two roles](/self-hosted/overview#two-roles) for what Role A and Role B mean
     Pass the same `--org-name` on every run, including the `grant` command later. The script finds the organization by name, so a different name creates a second organization.
     </Warning>
 
-    You don't need your identity provider yet. Run the script again with its `--oidc-*` options when your provider's application exists: see [Connect your identity provider](/self-hosted/identity#connect-your-identity-provider).
+    You don't need your identity provider yet. Run the script again with its `--oidc-*` options when your provider's application exists: see [Connect your identity provider](/self-hosted/gcp/identity#connect-your-identity-provider).
 
     Expected: the script ends with `==> done` and prints a `frontend.zitadel` block. To verify, list the keys now in the secret:
 
@@ -491,7 +491,7 @@ See [Two roles](/self-hosted/overview#two-roles) for what Role A and Role B mean
       --namespace jedify -f values/jedify-infra.yaml --wait --timeout 20m
     ```
 
-    `orgId` pins sign-in to your organization: Zitadel then refuses users from any other organization. See [One organization](/self-hosted/identity#one-organization).
+    `orgId` pins sign-in to your organization: Zitadel then refuses users from any other organization. See [One organization](/self-hosted/gcp/identity#one-organization).
 
     To verify, read the web app's sign-in settings and load the page:
 
@@ -535,7 +535,7 @@ See [Two roles](/self-hosted/overview#two-roles) for what Role A and Role B mean
 
     `MONGO_URI` comes from a command, not a value, because Firestore reports its host only once the database exists. Use the printed URI as it is: it has no database path (the application refuses one), and it carries the parameters Firestore needs, including `authMechanism=MONGODB-OIDC` (the pods authenticate as their Google identity, with no password) and `maxIdleTimeMS=60000`.
 
-    Leave `ENV` at `production`. The application accepts only `local`, `ci`, `dev`, `staging` and `production`, and any other value stops the API from starting. The [values reference](/self-hosted/reference/values#application-environment) describes every variable in the file.
+    Leave `ENV` at `production`. The application accepts only `local`, `ci`, `dev`, `staging` and `production`, and any other value stops the API from starting. The [values reference](/self-hosted/gcp/reference/values#application-environment) describes every variable in the file.
 
     To verify, render the chart and read the settings back. Expected: every line holds a value, and `MONGO_URI` starts with `mongodb://` and ends with `authMechanism=MONGODB-OIDC`.
 
@@ -586,7 +586,7 @@ See [Two roles](/self-hosted/overview#two-roles) for what Role A and Role B mean
     - the MCP server's discovery document names an issuer on your application host;
     - the API logs `auth provider: zitadel`.
 
-    Then check that the model proxy answers a real completion: see [Verify the models](/self-hosted/model-gateway#verify-the-models).
+    Then check that the model proxy answers a real completion: see [Verify the models](/self-hosted/gcp/model-gateway#verify-the-models).
   </Step>
 </Steps>
 
@@ -595,16 +595,16 @@ See [Two roles](/self-hosted/overview#two-roles) for what Role A and Role B mean
 Your installation is running, but three things still stand between it and a working first question.
 
 <CardGroup cols={2}>
-  <Card title="Connect your identity provider" icon="id-badge" href="/self-hosted/identity#connect-your-identity-provider">
+  <Card title="Connect your identity provider" icon="id-badge" href="/self-hosted/gcp/identity#connect-your-identity-provider">
     Add your provider as the sign-in button, then grant the first roles.
   </Card>
-  <Card title="Model gateway" icon="microchip" href="/self-hosted/model-gateway">
+  <Card title="Model gateway" icon="microchip" href="/self-hosted/gcp/model-gateway">
     Check every model name the application calls.
   </Card>
-  <Card title="First run" icon="flag-checkered" href="/self-hosted/first-run">
+  <Card title="First run" icon="flag-checkered" href="/self-hosted/gcp/first-run">
     The account record, CORS, your data warehouse and the first build.
   </Card>
-  <Card title="Troubleshooting" icon="bug" href="/self-hosted/troubleshooting">
+  <Card title="Troubleshooting" icon="bug" href="/self-hosted/gcp/troubleshooting">
     If a check above didn't pass.
   </Card>
 </CardGroup>

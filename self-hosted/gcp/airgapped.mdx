@@ -26,9 +26,9 @@ A route sends `199.36.153.0/24` to the default internet gateway. That's a next-h
 Firestore has **its own** restricted addresses, `199.36.153.2/31`, separate from `199.36.153.4/30`. If you build the zones yourself and point `firestore.goog` at the shared addresses, the database is unreachable while every other Google call works.
 </Warning>
 
-When OpenTofu creates the network, it creates the zones and the route (`enable_private_google_access_dns`, on by default there). In an existing network it doesn't: your network must resolve `googleapis.com`, `pkg.dev`, `gcr.io` and `firestore.goog` to private or restricted addresses, and route to them. See [What an existing network must provide](/self-hosted/requirements#what-an-existing-network-must-provide).
+When OpenTofu creates the network, it creates the zones and the route (`enable_private_google_access_dns`, on by default there). In an existing network it doesn't: your network must resolve `googleapis.com`, `pkg.dev`, `gcr.io` and `firestore.goog` to private or restricted addresses, and route to them. See [What an existing network must provide](/self-hosted/gcp/requirements#what-an-existing-network-must-provide).
 
-Vertex AI works over this path, with one limit: **embeddings need a regional location**, never `global`. See [Choose the location](/self-hosted/model-gateway#choose-the-location).
+Vertex AI works over this path, with one limit: **embeddings need a regional location**, never `global`. See [Choose the location](/self-hosted/gcp/model-gateway#choose-the-location).
 
 ## Mirror every image
 
@@ -150,8 +150,8 @@ The bundle sets `pullPolicy: IfNotPresent` on the LiteLLM proxy, whose chart def
 | Destination | Used by | What to do |
 | --- | --- | --- |
 | Your identity provider's endpoints | Zitadel, which calls your provider's token and key endpoints from the cluster | Allow them through your egress path. A sign-in can't complete without them. |
-| Your data warehouse | The pipeline components | Allow the warehouse's hosts. For Snowflake that includes the OCSP hosts on port 80: see [Network](/self-hosted/first-run#network). |
-| Your model gateway | The application | Only if you [use your own gateway](/self-hosted/model-gateway#use-your-own-gateway) instead of Vertex AI |
+| Your data warehouse | The pipeline components | Allow the warehouse's hosts. For Snowflake that includes the OCSP hosts on port 80: see [Network](/self-hosted/gcp/first-run#network). |
+| Your model gateway | The application | Only if you [use your own gateway](/self-hosted/gcp/model-gateway#use-your-own-gateway) instead of Vertex AI |
 | `raw.githubusercontent.com` | LiteLLM, which fetches its model cost map at startup, in the proxy and in every application pod | Allow it, or expect that fetch to fail at every start |
 
 From your workstation, or wherever you run the install:
@@ -182,8 +182,8 @@ Private Google Access is routing, not enforcement. The zones keep Google traffic
 - the `constraints/compute.vmExternalIpAccess` organization policy;
 - a default-deny egress firewall, with an allow to `199.36.153.0/24` and to each destination above.
 
-Restrict the Kubernetes API too: with the default public endpoint and an empty `master_authorized_networks`, any address on the internet can reach it. See [Control-plane access](/self-hosted/requirements#control-plane-access).
+Restrict the Kubernetes API too: with the default public endpoint and an empty `master_authorized_networks`, any address on the internet can reach it. See [Control-plane access](/self-hosted/gcp/requirements#control-plane-access).
 
 ## Certificates
 
-Let's Encrypt isn't an option: ACME needs the internet. Use a certificate from a certificate authority your users' devices trust, either as the `jedify-tls` Secret or through cert-manager with your own CA issuer. See [DNS and TLS](/self-hosted/requirements#dns-and-tls).
+Let's Encrypt isn't an option: ACME needs the internet. Use a certificate from a certificate authority your users' devices trust, either as the `jedify-tls` Secret or through cert-manager with your own CA issuer. See [DNS and TLS](/self-hosted/gcp/requirements#dns-and-tls).

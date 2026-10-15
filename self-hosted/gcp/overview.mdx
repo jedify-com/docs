@@ -95,7 +95,7 @@ One hostname serves the web app, the API, the MCP server and realtime. The Gatew
 
 Zitadel is served on a second hostname of its own. Because the web app and the API share one origin, the browser's calls from the web app to the API are same-origin requests.
 
-The Gateway is GKE's own Gateway API implementation, so the installation ships no ingress proxy. By default it creates an **internal** regional load balancer, reachable only from inside your network. See [DNS and TLS](/self-hosted/requirements#dns-and-tls) for the other choices.
+The Gateway is GKE's own Gateway API implementation, so the installation ships no ingress proxy. By default it creates an **internal** regional load balancer, reachable only from inside your network. See [DNS and TLS](/self-hosted/gcp/requirements#dns-and-tls) for the other choices.
 
 ## How sign-in works
 
@@ -106,13 +106,13 @@ Zitadel is the identity layer built into the installation. It federates to your 
 3. The first time a person signs in, Zitadel creates their user (or links them by email to a user that already exists). They see nothing in Jedify until you give them a role.
 4. Zitadel issues a token to the web app. The API verifies it against Zitadel's public keys and reads the user's roles from Zitadel's management API, inside the cluster.
 
-The MCP server is a second sign-in client. AI agents and other MCP clients authorize through the MCP server's OAuth endpoints on the application host, which hand off to Zitadel. See [Identity and sign-in](/self-hosted/identity).
+The MCP server is a second sign-in client. AI agents and other MCP clients authorize through the MCP server's OAuth endpoints on the application host, which hand off to Zitadel. See [Identity and sign-in](/self-hosted/gcp/identity).
 
 ## How model calls flow
 
 The application never calls a model provider directly. Every model call goes to the LiteLLM proxy in the `jedify` namespace. The proxy runs as its own Google service account, which holds one role, `roles/aiplatform.user`, and calls Vertex AI over Private Google Access.
 
-The application asks for models by fixed names. The proxy maps each name to a Vertex AI model, so changing models is a values change, not an image change. You can also replace the bundled proxy with an OpenAI-compatible gateway you already run. See [Model gateway](/self-hosted/model-gateway).
+The application asks for models by fixed names. The proxy maps each name to a Vertex AI model, so changing models is a values change, not an image change. You can also replace the bundled proxy with an OpenAI-compatible gateway you already run. See [Model gateway](/self-hosted/gcp/model-gateway).
 
 ## Identities and permissions
 
@@ -145,7 +145,7 @@ Role B can't verify Role A's half. Helm can check that a Secret Manager object h
 | --- | --- |
 | An image | `ImagePullBackOff` on every pod that uses it |
 | A Secret Manager object | The `app-secrets` ExternalSecret isn't ready, and pods stay in `CreateContainerConfigError` |
-| A key inside that object | The pod starts and crashes, or starts and can't serve. See the [secrets reference](/self-hosted/reference/secrets). |
+| A key inside that object | The pod starts and crashes, or starts and can't serve. See the [secrets reference](/self-hosted/gcp/reference/secrets). |
 
 ## Release artifacts and versioning
 
@@ -160,7 +160,7 @@ Jedify publishes each release to a private release registry in Google Artifact R
 | `jedify-sandbox:<version>` | The code-execution sandbox image, built together with the application image |
 | `jedify-fe:<version>` | The web app image |
 
-Versions are calendar versions: `<year>.<month>.<release within the month>`, with no leading zero (October 2026's tenth release is `2026.10.10`). A version names a set of charts and images tested together. It makes no compatibility promise, so read [Upgrades](/self-hosted/upgrades) before moving between versions, and always move every artifact to the same version.
+Versions are calendar versions: `<year>.<month>.<release within the month>`, with no leading zero (October 2026's tenth release is `2026.10.10`). A version names a set of charts and images tested together. It makes no compatibility promise, so read [Upgrades](/self-hosted/gcp/upgrades) before moving between versions, and always move every artifact to the same version.
 
 From 2026.10.2, every image is published for both `arm64` and `amd64`. Releases 2026.10.1 and earlier publish Jedify's own images for `arm64` only.
 
@@ -172,16 +172,16 @@ From 2026.10.2, every image is published for both `arm64` and `amd64`. Releases 
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Requirements" icon="list-check" href="/self-hosted/requirements">
+  <Card title="Requirements" icon="list-check" href="/self-hosted/gcp/requirements">
     Project, permissions, network, DNS and TLS.
   </Card>
-  <Card title="Install" icon="download" href="/self-hosted/install">
+  <Card title="Install" icon="download" href="/self-hosted/gcp/install">
     OpenTofu, both charts and the Zitadel setup, step by step.
   </Card>
-  <Card title="Identity and sign-in" icon="id-badge" href="/self-hosted/identity">
+  <Card title="Identity and sign-in" icon="id-badge" href="/self-hosted/gcp/identity">
     Connect your identity provider and grant roles.
   </Card>
-  <Card title="Troubleshooting" icon="bug" href="/self-hosted/troubleshooting">
+  <Card title="Troubleshooting" icon="bug" href="/self-hosted/gcp/troubleshooting">
     Symptoms, causes and fixes.
   </Card>
 </CardGroup>

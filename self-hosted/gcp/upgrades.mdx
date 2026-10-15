@@ -24,7 +24,7 @@ A release is one version across six artifacts: the bundle, both charts and three
     export BUNDLE_DIR="$PWD"
     ```
 
-    Log in to the registry first if your session expired: see step 2 of the [install](/self-hosted/install).
+    Log in to the registry first if your session expired: see step 2 of the [install](/self-hosted/gcp/install).
 
     To verify, list the new directory. Expected: both charts at the new version, and `scripts`, `terraform` and `values`.
 
@@ -57,7 +57,7 @@ A release is one version across six artifacts: the bundle, both charts and three
     diff -u values/jedify-be-workers.yaml "$OLD_BUNDLE_DIR/values/jedify-be-workers.yaml"
     ```
 
-    Re-apply each of your edits to the new files: the same `yq` commands the [install](/self-hosted/install) used work here. Three things to watch:
+    Re-apply each of your edits to the new files: the same `yq` commands the [install](/self-hosted/gcp/install) used work here. Three things to watch:
 
     - **Image tags.** `values/jedify-be.yaml` pins the application and sandbox images to the release's version. Keep the new file's tags, and keep your registry in `componentsDefaults.image.repository` and `sandboxPod.image.repository`. The web app's tag follows the chart version when `frontend.image.tag` is empty.
     - **Lists replace.** If you overrode a list (`litellm.modelList`, `gateway.healthChecks`, `gateway.mcpPathPrefixes`, `externalSecret.plainEnv`), compare it with the new chart's version: your list replaces the chart's whole list, including entries a new release added.
@@ -66,7 +66,7 @@ A release is one version across six artifacts: the bundle, both charts and three
     To verify, compare your merged files with your old ones. Expected: the only differences are the ones the new release introduced.
   </Step>
   <Step title="Copy the new images">
-    If you copy images into your own Artifact Registry, copy the new version's images before you upgrade anything. Run the same loop as the install's [copy step](/self-hosted/install), and for an airgapped installation, [mirror every image](/self-hosted/airgapped#mirror-every-image) the new charts render.
+    If you copy images into your own Artifact Registry, copy the new version's images before you upgrade anything. Run the same loop as the install's [copy step](/self-hosted/gcp/install), and for an airgapped installation, [mirror every image](/self-hosted/gcp/airgapped#mirror-every-image) the new charts render.
 
     To verify, list the platforms each new image holds, as in the install. Expected: `linux/amd64` and `linux/arm64`.
   </Step>
@@ -149,10 +149,10 @@ Run these checks after every upgrade.
 | Secrets | `kubectl get externalsecret -A` | All `SecretSynced` |
 | Gateway | `kubectl -n jedify get gateway jedify-gateway` | `PROGRAMMED` is `True`, with the same address as before |
 | API | `curl -sS -o /dev/null -w '%{http_code}\n' "https://$APP_HOST/api/readiness"` | `200` |
-| Models | [Verify the models](/self-hosted/model-gateway#verify-the-models) | A reply from every name |
+| Models | [Verify the models](/self-hosted/gcp/model-gateway#verify-the-models) | A reply from every name |
 | Sign-in | Sign in to the web app, and ask a question with a known answer | The answer, with live progress |
 
-A changed model list restarts the proxy through Reloader. If a model added by the new release answers `Invalid model name`, restart the proxy: see [Change the model list](/self-hosted/model-gateway#change-the-model-list).
+A changed model list restarts the proxy through Reloader. If a model added by the new release answers `Invalid model name`, restart the proxy: see [Change the model list](/self-hosted/gcp/model-gateway#change-the-model-list).
 
 ## Settings that must never change
 
@@ -164,7 +164,7 @@ Some settings are fixed once the installation holds data. Changing them in an up
 | `datastore_connectivity` | Replaces Cloud SQL and the cache. Their data doesn't move with them. |
 | `cloudsql_psc_endpoint` | Moves the database to a new address: the old endpoint is destroyed and the connection string rewritten. |
 | `name_prefix` | Names every resource, so OpenTofu plans to replace them. |
-| The model behind `text-embedding-ada-002` | Needs a full rebuild of every account's embeddings. See [the embedding model](/self-hosted/model-gateway#the-embedding-model-is-a-one-time-choice). |
+| The model behind `text-embedding-ada-002` | Needs a full rebuild of every account's embeddings. See [the embedding model](/self-hosted/gcp/model-gateway#the-embedding-model-is-a-one-time-choice). |
 | `CREDS_KEY` | Saved data-source credentials can no longer be decrypted. |
 | Zitadel's masterkey (`<prefix>-zitadel-masterkey`) | A new masterkey against the existing database is indistinguishable from corruption to Zitadel. |
 | `ZITADEL_MCP_JWT_SIGNING_KEY` | Signs every MCP client out. |
@@ -172,7 +172,7 @@ Some settings are fixed once the installation holds data. Changing them in an up
 
 ## Rolling back
 
-Don't roll back on your own. Zitadel migrates its database during an upgrade, and OpenTofu may have changed resources, so returning the charts to an older version doesn't return everything else with them. Contact Jedify support at [support@jedify.com](mailto:support@jedify.com) with your current and target versions, and the [diagnostics](/self-hosted/troubleshooting#collect-diagnostics-for-jedify-support).
+Don't roll back on your own. Zitadel migrates its database during an upgrade, and OpenTofu may have changed resources, so returning the charts to an older version doesn't return everything else with them. Contact Jedify support at [support@jedify.com](mailto:support@jedify.com) with your current and target versions, and the [diagnostics](/self-hosted/gcp/troubleshooting#collect-diagnostics-for-jedify-support).
 
 ## Notes for specific versions
 

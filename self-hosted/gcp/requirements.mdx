@@ -4,9 +4,9 @@ icon: "list-check"
 description: "What you need before you install: tools, a Google Cloud project, permissions, APIs, capacity, Arm or amd64 nodes, the network, egress, DNS and TLS."
 ---
 
-Work through this page before you start the [install](/self-hosted/install). Several choices here can't be changed later without rebuilding something, and each one is marked **Decision**. Write your answers down: the install steps ask for them.
+Work through this page before you start the [install](/self-hosted/gcp/install). Several choices here can't be changed later without rebuilding something, and each one is marked **Decision**. Write your answers down: the install steps ask for them.
 
-The commands on this page use the shell variables from the install's first step, [Set the install variables](/self-hosted/install#get-the-release). Set them first.
+The commands on this page use the shell variables from the install's first step, [Set the install variables](/self-hosted/gcp/install#get-the-release). Set them first.
 
 ## Tools on your workstation
 
@@ -80,7 +80,7 @@ At the default values, the application's pods request about 9.6 vCPU and 37.5 Gi
 
 - **CPU quota.** Make sure your regional CPU quota covers those requests, with room for the extra nodes Autopilot adds while it upgrades or consolidates.
 - **Nodes.** Autopilot adds nodes as load needs them. A typical installation runs 6 to 7 nodes.
-- **Datastores.** The defaults are a production shape: Cloud SQL `db-custom-2-7680` with a standby in a second zone (`REGIONAL`), and Memorystore `STANDARD_HA` with a replica. For a pilot, `postgres_availability_type = "ZONAL"` and `redis_tier = "BASIC"` roughly halve their cost. See the [OpenTofu reference](/self-hosted/reference/terraform).
+- **Datastores.** The defaults are a production shape: Cloud SQL `db-custom-2-7680` with a standby in a second zone (`REGIONAL`), and Memorystore `STANDARD_HA` with a replica. For a pilot, `postgres_availability_type = "ZONAL"` and `redis_tier = "BASIC"` roughly halve their cost. See the [OpenTofu reference](/self-hosted/gcp/reference/terraform).
 
 ## Region and architecture
 
@@ -117,12 +117,12 @@ At the default values, the application's pods request about 9.6 vCPU and 37.5 Gi
     2. The `nodeSelector` at the top of `values/jedify-infra.yaml` becomes `kubernetes.io/arch: amd64`.
     3. The `componentsDefaults.nodeSelector` in `values/jedify-be.yaml` becomes `kubernetes.io/arch: amd64`.
 
-    The [install](/self-hosted/install) has the exact commands. Every image is published for amd64 from 2026.10.2 onwards.
+    The [install](/self-hosted/gcp/install) has the exact commands. Every image is published for amd64 from 2026.10.2 onwards.
   </Tab>
 </Tabs>
 
 <Warning>
-Always name an architecture. A pod that names none lands on Autopilot's default class, which is x86. And copy images with **every** architecture they're published for: a single-architecture copy fails on the other kind of node with `no match for platform in manifest`, which looks like a missing image. See [Airgapped installations](/self-hosted/airgapped#copy-every-architecture).
+Always name an architecture. A pod that names none lands on Autopilot's default class, which is x86. And copy images with **every** architecture they're published for: a single-architecture copy fails on the other kind of node with `no match for platform in manifest`, which looks like a missing image. See [Airgapped installations](/self-hosted/gcp/airgapped#copy-every-architecture).
 </Warning>
 
 ## Network
@@ -296,10 +296,10 @@ Nodes have no public addresses. Everything below needs a path out of the cluster
 | Destination | Used by | Needed when |
 | --- | --- | --- |
 | `googleapis.com` (Vertex AI, Secret Manager, Cloud Storage, and the `sts`, `iamcredentials` and `securetoken` endpoints behind every keyless call), `pkg.dev` (Artifact Registry), `firestore.goog` (the database) | Every component | Always. Private Google Access serves these without the internet. |
-| `ghcr.io`, `docker.io` and, with cert-manager on, `quay.io` | Image pulls | Unless you copy every image into your Artifact Registry. See [Airgapped installations](/self-hosted/airgapped). |
+| `ghcr.io`, `docker.io` and, with cert-manager on, `quay.io` | Image pulls | Unless you copy every image into your Artifact Registry. See [Airgapped installations](/self-hosted/gcp/airgapped). |
 | Your identity provider's endpoints | Zitadel, which calls your provider's token and key endpoints itself | Always |
 | Your data warehouse. For Snowflake: the account host, its stage hosts, and its OCSP hosts on port 80, as `SYSTEM$ALLOWLIST()` lists them | The pipeline components | Always |
-| Your model gateway | The application | Only if you [use your own gateway](/self-hosted/model-gateway#use-your-own-gateway) |
+| Your model gateway | The application | Only if you [use your own gateway](/self-hosted/gcp/model-gateway#use-your-own-gateway) |
 | `raw.githubusercontent.com` | LiteLLM fetches its model cost map at startup, in the proxy and in every application pod | Always |
 
 From your workstation, `tofu init` reaches `registry.opentofu.org` for providers, and you reach the release registry to pull the release.
@@ -331,7 +331,7 @@ Changing the class reallocates the address, so DNS has to follow.
 | --- | --- | --- |
 | Your own certificate | All | Create a Kubernetes TLS Secret named `jedify-tls` in the `jedify` namespace before the install. This is the bundle's default. |
 | A Google-managed certificate | Global external only | Create a Certificate Manager map with entries for both hostnames, and set `gateway.certMap` to its name. On a regional class, the map is accepted, the certificate reaches `ACTIVE`, and the load balancer keeps serving the Secret's certificate, with nothing reporting a conflict. |
-| cert-manager | All | Turn on the bundled cert-manager with Gateway API support (see the [values reference](/self-hosted/reference/values#certificates)), then create your own issuer and a Certificate that writes the `jedify-tls` Secret. Let's Encrypt needs the internet: its HTTP-01 challenge reaches the Gateway on port 80, which an internal class doesn't expose, and an airgapped cluster can't reach Let's Encrypt at all. |
+| cert-manager | All | Turn on the bundled cert-manager with Gateway API support (see the [values reference](/self-hosted/gcp/reference/values#certificates)), then create your own issuer and a Certificate that writes the `jedify-tls` Secret. Let's Encrypt needs the internet: its HTTP-01 challenge reaches the Gateway on port 80, which an internal class doesn't expose, and an airgapped cluster can't reach Let's Encrypt at all. |
 
 To see the certificate a host actually serves, as opposed to what a certificate resource reports:
 

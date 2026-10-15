@@ -5,7 +5,7 @@ icon: "cubes"
 description: "What the OpenTofu configuration creates, every variable with its default, every output, and how to remove an installation safely."
 ---
 
-The release bundle's `terraform/` directory holds the configuration. It runs with OpenTofu or Terraform 1.7 or later, with the `google` provider pinned to `8.1.0` and `random` to `3.7.2`, so a plan made months from now matches the one you reviewed. State lives in a Cloud Storage bucket in your project: see [Create the state bucket](/self-hosted/install).
+The release bundle's `terraform/` directory holds the configuration. It runs with OpenTofu or Terraform 1.7 or later, with the `google` provider pinned to `8.1.0` and `random` to `3.7.2`, so a plan made months from now matches the one you reviewed. State lives in a Cloud Storage bucket in your project: see [Create the state bucket](/self-hosted/gcp/install).
 
 ## What it creates
 
@@ -13,14 +13,14 @@ The release bundle's `terraform/` directory holds the configuration. It runs wit
 | --- | --- | --- |
 | VPC, node subnet, proxy-only subnet, Cloud Router and Cloud NAT | `<prefix>-vpc`, `<prefix>-subnet`, `<prefix>-proxy-only`, `<prefix>-router`, `<prefix>-nat` | Only when OpenTofu creates the network |
 | Private Services Access range | `<prefix>-private-services` | Only with `datastore_connectivity = "psa"` on a network OpenTofu creates |
-| Private DNS zones and a route | `<prefix>-googleapis`, `<prefix>-pkg-dev`, `<prefix>-firestore-goog`, `<prefix>-restricted-vip` | Keep Google API traffic inside Google's network. See [Airgapped installations](/self-hosted/airgapped#google-apis-without-the-internet). |
+| Private DNS zones and a route | `<prefix>-googleapis`, `<prefix>-pkg-dev`, `<prefix>-firestore-goog`, `<prefix>-restricted-vip` | Keep Google API traffic inside Google's network. See [Airgapped installations](/self-hosted/gcp/airgapped#google-apis-without-the-internet). |
 | GKE Autopilot cluster | `<prefix>-gke` | Private nodes, Workload Identity, the `REGULAR` release channel |
 | Firestore database | `<prefix>-db` | Enterprise edition with MongoDB compatibility. Its location can't change. |
 | Cloud SQL for PostgreSQL 16 | `<prefix>-pg` | Private address only; automatic backups with point-in-time recovery, starting at 03:00; `max_connections` 200. Databases `grounding_index` and `jedify_queues`, user `jedify`, and with Zitadel a `zitadel` database and user. |
 | Memorystore | `<prefix>-redis` (Redis 7.2), or `<prefix>-valkey` (Valkey 8.0) with Private Service Connect | Transit encryption off by default: see `redis_transit_encryption` |
 | Cloud Storage bucket | `<prefix>-storage` | Uniform access, no object versioning. A bucket holding objects isn't deleted by a destroy. |
 | Artifact Registry repository | `<prefix>-images` | Docker images |
-| Service accounts | `<prefix>-app`, `<prefix>-eso`, `<prefix>-litellm` | With their roles and Workload Identity bindings. See [Identities and permissions](/self-hosted/overview#identities-and-permissions). |
+| Service accounts | `<prefix>-app`, `<prefix>-eso`, `<prefix>-litellm` | With their roles and Workload Identity bindings. See [Identities and permissions](/self-hosted/gcp/overview#identities-and-permissions). |
 | Secret Manager secrets | `<prefix>-postgres-connection-string`, and with Zitadel `<prefix>-zitadel-dsn` and `<prefix>-zitadel-masterkey` | Generated values, never printed |
 
 No service-account key exists anywhere. The pods authenticate to Firestore, Cloud Storage, Vertex AI, Artifact Registry and Secret Manager as Google service accounts. Cloud SQL is the exception: the application connects with a password, which OpenTofu generates and stores in Secret Manager, and no person handles.
@@ -53,7 +53,7 @@ No service-account key exists anywhere. The pods authenticate to Firestore, Clou
 
 | Variable | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `existing_network` | object | `null` | Deploy into a network that already exists: `project` (the Shared VPC host; omit for your own project), `network`, `subnetwork`, `pods_range_name`, and optionally `services_range_name` and `psc_subnetwork`. See [Network](/self-hosted/requirements#network). |
+| `existing_network` | object | `null` | Deploy into a network that already exists: `project` (the Shared VPC host; omit for your own project), `network`, `subnetwork`, `pods_range_name`, and optionally `services_range_name` and `psc_subnetwork`. See [Network](/self-hosted/gcp/requirements#network). |
 | `subnet_cidrs` | object | `nodes` `10.20.0.0/20`, `pods` `10.21.0.0/16`, `services` `10.22.0.0/20`, `proxy_only` `10.23.0.0/26` | The ranges OpenTofu creates. Ignored with `existing_network`, except `proxy_only` when it creates that subnet. Secondary ranges can't be resized once the cluster uses them. |
 | `create_proxy_only_subnet` | bool | On for a network OpenTofu creates, off with `existing_network` | The region's proxy-only subnet. A VPC holds one per region, shared by every regional L7 load balancer. |
 | `create_private_services_access` | bool | Same | The peered range Cloud SQL and Memorystore take addresses from |

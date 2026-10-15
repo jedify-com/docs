@@ -170,7 +170,7 @@ You can replace the bundled proxy with an OpenAI-compatible gateway you already 
 - accept or ignore parameters a model doesn't support, the way the bundled proxy's `drop_params` does, instead of rejecting the call;
 - accept the key it issued you as a bearer token;
 - present a certificate the application trusts: one from a public certificate authority, or from your own after you [trust your certificate authority](#a-gateway-behind-a-private-certificate-authority);
-- be reachable from the cluster. With [egress masquerade](/self-hosted/requirements#egress-masquerade) on, the gateway and any firewall in front of it see your **node subnet's** addresses, not the pod range: allow that range.
+- be reachable from the cluster. With [egress masquerade](/self-hosted/gcp/requirements#egress-masquerade) on, the gateway and any firewall in front of it see your **node subnet's** addresses, not the pod range: allow that range.
 
 <Steps>
   <Step title="Store your gateway's key">

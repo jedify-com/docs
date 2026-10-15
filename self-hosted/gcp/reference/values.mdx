@@ -33,7 +33,7 @@ Where the bundle's file sets a different value from the chart, the **Default** c
 
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `appSecrets.smKey` | string | `""`, required | The Secret Manager object holding your application configuration as JSON. See the [secrets reference](/self-hosted/reference/secrets). |
+| `appSecrets.smKey` | string | `""`, required | The Secret Manager object holding your application configuration as JSON. See the [secrets reference](/self-hosted/gcp/reference/secrets). |
 | `appSecrets.postgresSecretName` | string | `""`, required | `tofu output -raw postgres_secret_name`. The chart adds the connection string to the same Kubernetes Secret. |
 | `appSecrets.secretName` | string | `app-secrets` | The Kubernetes Secret every application component reads. The application chart reads this exact name: don't rename it. |
 | `appSecrets.namespace` | string | `jedify-be` | Where that Secret lands: the application's namespace, not this chart's |
@@ -45,24 +45,24 @@ Where the bundle's file sets a different value from the chart, the **Default** c
 
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `egressMasquerade.enabled` | bool | `false` | When on, every packet a pod sends out of the cluster leaves with its node's address. See [Egress masquerade](/self-hosted/requirements#egress-masquerade). |
+| `egressMasquerade.enabled` | bool | `false` | When on, every packet a pod sends out of the cluster leaves with its node's address. See [Egress masquerade](/self-hosted/gcp/requirements#egress-masquerade). |
 | `egressMasquerade.nonMasqueradeCIDRs` | list | `[192.0.2.0/24]` | Destinations that keep the pod's address. GKE requires at least one; the default is documentation address space nothing routes, so everything else is masqueraded. |
 
 ### Model proxy
 
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `litellm-helm.enabled` | bool | `true` | The bundled LiteLLM proxy. Set `false` to [use your own gateway](/self-hosted/model-gateway#use-your-own-gateway). |
+| `litellm-helm.enabled` | bool | `true` | The bundled LiteLLM proxy. Set `false` to [use your own gateway](/self-hosted/gcp/model-gateway#use-your-own-gateway). |
 | `litellm-helm.serviceAccount.name` | string | `litellm` | Must match OpenTofu's `litellm_service_account` |
 | `litellm-helm.image.pullPolicy` | string | `IfNotPresent` | The upstream chart's default is `Always`, which makes your registry a dependency of every restart |
-| `litellm.modelList` | list | Eight entries, Gemini on Vertex AI in `us-central1` | One entry per name the application calls: `model_name`, and `litellm_params.model` and `litellm_params.vertex_location`. A list: yours replaces all eight. See [Model gateway](/self-hosted/model-gateway). |
+| `litellm.modelList` | list | Eight entries, Gemini on Vertex AI in `us-central1` | One entry per name the application calls: `model_name`, and `litellm_params.model` and `litellm_params.vertex_location`. A list: yours replaces all eight. See [Model gateway](/self-hosted/gcp/model-gateway). |
 | `litellm.settings` | map | `drop_params: true`, `num_retries: 2` | Unsupported parameters are dropped instead of failing the call |
 
 ### Realtime
 
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `sockudoApp.smKey` | string | `""`, required | The Secret Manager object holding `app_id`, `app_key` and `app_secret`. See [Realtime credentials](/self-hosted/reference/secrets#realtime-credentials). |
+| `sockudoApp.smKey` | string | `""`, required | The Secret Manager object holding `app_id`, `app_key` and `app_secret`. See [Realtime credentials](/self-hosted/gcp/reference/secrets#realtime-credentials). |
 | `sockudo.redis.host` | string | `""`, required | `tofu output -raw redis_host`. The two sockudo replicas share subscriptions through it. |
 | `sockudo.replicaCount` | int | `2` | Two, so a restart or a node drain doesn't drop every websocket. Moves together with the adapter. |
 | `sockudo.config.adapterDriver` | string | `redis` | Shared state between replicas. The chart refuses more than one replica with `local`. |
@@ -92,7 +92,7 @@ Where the bundle's file sets a different value from the chart, the **Default** c
 | --- | --- | --- | --- |
 | `gateway.enabled` | bool | `true` | |
 | `gateway.name` | string | `jedify-gateway` | Must match `gateway.gatewayName` in `values/jedify-be.yaml`, or the application's routes attach to nothing |
-| `gateway.className` | string | `gke-l7-rilb` | The kind of Google load balancer. See [DNS and TLS](/self-hosted/requirements#dns-and-tls). |
+| `gateway.className` | string | `gke-l7-rilb` | The kind of Google load balancer. See [DNS and TLS](/self-hosted/gcp/requirements#dns-and-tls). |
 | `gateway.host` | string | `""`, required | The application host. The setup script reads it too. |
 | `gateway.port` | int | `443` (bundle; chart `80`) | The listener's port: HTTPS when a certificate is configured |
 | `gateway.addressName` | string | `""` | The name of a reserved address for the Gateway to claim. Empty: GKE allocates one with the Gateway and releases it with the Gateway. |
@@ -125,7 +125,7 @@ You create the issuer and the Certificate yourself; the Certificate writes the `
 
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `zitadel.enabled` | bool | `false` | Set `true`, together with `enable_zitadel = true` in OpenTofu. The first install of the chart turns it off once: see the [install](/self-hosted/install). |
+| `zitadel.enabled` | bool | `false` | Set `true`, together with `enable_zitadel = true` in OpenTofu. The first install of the chart turns it off once: see the [install](/self-hosted/gcp/install). |
 | `zitadel.zitadel.configmapConfig.ExternalDomain` | string | `""`, required | Your Zitadel host, exactly. It's part of every token's issuer. |
 | `zitadel.zitadel.configmapConfig.ExternalSecure` | bool | `true` | Zitadel builds its own callback URLs from it. Keep it `true`. |
 | `zitadel.zitadel.configmapConfig.FirstInstance.Org.Human.EmailAddress` | string | `""`, required | The instance administrator's email: a real address |
@@ -195,7 +195,7 @@ Reloader restarts a workload when a Secret or ConfigMap it reads changes. It act
 | `componentsDefaults.resources` | map | Requests `500m` CPU and `2Gi` memory, memory limit `3Gi` | |
 | `componentsDefaults.replicas` | int | `2` (chart) | Replicas per component |
 | `componentsDefaults.maxRequests` | int | `2000` | Recycles a worker process after this many requests, which bounds memory growth |
-| `componentsDefaults.trustExtraCA` | bool | off | Trust your own certificate authority as well as the public ones. Needs `EXTRA_CA_PEM_B64`. See [private certificate authority](/self-hosted/model-gateway#a-gateway-behind-a-private-certificate-authority). |
+| `componentsDefaults.trustExtraCA` | bool | off | Trust your own certificate authority as well as the public ones. Needs `EXTRA_CA_PEM_B64`. See [private certificate authority](/self-hosted/gcp/model-gateway#a-gateway-behind-a-private-certificate-authority). |
 | `components.<name>` | map | `api`: requests `500m`/`2Gi`, limit `4Gi`; `context-graph-git`: requests `200m`/`1Gi`, limit `2Gi` | Per-component overrides of `componentsDefaults`. A map, so it merges with the chart's. |
 | `backoffice.enabled`, `components.backoffice.enabled` | bool | `false`, `false` | Jedify's own operations console isn't part of a self-hosted installation. Keep both off: each one gates different objects. |
 | `cronjobs.<name>.enabled` | bool | On: `kill-processing-inquiries`, `kill-hanging-edits`, `check-component-jobs`, `manage-regression-tests`, `automated-agents`, `refresh-semantic-dimensions`. Off: `notify-onboarding-abandoned` (posts to Slack), `snowflake-reexport`. | The application's periodic tasks. Nothing else runs them. |
@@ -221,7 +221,7 @@ These keys are in `values/jedify-be-workers.yaml`, which the workers release add
 | Variable | Bundle value | Meaning |
 | --- | --- | --- |
 | `ENV` | `production` | One of `local`, `ci`, `dev`, `staging`, `production`. Any other value, or none, stops the API from starting with `NameError: _CORS_ORIGINS`. |
-| `CORS_WHITELISTED_URLS` | Your application's origin | Browser origins the API accepts. See [CORS](/self-hosted/first-run#allow-your-origin-for-cors). |
+| `CORS_WHITELISTED_URLS` | Your application's origin | Browser origins the API accepts. See [CORS](/self-hosted/gcp/first-run#allow-your-origin-for-cors). |
 | `USE_LITELLM_PROXY` | `true` | Send model calls through the proxy or your gateway |
 | `EMBEDDINGS_VIA_BEDROCK` | `false` | Keep `false`: the other path needs Amazon Bedrock |
 | `IN_MEM_VECTOR_SEARCH` | `true` | Firestore has no vector search, so search runs in the process over the stored embeddings |

@@ -6,7 +6,7 @@ description: "Connect your OIDC identity provider through Zitadel, grant roles, 
 
 Zitadel is the identity layer built into a self-hosted installation. Your users sign in with the accounts they already have: Zitadel federates to your own OIDC identity provider (Okta, Microsoft Entra ID, Google, or any other OIDC provider), which appears as the button on the sign-in page.
 
-The [install](/self-hosted/install) already ran `scripts/zitadel-setup.sh` once. This page connects your provider, grants the first roles, and explains the settings that keep sign-in safe.
+The [install](/self-hosted/gcp/install) already ran `scripts/zitadel-setup.sh` once. This page connects your provider, grants the first roles, and explains the settings that keep sign-in safe.
 
 ## What the setup script configures
 
@@ -124,7 +124,7 @@ An organization can override the instance's login policy. Your organization inhe
 
 ### One organization
 
-Your organization holds every person who uses Jedify, and the web app names it: `frontend.zitadel.orgId` in `values/jedify-infra.yaml`, which the [install](/self-hosted/install) set. It adds a scope to every sign-in request that makes Zitadel **refuse users from any other organization**. Leave it empty only if you deliberately run several organizations on one Zitadel instance.
+Your organization holds every person who uses Jedify, and the web app names it: `frontend.zitadel.orgId` in `values/jedify-infra.yaml`, which the [install](/self-hosted/gcp/install) set. It adds a scope to every sign-in request that makes Zitadel **refuse users from any other organization**. Leave it empty only if you deliberately run several organizations on one Zitadel instance.
 
 Pinning your organization doesn't cost you administrator access. Instance administration lives in Zitadel's own `ZITADEL` organization, through Zitadel's console, which the pin doesn't touch. The instance administrator can't sign in to Jedify itself, by design: if someone needs to use the product for support, give them a user in your organization, and keep the administrator identity for administration only.
 
