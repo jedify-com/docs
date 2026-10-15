@@ -74,7 +74,7 @@ gcloud secrets versions access latest --secret "${PREFIX}-app-config" --project 
   | jq -r .ZITADEL_ORG_ID
 ```
 
-Create the record with `scripts/account-setup.sh` from the bundle, which ships it from release 2026.10.12. It writes the record from inside the API pod, through the application's own model. Write one or two sentences about your company for `--brief`: the application adds them to its prompts as company context. `--business-model` is one of `B2B`, `B2C`, `B2G`, `C2C` or `B2B2C`, and defaults to `B2B`. The script is safe to run twice.
+Create the record with `scripts/account-setup.sh` from the bundle, which ships it from release 2026.10.13. It writes the record from inside the API pod, through the application's own model. Write one or two sentences about your company for `--brief`: the application adds them to its prompts as company context. `--business-model` is one of `B2B`, `B2C`, `B2G`, `C2C` or `B2B2C`, and defaults to `B2B`. The script is safe to run twice.
 
 ```bash
 ./scripts/account-setup.sh --org-id "<your organization ID>" \
@@ -89,7 +89,7 @@ To check for the record without writing anything, run it with `--check` instead 
 ./scripts/account-setup.sh --org-id "<your organization ID>" --check
 ```
 
-<Accordion title="Releases before 2026.10.12">
+<Accordion title="Releases before 2026.10.13">
 The bundle doesn't include the script. Run the same command in the API pod directly:
 
 ```bash
