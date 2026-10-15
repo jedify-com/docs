@@ -74,7 +74,23 @@ gcloud secrets versions access latest --secret "${PREFIX}-app-config" --project 
   | jq -r .ZITADEL_ORG_ID
 ```
 
-Create the record from the API pod. Write one or two sentences about your company for `BRIEF`: the application adds them to its prompts as company context. `BUSINESS_MODEL` is one of `B2B`, `B2C`, `B2G`, `C2C` or `B2B2C`. The command is safe to run twice.
+Create the record with `scripts/account-setup.sh` from the bundle, which ships it from release 2026.10.12. It writes the record from inside the API pod, through the application's own model. Write one or two sentences about your company for `--brief`: the application adds them to its prompts as company context. `--business-model` is one of `B2B`, `B2C`, `B2G`, `C2C` or `B2B2C`, and defaults to `B2B`. The script is safe to run twice.
+
+```bash
+./scripts/account-setup.sh --org-id "<your organization ID>" \
+  --brief "<one or two sentences about your company>" --business-model B2B
+```
+
+Expected: `created <your organization ID>`, or `already exists <your organization ID>` when the record is already there. Add `--context <name>` to use a kubectl context other than the current one, and `--namespace` if the application isn't in `jedify-be`.
+
+To check for the record without writing anything, run it with `--check` instead of `--brief`. It exits `0` when the record exists and `1` when it doesn't.
+
+```bash
+./scripts/account-setup.sh --org-id "<your organization ID>" --check
+```
+
+<Accordion title="Releases before 2026.10.12">
+The bundle doesn't include the script. Run the same command in the API pod directly:
 
 ```bash
 ORG_ID="<your organization ID>"
@@ -94,7 +110,8 @@ else:
 EOF
 ```
 
-Expected: `created <your organization ID>`, or `already exists <your organization ID>` when the record is already there.
+Expected: `created <your organization ID>`, or `already exists <your organization ID>`.
+</Accordion>
 
 To verify after the record exists, check the launcher's log for the error. Expected: `0`.
 
