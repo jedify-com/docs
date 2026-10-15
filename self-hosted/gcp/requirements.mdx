@@ -33,7 +33,12 @@ OpenTofu runs as you, through Application Default Credentials (`gcloud auth appl
 
 Grant that identity `roles/owner` on the project. The configuration grants IAM roles to the service accounts it creates, and an identity that can grant roles can already reach everything the project holds.
 
-If your policy doesn't allow Owner, grant roles that cover every resource type the configuration creates:
+If your policy doesn't allow Owner, grant roles that cover every resource type the configuration creates.
+
+<Warning>
+Installations are tested with Owner. The roles below are derived from the resources the configuration creates, and haven't yet been validated on a test installation. If an apply fails with a permission error, add the role the error names, and tell your Jedify contact so this list can be corrected.
+</Warning>
+
 
 | Role | Covers |
 | --- | --- |

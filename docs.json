@@ -284,7 +284,8 @@
               }
             ]
           }
-        ]
+        ],
+        "hidden": true
       },
       {
         "tab": "Changelog",
