@@ -390,11 +390,12 @@ See [Two roles](/self-hosted/gcp/overview#two-roles) for what Role A and Role B 
     helm install jedify-infra "./jedify-infra-$JEDIFY_VERSION.tgz" \
       --namespace jedify --create-namespace \
       -f values/jedify-infra.yaml --set zitadel.enabled=false
-    kubectl -n jedify rollout status deploy -l app.kubernetes.io/name=external-secrets --timeout=10m
+    kubectl -n jedify rollout status deploy --timeout=10m \
+      -l 'app.kubernetes.io/name in (external-secrets,external-secrets-webhook,external-secrets-cert-controller)'
     kubectl get crd externalsecrets.external-secrets.io clustersecretstores.external-secrets.io
     ```
 
-    Expected: Helm's notes end with a banner telling you to run `helm upgrade` with the same values, the rollout completes, and both CRDs exist. The LiteLLM proxy and sockudo wait in `CreateContainerConfigError` until the second pass creates their secrets. That's expected.
+    Expected: Helm's notes end with a banner telling you to run `helm upgrade` with the same values, all three External Secrets deployments roll out, and both CRDs exist. Don't skip the wait: the second pass's first object goes through the External Secrets webhook, and run too early it fails with `failed calling webhook "validate.clustersecretstore.external-secrets.io"`. The LiteLLM proxy and sockudo wait in `CreateContainerConfigError` until the second pass creates their secrets. That's expected.
   </Step>
   <Step title="Install the platform chart: second pass" stepNumber={13}>
     The second pass creates the secret wiring and installs Zitadel. Zitadel migrates its database in a setup job, which can take several minutes on a new cluster.
