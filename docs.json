@@ -283,6 +283,30 @@
                 ]
               }
             ]
+          },
+          {
+            "item": "AWS",
+            "icon": "aws",
+            "groups": [
+              {
+                "group": "Coming soon",
+                "pages": [
+                  "self-hosted/aws/overview"
+                ]
+              }
+            ]
+          },
+          {
+            "item": "Azure",
+            "icon": "microsoft",
+            "groups": [
+              {
+                "group": "Coming soon",
+                "pages": [
+                  "self-hosted/azure/overview"
+                ]
+              }
+            ]
           }
         ],
         "hidden": true
