@@ -243,6 +243,74 @@
         ]
       },
       {
+        "tab": "Self-hosted",
+        "icon": "server",
+        "menu": [
+          {
+            "item": "Google Cloud",
+            "icon": "google",
+            "groups": [
+              {
+                "group": "Get started",
+                "pages": [
+                  "self-hosted/gcp/overview",
+                  "self-hosted/gcp/requirements"
+                ]
+              },
+              {
+                "group": "Install",
+                "pages": [
+                  "self-hosted/gcp/install",
+                  "self-hosted/gcp/identity",
+                  "self-hosted/gcp/model-gateway",
+                  "self-hosted/gcp/first-run"
+                ]
+              },
+              {
+                "group": "Operate",
+                "pages": [
+                  "self-hosted/gcp/upgrades",
+                  "self-hosted/gcp/troubleshooting",
+                  "self-hosted/gcp/airgapped"
+                ]
+              },
+              {
+                "group": "Reference",
+                "pages": [
+                  "self-hosted/gcp/reference/values",
+                  "self-hosted/gcp/reference/secrets",
+                  "self-hosted/gcp/reference/terraform"
+                ]
+              }
+            ]
+          },
+          {
+            "item": "AWS",
+            "icon": "aws",
+            "groups": [
+              {
+                "group": "Coming soon",
+                "pages": [
+                  "self-hosted/aws/overview"
+                ]
+              }
+            ]
+          },
+          {
+            "item": "Azure",
+            "icon": "microsoft",
+            "groups": [
+              {
+                "group": "Coming soon",
+                "pages": [
+                  "self-hosted/azure/overview"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
         "tab": "Changelog",
         "icon": "clock-rotate-left",
         "groups": [
@@ -257,18 +325,54 @@
     ]
   },
   "redirects": [
-    { "source": "/semantic-fusion/editing/overview", "destination": "/semantic-fusion/use-cases/growing-the-context-graph" },
-    { "source": "/semantic-fusion/editing/prerequisites", "destination": "/semantic-fusion/use-cases/growing-the-context-graph" },
-    { "source": "/semantic-fusion/editing/what-can-be-edited", "destination": "/semantic-fusion/use-cases/growing-the-context-graph" },
-    { "source": "/semantic-fusion/editing/editing-flow", "destination": "/semantic-fusion/use-cases/growing-the-context-graph" },
-    { "source": "/semantic-fusion/editing/editing-entities", "destination": "/semantic-fusion/use-cases/growing-the-context-graph" },
-    { "source": "/semantic-fusion/editing/definitions-vs-sql", "destination": "/semantic-fusion/use-cases/growing-the-context-graph" },
-    { "source": "/semantic-fusion/editing/version-control", "destination": "/semantic-fusion/versioning/overview" },
-    { "source": "/mcp/claude-setup", "destination": "/mcp/connect" },
-    { "source": "/mcp/cursor-setup", "destination": "/mcp/builder/semantic-functions" },
-    { "source": "/mcp/tools-reference", "destination": "/mcp/asker/tools-reference" },
-    { "source": "/mcp/use-cases", "destination": "/mcp/asker/use-cases" },
-    { "source": "/docs/claude-desktop-installation", "destination": "/mcp/connect" }
+    {
+      "source": "/semantic-fusion/editing/overview",
+      "destination": "/semantic-fusion/use-cases/growing-the-context-graph"
+    },
+    {
+      "source": "/semantic-fusion/editing/prerequisites",
+      "destination": "/semantic-fusion/use-cases/growing-the-context-graph"
+    },
+    {
+      "source": "/semantic-fusion/editing/what-can-be-edited",
+      "destination": "/semantic-fusion/use-cases/growing-the-context-graph"
+    },
+    {
+      "source": "/semantic-fusion/editing/editing-flow",
+      "destination": "/semantic-fusion/use-cases/growing-the-context-graph"
+    },
+    {
+      "source": "/semantic-fusion/editing/editing-entities",
+      "destination": "/semantic-fusion/use-cases/growing-the-context-graph"
+    },
+    {
+      "source": "/semantic-fusion/editing/definitions-vs-sql",
+      "destination": "/semantic-fusion/use-cases/growing-the-context-graph"
+    },
+    {
+      "source": "/semantic-fusion/editing/version-control",
+      "destination": "/semantic-fusion/versioning/overview"
+    },
+    {
+      "source": "/mcp/claude-setup",
+      "destination": "/mcp/connect"
+    },
+    {
+      "source": "/mcp/cursor-setup",
+      "destination": "/mcp/builder/semantic-functions"
+    },
+    {
+      "source": "/mcp/tools-reference",
+      "destination": "/mcp/asker/tools-reference"
+    },
+    {
+      "source": "/mcp/use-cases",
+      "destination": "/mcp/asker/use-cases"
+    },
+    {
+      "source": "/docs/claude-desktop-installation",
+      "destination": "/mcp/connect"
+    }
   ],
   "logo": {
     "light": "/logo/light.svg",

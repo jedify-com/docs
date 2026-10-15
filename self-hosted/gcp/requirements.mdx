@@ -1,0 +1,348 @@
+---
+title: "Requirements"
+icon: "list-check"
+description: "What you need before you install: tools, a Google Cloud project, permissions, APIs, capacity, Arm or amd64 nodes, the network, egress, DNS and TLS."
+---
+
+Work through this page before you start the [install](/self-hosted/gcp/install). Several choices here can't be changed later without rebuilding something, and each one is marked **Decision**. Write your answers down: the install steps ask for them.
+
+The commands on this page use the shell variables from the install's first step, [Set the install variables](/self-hosted/gcp/install#get-the-release). Set them first.
+
+## Tools on your workstation
+
+| Tool | Used for |
+| --- | --- |
+| `gcloud` | Authentication, Secret Manager and project setup |
+| `tofu` 1.7 or later, or `terraform` 1.7 or later | Creating the cloud resources. This section writes `tofu`; `terraform` takes the same commands. |
+| `kubectl` | Cluster access |
+| `helm` 3.8 or later | Installing the charts from an OCI registry |
+| `oras` | Pulling the release bundle |
+| `crane`, or `skopeo` | Copying images with every architecture they're published for |
+| `jq`, `yq` (version 4), `curl`, `openssl` | Filling in values files, and running the Zitadel setup script |
+
+Your workstation must also reach the cluster's control plane. By default the control plane has a public endpoint, which you restrict with `master_authorized_networks`. With a private endpoint, you run `kubectl` and `helm` from inside your network or over a VPN. See [Control-plane access](#control-plane-access).
+
+## Google Cloud project
+
+- The project must already exist, with billing enabled. The configuration doesn't create projects.
+- **Use a project that holds nothing else.** The application's service account gets `roles/datastore.user` at project level, because Firestore has no per-database data role. In a shared project, that grant silently reaches every other Firestore database too. The APIs the configuration enables and the network it creates are project-scoped for the same reason.
+
+## Permissions for the deploying identity
+
+OpenTofu runs as you, through Application Default Credentials (`gcloud auth application-default login`). No service-account key is needed.
+
+Grant that identity `roles/owner` on the project. The configuration grants IAM roles to the service accounts it creates, and an identity that can grant roles can already reach everything the project holds.
+
+If your policy doesn't allow Owner, grant roles that cover every resource type the configuration creates.
+
+<Warning>
+Installations are tested with Owner. The roles below are derived from the resources the configuration creates, and haven't yet been validated on a test installation. If an apply fails with a permission error, add the role the error names, and tell your Jedify contact so this list can be corrected.
+</Warning>
+
+
+| Role | Covers |
+| --- | --- |
+| `roles/serviceusage.serviceUsageAdmin` | Enabling the APIs |
+| `roles/resourcemanager.projectIamAdmin` | The project-level grants for the three service accounts |
+| `roles/iam.serviceAccountAdmin` | The three service accounts and their Workload Identity bindings |
+| `roles/iam.serviceAccountUser` | Creating a cluster whose nodes run as a service account |
+| `roles/container.admin` | The GKE Autopilot cluster |
+| `roles/compute.networkAdmin` | The VPC, subnets, router, Cloud NAT, addresses, routes, Private Services Access and Service Connection Policies |
+| `roles/dns.admin` | The private DNS zones |
+| `roles/cloudsql.admin` | The Cloud SQL instance, its databases and users |
+| `roles/redis.admin` | Memorystore for Redis |
+| `roles/memorystore.admin` | Memorystore for Valkey, with Private Service Connect only |
+| `roles/datastore.owner` | The Firestore database |
+| `roles/storage.admin` | The application bucket and its IAM |
+| `roles/artifactregistry.admin` | The image repository |
+| `roles/secretmanager.admin` | The generated secrets |
+
+On a Shared VPC, the host project needs grants of its own. See [Shared VPC](#shared-vpc).
+
+## APIs
+
+OpenTofu enables every API it needs on the first apply: `compute`, `container`, `firestore`, `storage`, `secretmanager`, `sqladmin`, `redis`, `servicenetworking`, `artifactregistry`, `aiplatform`, `iam`, `iamcredentials`, `dns` and `modelarmor` (all `.googleapis.com`). With Private Service Connect it also enables `memorystore` and `networkconnectivity`. OpenTofu leaves them enabled when you destroy the installation, because disabling an API affects the whole project.
+
+To enable APIs and manage project IAM, OpenTofu itself needs two APIs first. Enable them:
+
+```bash
+gcloud services enable serviceusage.googleapis.com cloudresourcemanager.googleapis.com \
+  --project "$PROJECT_ID"
+```
+
+To verify, list them. Both names should appear:
+
+```bash
+gcloud services list --enabled --project "$PROJECT_ID" \
+  --format='value(config.name)' | grep -E '^(serviceusage|cloudresourcemanager)\.'
+```
+
+If you'll serve a Google-managed certificate through a Certificate Manager map, also enable `certificatemanager.googleapis.com`.
+
+## Capacity and quotas
+
+At the default values, the application's pods request about 9.6 vCPU and 37.5 GiB of memory: seventeen pods at 0.5 vCPU and 2 GiB, plus the MCP server, the sandbox, a queue worker and one smaller component. The platform services in the `jedify` namespace add to that, and GKE Autopilot gives default requests to any container that doesn't set its own. CronJobs start short-lived pods every minute.
+
+- **CPU quota.** Make sure your regional CPU quota covers those requests, with room for the extra nodes Autopilot adds while it upgrades or consolidates.
+- **Nodes.** Autopilot adds nodes as load needs them. A typical installation runs 6 to 7 nodes.
+- **Datastores.** The defaults are a production shape: Cloud SQL `db-custom-2-7680` with a standby in a second zone (`REGIONAL`), and Memorystore `STANDARD_HA` with a replica. For a pilot, `postgres_availability_type = "ZONAL"` and `redis_tier = "BASIC"` roughly halve their cost. See the [OpenTofu reference](/self-hosted/gcp/reference/terraform).
+
+## Region and architecture
+
+**Decision: the region.** It holds the cluster, the bucket, Cloud SQL, Memorystore and Artifact Registry.
+
+**Decision: the Firestore location.** Firestore's location list is its own: it takes regions such as `europe-west1` and multi-regions such as `nam5` and `eur3`, and not every compute region is on it. **You can't change it after the database exists.** Moving means a second database and a migration, so get it right the first time if data residency matters.
+
+### Arm or amd64 nodes
+
+**Decision: the node architecture.** Every pod runs on one architecture, chosen in one place per values file.
+
+<Tabs>
+  <Tab title="Arm (default)">
+    Pods run on GKE Autopilot's `autopilot-arm` compute class. It's available in seven regions only:
+
+    `us-central1`, `us-east1`, `us-west1`, `europe-west1`, `europe-west2`, `europe-west4`, `asia-southeast1`
+
+    and from GKE version `1.35.3-gke.1389000`. The cluster follows the `REGULAR` release channel, so a new cluster is newer than that. On an older cluster, every Arm pod stays `Pending`; OpenTofu warns about it after the apply.
+
+    OpenTofu refuses a region outside that list while `node_architecture` is `arm64`. That's deliberate: otherwise the apply succeeds and every pod then waits for an Arm node that never comes.
+
+    Each pod names both the compute class and the architecture. The class gets Arm nodes provisioned at all; the architecture label adds the toleration that lets a pod onto them. During the install, Autopilot prints this for every pod:
+
+    ```text
+    Warning: Key 'kubernetes.io/arch' is not recommended with node selector
+    ```
+
+    That warning is expected. Don't remove the label to silence it: with the class alone, pods stay `Pending` next to a ready Arm node.
+  </Tab>
+  <Tab title="amd64">
+    Use amd64 in any region without Autopilot Arm (`me-west1`, for one), or on a cluster with no Arm nodes. It takes three edits, all made before the first install:
+
+    1. `node_architecture = "amd64"` in `terraform.tfvars`. It creates nothing; it tells OpenTofu which region list to check.
+    2. The `nodeSelector` at the top of `values/jedify-infra.yaml` becomes `kubernetes.io/arch: amd64`.
+    3. The `componentsDefaults.nodeSelector` in `values/jedify-be.yaml` becomes `kubernetes.io/arch: amd64`.
+
+    The [install](/self-hosted/gcp/install) has the exact commands. Every image is published for amd64 from 2026.10.2 onwards.
+  </Tab>
+</Tabs>
+
+<Warning>
+Always name an architecture. A pod that names none lands on Autopilot's default class, which is x86. And copy images with **every** architecture they're published for: a single-architecture copy fails on the other kind of node with `no match for platform in manifest`, which looks like a missing image. See [Airgapped installations](/self-hosted/gcp/airgapped#copy-every-architecture).
+</Warning>
+
+## Network
+
+**Decision: who owns the network.** Either OpenTofu creates a dedicated VPC (the default), or you deploy into a network your network team already runs, including a Shared VPC.
+
+<Tabs>
+  <Tab title="OpenTofu creates the network">
+    OpenTofu creates, in your project:
+
+    | Resource | Default range |
+    | --- | --- |
+    | VPC `<prefix>-vpc` | |
+    | Node subnet `<prefix>-subnet`, with Private Google Access on | `10.20.0.0/20` |
+    | Pod secondary range `pods` | `10.21.0.0/16` |
+    | Service secondary range `services` | `10.22.0.0/20` |
+    | Proxy-only subnet `<prefix>-proxy-only` | `10.23.0.0/26` |
+    | Private Services Access range, for Cloud SQL and Memorystore | a `/16` |
+    | Cloud Router and Cloud NAT | |
+    | Private DNS zones and a route that keep Google API traffic inside Google's network | |
+
+    Change the ranges with `subnet_cidrs` **before the first apply**. Secondary ranges can't be resized once the cluster uses them: running out of pod addresses means rebuilding the cluster. The control plane takes `172.16.0.0/28` (`master_ipv4_cidr_block`), which must not overlap anything your network routes.
+  </Tab>
+  <Tab title="Deploy into an existing network">
+    Set `existing_network` in `terraform.tfvars`. On a Shared VPC, `project` is the host project:
+
+    ```hcl
+    existing_network = {
+      project             = "net-host-project" # omit when the VPC is in project_id
+      network             = "shared-vpc"
+      subnetwork          = "jedify-gke"       # in `region`, with Private Google Access on
+      pods_range_name     = "jedify-pods"      # a secondary range on that subnet
+      services_range_name = "jedify-services"  # optional
+      psc_subnetwork      = "jedify-psc"       # optional, Private Service Connect only
+    }
+    ```
+
+    The plan reads the subnet and fails at once, by name, if the subnet or a range is missing. In this mode **nothing is created inside the network** unless you turn it on: `enable_cloud_nat`, `create_proxy_only_subnet`, `create_private_services_access` and `enable_private_google_access_dns` all default to off. Everything else (the cluster, the datastores, the bucket, Artifact Registry, the service accounts and their IAM) is still created in your project.
+  </Tab>
+</Tabs>
+
+### What an existing network must provide
+
+| The network provides | Why | Size |
+| --- | --- | --- |
+| A node subnet in your region, with **Private Google Access on** | Nodes, and their path to Google APIs | `/26` or larger. Autopilot adds nodes as load needs, plus surge during upgrades. |
+| A pod secondary range on it | Each node takes a `/26` for its pods | `/21` minimum (32 nodes). A non-RFC 1918 range such as `100.64.0.0/10` works when you turn on [egress masquerade](#egress-masquerade). |
+| A service secondary range on it (optional) | ClusterIP addresses. Leave `services_range_name` out and GKE uses its own managed range, `34.118.224.0/20`. | `/24` if you provide one |
+| A proxy-only subnet (`REGIONAL_MANAGED_PROXY`, `ACTIVE`) in your region | The Gateway's regional load balancer never gets an address without it | `/26` minimum. One per region per VPC, shared by every regional L7 load balancer. |
+| With `datastore_connectivity = "psa"` (the default): Private Services Access, a `servicenetworking` connection with free allocated space | Cloud SQL and Memorystore take their private addresses from it | About a `/20` free |
+| With `datastore_connectivity = "psc"`: a Service Connection Policy for the `gcp-memorystore` service class in your region, naming the subnet its endpoints use | Memorystore for Valkey gets its endpoints through the policy | 2 to 3 addresses in that subnet |
+| With `cloudsql_psc_endpoint = "connection_policy"` too: a second policy, for the `google-cloud-sql` service class, naming the same subnet | Cloud SQL creates its own endpoint through it | 1 address in that subnet |
+| DNS that resolves `googleapis.com`, `pkg.dev`, `gcr.io` and `firestore.goog` to private or restricted Google addresses, and a route to them | Google APIs with no internet path. Or set `enable_private_google_access_dns = true`, which needs DNS rights on the network. | |
+| Firewall rules, see [Firewall](#firewall) | The load balancer and GKE itself | |
+| An egress path to everything in [Egress](#egress) | Without Cloud NAT or another route, calls outside Google hang instead of failing | |
+| A free `/28` for the control plane (`master_ipv4_cidr_block`), or a subnet for its private endpoint (`private_endpoint_subnetwork`) | Where the control plane's private address lives | `/28` |
+
+### Shared VPC
+
+Before the first apply, the host project grants the usual GKE service-project roles:
+
+- `roles/container.hostServiceAgentUser` on the host project, to your project's GKE service agent.
+- `roles/compute.networkUser` on the subnet, to your project's GKE service agent and Google APIs service agent.
+
+Set `HOST_PROJECT` to the host project and `SUBNET` to the node subnet's name, then run, as an identity that can grant roles in the host project:
+
+```bash
+PROJECT_NUMBER="$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')"
+GKE_AGENT="service-${PROJECT_NUMBER}@container-engine-robot.iam.gserviceaccount.com"
+APIS_AGENT="${PROJECT_NUMBER}@cloudservices.gserviceaccount.com"
+
+# The GKE service agent exists once the Kubernetes Engine API is on in your project.
+gcloud services enable container.googleapis.com --project "$PROJECT_ID"
+
+gcloud projects add-iam-policy-binding "$HOST_PROJECT" \
+  --member="serviceAccount:${GKE_AGENT}" --role=roles/container.hostServiceAgentUser
+
+for member in "serviceAccount:${GKE_AGENT}" "serviceAccount:${APIS_AGENT}"; do
+  gcloud compute networks subnets add-iam-policy-binding "$SUBNET" \
+    --project "$HOST_PROJECT" --region "$REGION" \
+    --member="$member" --role=roles/compute.networkUser
+done
+```
+
+To verify, list who holds `roles/compute.networkUser` on the subnet. Both service agents should appear:
+
+```bash
+gcloud compute networks subnets get-iam-policy "$SUBNET" \
+  --project "$HOST_PROJECT" --region "$REGION" \
+  --flatten='bindings[].members' \
+  --filter='bindings.role=roles/compute.networkUser' \
+  --format='value(bindings.members)'
+```
+
+**Decision: how Cloud SQL's Private Service Connect endpoint is made**, if you use Private Service Connect. With the default, `cloudsql_psc_endpoint = "forwarding_rule"`, OpenTofu creates the endpoint, and its forwarding rule needs `compute.networks.use` on the host VPC. A network can't be granted on its own, so your deploying identity needs a role on the host project. With `cloudsql_psc_endpoint = "connection_policy"`, Cloud SQL creates the endpoint through the network's `google-cloud-sql` Service Connection Policy, and your deploying identity needs nothing on the host project.
+
+### Private Services Access or Private Service Connect
+
+**Decision: how the cluster reaches Cloud SQL and the cache** (`datastore_connectivity`).
+
+| | `psa` (default) | `psc` |
+| --- | --- | --- |
+| How | The services sit in a producer network peered to yours, addressed from an allocated range | Each service gets an endpoint address in your own subnet, with no peering and no range to allocate |
+| Cache | Memorystore for Redis 7.2 | Memorystore for Valkey 8.0. Memorystore for Redis has no Private Service Connect. |
+| Suits | A network OpenTofu creates | A network team that plans every range itself |
+
+<Warning>
+Switching an existing installation between `psa` and `psc` **replaces both datastores**, and their data doesn't move with them. Choose before the first apply.
+</Warning>
+
+### Gateway address
+
+By default GKE allocates the Gateway's address when it creates the Gateway, and releases it when the Gateway goes away. A reinstall, or a change of Gateway class, then moves the address, and your DNS records have to follow. To keep the address, reserve it and give its **name** to the chart as `gateway.addressName`:
+
+<Tabs>
+  <Tab title="Internal (default)">
+    ```bash
+    gcloud compute addresses create "${PREFIX}-gateway" \
+      --project "$PROJECT_ID" --region "$REGION" \
+      --purpose SHARED_LOADBALANCER_VIP \
+      --subnet "${PREFIX}-subnet"
+    ```
+
+    Use any regular subnet of the cluster's VPC; the node subnet works. On a Shared VPC, pass the subnet's full path: `projects/<host project>/regions/<region>/subnetworks/<subnet>`.
+
+    The purpose is **not optional**. An address reserved without it gets the default purpose, `GCE_ENDPOINT`, and the Gateway never gets an address. You can't change a purpose: delete the address and reserve it again, with `--addresses <ip>` to keep the same IP.
+  </Tab>
+  <Tab title="Regional external">
+    ```bash
+    gcloud compute addresses create "${PREFIX}-gateway" \
+      --project "$PROJECT_ID" --region "$REGION"
+    ```
+  </Tab>
+  <Tab title="Global external">
+    ```bash
+    gcloud compute addresses create "${PREFIX}-gateway" \
+      --project "$PROJECT_ID" --global
+    ```
+  </Tab>
+</Tabs>
+
+### Firewall
+
+In a network OpenTofu creates, GKE manages the load balancer's firewall rules itself. In an existing network, and especially on a Shared VPC, make sure these rules exist:
+
+| Allow | To | Why |
+| --- | --- | --- |
+| Google's health-check ranges `35.191.0.0/16` and `130.211.0.0/22` | Pods, on TCP `8000`, `8001`, `8080`, `3000` and `6001` | The load balancer's health checks reach the API (`8000`), the MCP server (`8001`), the web app and Zitadel (`8080`), Zitadel's sign-in UI (`3000`) and realtime (`6001`) directly on their pods |
+| The proxy-only subnet | Pods, on the same ports | The regional load balancer's proxies forward requests from there |
+| The control plane's range | Nodes | GKE itself |
+
+### Egress masquerade
+
+**Decision: whether pod addresses may leave the VPC.** GKE Autopilot keeps a pod's own address when it calls a private destination: its `default` EgressNATPolicy exempts RFC 1918 ranges and `100.64.0.0/10`. So a call to a gateway, a firewall or a warehouse on a private address arrives from the pod range.
+
+If your pod range must never be seen outside the VPC (a `100.64.x` range reused across clusters, or a central firewall that should see node addresses), set `egressMasquerade.enabled: true` in `values/jedify-infra.yaml`. Every packet a pod sends out of the cluster then leaves with its node's address, so firewalls and allowlists see the **node subnet**. Traffic inside the cluster is unaffected.
+
+The chart rewrites the `default` EgressNATPolicy on every install and upgrade. Turning the setting off later stops the rewrite; it doesn't restore GKE's original list.
+
+### Control-plane access
+
+**Decision: who can reach the Kubernetes API.**
+
+- **Public endpoint (default).** With `master_authorized_networks` empty, any address on the internet can reach the API server. Authentication and authorization still apply, but on an installation meant to talk to nobody, that's the opposite of the intent. Set `master_authorized_networks` to your operators' egress ranges. It defaults to empty only because a list that leaves out whoever runs `tofu apply` locks them out of the cluster they just created.
+- **Private endpoint.** `enable_private_endpoint = true` makes the API reachable only from inside the network. GKE then requires authorized networks: list your VPN's ranges in `master_authorized_networks`, because with the list empty only the cluster's own nodes and pods reach the API, and `helm install` times out from your VPN. If your VPN enters the network in a different region, also set `private_endpoint_global_access = true`. To place the private endpoint in a subnet your network team chose, set `private_endpoint_subnetwork`.
+
+## Egress
+
+Nodes have no public addresses. Everything below needs a path out of the cluster, through Cloud NAT or a route your network provides. A blocked call **hangs** instead of failing, which is slower to diagnose, so allow these before the install.
+
+| Destination | Used by | Needed when |
+| --- | --- | --- |
+| `googleapis.com` (Vertex AI, Secret Manager, Cloud Storage, and the `sts`, `iamcredentials` and `securetoken` endpoints behind every keyless call), `pkg.dev` (Artifact Registry), `firestore.goog` (the database) | Every component | Always. Private Google Access serves these without the internet. |
+| `ghcr.io`, `docker.io` and, with cert-manager on, `quay.io` | Image pulls | Unless you copy every image into your Artifact Registry. See [Airgapped installations](/self-hosted/gcp/airgapped). |
+| Your identity provider's endpoints | Zitadel, which calls your provider's token and key endpoints itself | Always |
+| Your data warehouse. For Snowflake: the account host, its stage hosts, and its OCSP hosts on port 80, as `SYSTEM$ALLOWLIST()` lists them | The pipeline components | Always |
+| Your model gateway | The application | Only if you [use your own gateway](/self-hosted/gcp/model-gateway#use-your-own-gateway) |
+| `raw.githubusercontent.com` | LiteLLM fetches its model cost map at startup, in the proxy and in every application pod | Always |
+
+From your workstation, `tofu init` reaches `registry.opentofu.org` for providers, and you reach the release registry to pull the release.
+
+## DNS and TLS
+
+**Decision: two hostnames.** The installation serves two names, and both resolve to the Gateway's address:
+
+| Hostname | Example | Serves |
+| --- | --- | --- |
+| The application host | `jedify.example.com` | The web app, the API, the MCP server and realtime |
+| The Zitadel host | `auth.jedify.example.com` | Zitadel's sign-in pages, API and console |
+
+Put them on names you control, not on names derived from an IP address. The web app names its endpoints in its settings and Zitadel stores redirect URIs per application, so a hostname tied to the address turns any address change into a settings change.
+
+**Decision: the Gateway class** (`gateway.className`).
+
+| Class | Reachable from | Proxy-only subnet | Google-managed certificate |
+| --- | --- | --- | --- |
+| `gke-l7-rilb` (default) | Inside your VPC, and anything peered or connected to it | Required | No |
+| `gke-l7-regional-external-managed` | The internet | Required | No |
+| `gke-l7-global-external-managed` | The internet | Not needed | Yes |
+
+Changing the class reallocates the address, so DNS has to follow.
+
+**Decision: the certificate.** One certificate must cover **both** hostnames (a wildcard, or both names as subject alternative names), and your users' browsers must trust it. A certificate from a private certificate authority works only on devices that trust that authority: the web app fetches the identity provider's discovery document in the background, and browsers offer no click-through warning for a background request, so an untrusted certificate simply fails there.
+
+| Option | Classes | How |
+| --- | --- | --- |
+| Your own certificate | All | Create a Kubernetes TLS Secret named `jedify-tls` in the `jedify` namespace before the install. This is the bundle's default. |
+| A Google-managed certificate | Global external only | Create a Certificate Manager map with entries for both hostnames, and set `gateway.certMap` to its name. On a regional class, the map is accepted, the certificate reaches `ACTIVE`, and the load balancer keeps serving the Secret's certificate, with nothing reporting a conflict. |
+| cert-manager | All | Turn on the bundled cert-manager with Gateway API support (see the [values reference](/self-hosted/gcp/reference/values#certificates)), then create your own issuer and a Certificate that writes the `jedify-tls` Secret. Let's Encrypt needs the internet: its HTTP-01 challenge reaches the Gateway on port 80, which an internal class doesn't expose, and an airgapped cluster can't reach Let's Encrypt at all. |
+
+To see the certificate a host actually serves, as opposed to what a certificate resource reports:
+
+```bash
+echo | openssl s_client -connect "$APP_HOST:443" -servername "$APP_HOST" 2>/dev/null \
+  | openssl x509 -noout -subject -issuer
+```
+
+GKE ships and manages the Gateway API CRDs. Don't apply an upstream Gateway API CRD bundle over them: Autopilot rejects the experimental channel, and a standard bundle older than the cluster's would downgrade them.

@@ -1,0 +1,239 @@
+---
+title: "Helm values reference"
+sidebarTitle: "Helm values"
+icon: "sliders"
+description: "The values that matter in the jedify-infra and jedify-be charts: type, default and meaning, including every environment variable in the application's values file."
+---
+
+The release bundle ships three values files, which are your starting point: `values/jedify-infra.yaml` for the platform chart, and `values/jedify-be.yaml` plus `values/jedify-be-workers.yaml` for the application chart's two releases. Each chart's own `values.yaml` carries working defaults for everything those files don't set.
+
+Where the bundle's file sets a different value from the chart, the **Default** column shows the bundle's value and names the chart's.
+
+<Warning>
+**Lists replace; maps merge.** A list in your values replaces the chart's whole list instead of adding to it. Set `gateway.healthChecks` to add one entry and you've removed the others, which shows up as a service answering `503` while its pods are ready. When you override a list, restate every entry you want to keep.
+</Warning>
+
+## jedify-infra
+
+### Where pods run
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `nodeSelector` | map | `cloud.google.com/compute-class: autopilot-arm` and `kubernetes.io/arch: arm64` (bundle; the chart sets none) | The one node selector every component in the file reuses, through YAML aliases. Edit the block itself: aliases are resolved when the file is read, so `--set nodeSelector...` changes nothing. For amd64, replace both lines with `kubernetes.io/arch: amd64`. |
+
+### Google Cloud
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `gcp.projectId` | string | `""`, required | `tofu output -raw project_id`. The chart fills every model entry's Vertex AI project and the secret stores from it. |
+| `gcp.externalSecretsServiceAccount` | string | `""`, required | `tofu output -raw external_secrets_service_account_email` |
+| `gcp.litellmServiceAccount` | string | `""`, required with the bundled proxy | `tofu output -raw litellm_service_account_email`. A separate identity from the application's: the only one that holds `roles/aiplatform.user`. |
+
+### Application secrets
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `appSecrets.smKey` | string | `""`, required | The Secret Manager object holding your application configuration as JSON. See the [secrets reference](/self-hosted/gcp/reference/secrets). |
+| `appSecrets.postgresSecretName` | string | `""`, required | `tofu output -raw postgres_secret_name`. The chart adds the connection string to the same Kubernetes Secret. |
+| `appSecrets.secretName` | string | `app-secrets` | The Kubernetes Secret every application component reads. The application chart reads this exact name: don't rename it. |
+| `appSecrets.namespace` | string | `jedify-be` | Where that Secret lands: the application's namespace, not this chart's |
+| `appSecrets.refreshInterval` | duration | `1h` | How often External Secrets reads Secret Manager again |
+| `appNamespace.create` | bool | `true` | Creates the application namespace, because this chart writes into it first. Kept when you uninstall. |
+| `external-secrets.serviceAccount.name` | string | `external-secrets` | Must match OpenTofu's `external_secrets_service_account` |
+
+### Egress
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `egressMasquerade.enabled` | bool | `false` | When on, every packet a pod sends out of the cluster leaves with its node's address. See [Egress masquerade](/self-hosted/gcp/requirements#egress-masquerade). |
+| `egressMasquerade.nonMasqueradeCIDRs` | list | `[192.0.2.0/24]` | Destinations that keep the pod's address. GKE requires at least one; the default is documentation address space nothing routes, so everything else is masqueraded. |
+
+### Model proxy
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `litellm-helm.enabled` | bool | `true` | The bundled LiteLLM proxy. Set `false` to [use your own gateway](/self-hosted/gcp/model-gateway#use-your-own-gateway). |
+| `litellm-helm.serviceAccount.name` | string | `litellm` | Must match OpenTofu's `litellm_service_account` |
+| `litellm-helm.image.pullPolicy` | string | `IfNotPresent` | The upstream chart's default is `Always`, which makes your registry a dependency of every restart |
+| `litellm.modelList` | list | Eight entries, Gemini on Vertex AI in `us-central1` | One entry per name the application calls: `model_name`, and `litellm_params.model` and `litellm_params.vertex_location`. A list: yours replaces all eight. See [Model gateway](/self-hosted/gcp/model-gateway). |
+| `litellm.settings` | map | `drop_params: true`, `num_retries: 2` | Unsupported parameters are dropped instead of failing the call |
+
+### Realtime
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `sockudoApp.smKey` | string | `""`, required | The Secret Manager object holding `app_id`, `app_key` and `app_secret`. See [Realtime credentials](/self-hosted/gcp/reference/secrets#realtime-credentials). |
+| `sockudo.redis.host` | string | `""`, required | `tofu output -raw redis_host`. The two sockudo replicas share subscriptions through it. |
+| `sockudo.replicaCount` | int | `2` | Two, so a restart or a node drain doesn't drop every websocket. Moves together with the adapter. |
+| `sockudo.config.adapterDriver` | string | `redis` | Shared state between replicas. The chart refuses more than one replica with `local`. |
+| `sockudoRoute.path` | string | `/pusher` | The path realtime is served on, on the application host. The web app uses the same value. |
+| `sockudoRoute.timeoutSec` | int | `86400` | How long the load balancer lets one websocket live, busy or idle. GKE's default is 30 seconds. |
+| `sockudoRoute.logging` | bool | `true` | The load balancer's request log for realtime |
+
+### Web app
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `frontend.enabled` | bool | `true` (bundle; chart `false`) | The web app, served from the cluster on the application host |
+| `frontend.image.repository` | string | `""`, required (bundle) | Where the `jedify-fe` image is: your Artifact Registry |
+| `frontend.image.tag` | string | `""` | Empty uses the chart's version, so the image and the chart that configures it don't drift apart |
+| `frontend.replicaCount` | int | `2` | |
+| `frontend.appEnv` | string | `production` | One of `local`, `ci`, `dev`, `staging`, `production`: the same set the API accepts |
+| `frontend.featureFlags` | map | `{}` | Per flag, a list of organization names in lowercase, for example `{"agents-mode": ["acme"]}`. An unlisted flag is off. The match is exact, so renaming an organization turns its flags off. |
+| `frontend.zitadel.clientId` | string | `""` | The web app's Zitadel client ID. The setup script creates it. |
+| `frontend.zitadel.projectId` | string | `""` | The `jedify` project's ID |
+| `frontend.zitadel.orgId` | string | `""` | Pins sign-in to one organization. Keep the key even when it's empty: the web app refuses to start if it's missing. |
+| `frontend.zitadel.callbackPath` | string | `/auth/zitadel/callback` | Where Zitadel returns after sign-in. Not `/auth/callback`, which belongs to the MCP server on the same host. |
+| `frontend.extraEnv` | list | `[]` | Any other environment the web app needs |
+
+### Gateway
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `gateway.enabled` | bool | `true` | |
+| `gateway.name` | string | `jedify-gateway` | Must match `gateway.gatewayName` in `values/jedify-be.yaml`, or the application's routes attach to nothing |
+| `gateway.className` | string | `gke-l7-rilb` | The kind of Google load balancer. See [DNS and TLS](/self-hosted/gcp/requirements#dns-and-tls). |
+| `gateway.host` | string | `""`, required | The application host. The setup script reads it too. |
+| `gateway.port` | int | `443` (bundle; chart `80`) | The listener's port: HTTPS when a certificate is configured |
+| `gateway.addressName` | string | `""` | The name of a reserved address for the Gateway to claim. Empty: GKE allocates one with the Gateway and releases it with the Gateway. |
+| `gateway.certMap` | string | `""` | A Certificate Manager map's name. Global class only. |
+| `gateway.healthChecks` | list | `api` on `/api/readiness`, `mcp-server` on `/health` (both with `timeoutSec: 3600` and `logging: true`), Zitadel on `/debug/healthz`, Zitadel's sign-in UI on `/ui/v2/login/healthy` | One health check per backend service. GKE doesn't use pods' readiness probes; without an entry, a service whose root isn't `200` is marked down. `timeoutSec` raises the 30-second backend deadline for streamed responses, and needs `logging` set beside it. A list: keep every entry. |
+
+### Certificates
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `tls.enabled` | bool | `true` (bundle; chart `false`) | Serve HTTPS from the Secret below |
+| `tls.secretName` | string | `jedify-tls` | The Kubernetes TLS Secret in the `jedify` namespace. With `gateway.certMap` set, the chart creates a placeholder here, because the listener must name a Secret even when the map's certificate is served. |
+| `cert-manager.enabled` | bool | `false` | The bundled cert-manager |
+| `cert-manager.crds.enabled` | bool | `true` | Install its CRDs with it |
+
+cert-manager needs Gateway API support turned on in its controller configuration. It isn't a feature gate: passing one changes nothing, and challenges stay pending with `gateway api is not enabled`.
+
+```yaml
+cert-manager:
+  enabled: true
+  config:
+    apiVersion: controller.config.cert-manager.io/v1alpha1
+    kind: ControllerConfiguration
+    enableGatewayAPI: true
+```
+
+You create the issuer and the Certificate yourself; the Certificate writes the `jedify-tls` Secret.
+
+### Zitadel
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `zitadel.enabled` | bool | `false` | Set `true`, together with `enable_zitadel = true` in OpenTofu. The first install of the chart turns it off once: see the [install](/self-hosted/gcp/install). |
+| `zitadel.zitadel.configmapConfig.ExternalDomain` | string | `""`, required | Your Zitadel host, exactly. It's part of every token's issuer. |
+| `zitadel.zitadel.configmapConfig.ExternalSecure` | bool | `true` | Zitadel builds its own callback URLs from it. Keep it `true`. |
+| `zitadel.zitadel.configmapConfig.FirstInstance.Org.Human.EmailAddress` | string | `""`, required | The instance administrator's email: a real address |
+| `zitadel.zitadel.configmapConfig.FirstInstance.Org.Human.UserName` | string | `admin` | The administrator's login name becomes `admin@zitadel.<your Zitadel host>` |
+| `zitadel.replicaCount`, `zitadel.login.replicaCount` | int | `2` | Two of each, with disruption budgets, so moving a pod never locks every user out |
+| `zitadel.setupJob.activeDeadlineSeconds` | int | `1200` | The setup job's deadline. Migrations on a new cluster can take most of it. |
+| `zitadel.tools.kubectl.image.tag` | string | `1.35.8` | Pins Zitadel's helper image. Note the nesting: `tools.kubectl`, not `kubectl`. |
+| `zitadel.imageRegistry` | string | `docker.io` (Zitadel's chart) | Prepended to Zitadel's two helper images. Set it when you mirror them. |
+| `zitadelSecrets.dsnSmKey` | string | `""`, required with Zitadel | `tofu output -raw zitadel_dsn_secret_name` |
+| `zitadelSecrets.masterkeySmKey` | string | `""`, required with Zitadel | `tofu output -raw zitadel_masterkey_secret_name` |
+| `zitadelSecrets.patSecretName` | string | `iam-admin-pat` | The Secret holding the management token Zitadel's setup job mints, which the chart passes to the application. Keep the default. |
+
+### Reloader
+
+Reloader restarts a workload when a Secret or ConfigMap it reads changes. It acts only in the namespaces listed and only on workloads that opt in.
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `reloader.enabled` | bool | `true` | |
+| `reloader.reloader.watchGlobally` | bool | `false` | With an explicit list below, Reloader gets a Role per namespace and no cluster-wide permission |
+| `reloader.reloader.namespaces` | list | `[jedify, jedify-be]` | Change it if you install into other namespaces |
+| `reloader.reloader.autoReloadAll` | bool | `false` | Only workloads annotated to opt in are restarted |
+| `reloader.reloader.reloadOnCreate` | bool | `true` | A Secret created after its workload counts as a change, so first-install pods don't stay stuck waiting for it |
+
+## jedify-be
+
+### Routing
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `gateway.host` | string | `""`, required | The application host: the same value as `gateway.host` in the platform values |
+| `gateway.gatewayName` | string | `jedify-gateway` | The Gateway the routes attach to |
+| `gateway.gatewayNamespace` | string | `jedify` (bundle; chart `traefik`) | The Gateway's namespace. The chart's default names a Gateway that doesn't exist here, and the routes then get no status and every request `404`s. |
+| `gateway.corsMiddleware.enabled` | bool | `false` (bundle; chart `true`) | Must be `false`: GKE's Gateway rejects the middleware and the host stops serving. The API answers CORS itself. |
+| `gateway.mcpPathPrefixes` | list | `/mcp`, `/authorize`, `/token`, `/register`, `/revoke`, `/consent`, `/auth/callback`, `/.well-known/oauth-authorization-server`, `/.well-known/oauth-protected-resource` | Every path the MCP server answers on. A list: keep all nine. |
+| `gateway.apiPathPrefixes` | list | `/api`, `/docs`, `/openapi.json`, `/.well-known` (bundle; chart `/`) | The API's paths. Everything else on the host goes to the web app. |
+
+### Identity and secrets
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `serviceAccount.name` | string | `jedify-be` | Must match OpenTofu's `kubernetes_service_account` |
+| `serviceAccount.annotations."iam.gke.io/gcp-service-account"` | string | `""`, required | `tofu output -raw service_account_email`: the Google identity the application runs as |
+| `externalSecret.store` | string | `gcp-secretmanager` | The secret store's name |
+| `externalSecret.smKey` | string | `""` | Leave empty: the platform chart owns the application's Secret |
+| `externalSecret.plainEnv` | list | See [Application environment](#application-environment) | The application's non-secret settings, as plain environment variables |
+| `externalSecret.extraPlainEnv` | list | `[]` | More `name`/`value` entries. An entry here overrides a `plainEnv` entry of the same name, so you can change one setting without restating the whole list. |
+
+### Realtime
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `realtime.sockudo.enabled` | bool | `true` | Publish realtime events to the in-cluster sockudo |
+| `realtime.sockudo.host` | string | `jedify-infra-sockudo.jedify.svc.cluster.local` | sockudo's Service. Assumes the platform release is named `jedify-infra` in `jedify`. |
+| `realtime.sockudo.port` | int | `6001` | |
+| `realtime.sockudo.ssl` | bool | `false` | This hop never leaves the cluster |
+| `realtime.sockudo.smKey` | string | `""` | **Leave empty.** The platform chart already adds the realtime credentials to the application's Secret. Setting it makes every component reference a Secret that's never created, and every pod stays in `CreateContainerConfigError`. |
+
+### Components
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `componentsDefaults.image.repository` | string | The release registry's `jedify-be` | Set it to your Artifact Registry |
+| `componentsDefaults.image.tag` | string | The release's version | |
+| `componentsDefaults.nodeSelector` | map | `autopilot-arm` and `arm64` | The one selector the components, CronJobs, sandbox and workers reuse. For amd64, replace it with `kubernetes.io/arch: amd64`. |
+| `componentsDefaults.startupProbe.enabled` | bool | `true` | Gives a slow first start up to 300 seconds before the liveness probe can act. Keep it on: a cold node pulls a large image. |
+| `componentsDefaults.resources` | map | Requests `500m` CPU and `2Gi` memory, memory limit `3Gi` | |
+| `componentsDefaults.replicas` | int | `2` (chart) | Replicas per component |
+| `componentsDefaults.maxRequests` | int | `2000` | Recycles a worker process after this many requests, which bounds memory growth |
+| `componentsDefaults.trustExtraCA` | bool | off | Trust your own certificate authority as well as the public ones. Needs `EXTRA_CA_PEM_B64`. See [private certificate authority](/self-hosted/gcp/model-gateway#a-gateway-behind-a-private-certificate-authority). |
+| `components.<name>` | map | `api`: requests `500m`/`2Gi`, limit `4Gi`; `context-graph-git`: requests `200m`/`1Gi`, limit `2Gi` | Per-component overrides of `componentsDefaults`. A map, so it merges with the chart's. |
+| `backoffice.enabled`, `components.backoffice.enabled` | bool | `false`, `false` | Jedify's own operations console isn't part of a self-hosted installation. Keep both off: each one gates different objects. |
+| `cronjobs.<name>.enabled` | bool | On: `kill-processing-inquiries`, `kill-hanging-edits`, `check-component-jobs`, `manage-regression-tests`, `automated-agents`, `refresh-semantic-dimensions`. Off: `notify-onboarding-abandoned` (posts to Slack), `snowflake-reexport`. | The application's periodic tasks. Nothing else runs them. |
+| `sandboxPod.image.repository`, `sandboxPod.image.tag` | string | The release registry's `jedify-sandbox`, the release's version | The code-execution sandbox. It's built with the application image, under the same tag. |
+| `workersDefaults.enabled` | bool | `true` | |
+| `workersDefaults.autoscaling.enabled` | bool | `false` | Autoscaling needs KEDA, which the installation doesn't include. With it on and no KEDA, workers never start. |
+
+### Workers release
+
+These keys are in `values/jedify-be-workers.yaml`, which the workers release adds on top of `values/jedify-be.yaml`.
+
+| Key | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `render` | string | `workers` | Makes this release render the queue workers and nothing else |
+| `workers.grounding-worker.enabled` | bool | `true` | |
+| `workers.grounding-worker.replicas` | int | `1` | Each pod runs two grounding jobs at once (an application setting, sized by memory). If grounding is too slow, raise this: each pod brings its own memory. |
+| `workers.copy-worker.enabled` | bool | `false` | Moves accounts between environments: not used in a self-hosted installation |
+
+### Application environment
+
+`externalSecret.plainEnv` in `values/jedify-be.yaml`. Plain environment variables override keys of the same name in your application configuration secret, so don't set a key here that belongs there, such as the Zitadel settings.
+
+| Variable | Bundle value | Meaning |
+| --- | --- | --- |
+| `ENV` | `production` | One of `local`, `ci`, `dev`, `staging`, `production`. Any other value, or none, stops the API from starting with `NameError: _CORS_ORIGINS`. |
+| `CORS_WHITELISTED_URLS` | Your application's origin | Browser origins the API accepts. See [CORS](/self-hosted/gcp/first-run#allow-your-origin-for-cors). |
+| `USE_LITELLM_PROXY` | `true` | Send model calls through the proxy or your gateway |
+| `EMBEDDINGS_VIA_BEDROCK` | `false` | Keep `false`: the other path needs Amazon Bedrock |
+| `IN_MEM_VECTOR_SEARCH` | `true` | Firestore has no vector search, so search runs in the process over the stored embeddings |
+| `MONGO_CONCURRENT_TX_OPS` | `false` | Writes inside a transaction run one after another; Firestore deadlocks on concurrent ones |
+| `DATADOG_ENABLED`, `DD_TRACE_ENABLED` | `false` | No Datadog agent runs in your cluster; on, every component logs connection errors continuously |
+| `MONGO_MTLS` | `false` | Firestore authenticates the workload's identity, not a client certificate |
+| `MONGO_URI` | From `mongo_uri_command` | Use the printed URI unchanged |
+| `MONGO_DB` | `tofu output -raw firestore_database_name` | |
+| `STORAGE_BACKEND` | `gcs` | Explicit, never inferred |
+| `STORAGE_BUCKET_NAME` | `tofu output -raw storage_bucket` | The one setting every storage path reads |
+| `REDIS_HOST` | `tofu output -raw redis_host` | Without it, the application doesn't start |
+| `REDIS_LOCAL_FORCE` | `true` | Selects the application's non-TLS Redis client on port 6379, which matches `redis_transit_encryption = "DISABLED"`. Redis traffic then crosses your VPC unencrypted. |
+| `BE_URL`, `FE_URL` | `https://<your application host>` | The API's and the web app's public URLs. One host serves both. |
+| `LITELLM_PROXY_URL` | The proxy's in-cluster URL | Not read by the application. Keep it equal to the next one. |
+| `LITELLM_PROXY_API_BASE` | `http://jedify-infra-litellm.jedify.svc.cluster.local:4000` | Where model calls go. Fully qualified, because the proxy runs in another namespace. Never leave it unset. |

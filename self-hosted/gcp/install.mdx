@@ -1,0 +1,610 @@
+---
+title: "Install"
+icon: "download"
+description: "Install Jedify into your Google Cloud project: pull the release, apply OpenTofu, copy the images, create the secrets, install the platform chart in two passes, set up Zitadel, then install the application chart's two releases."
+---
+
+Every step below is a command and a check. Don't move to the next step until the check passes. A step that asks you to choose something, rather than run something, says **Decision**.
+
+Run every command in one shell session: later steps reuse variables that earlier steps set. After step 2, run them from the release bundle's directory.
+
+<Note>
+Complete the [requirements](/self-hosted/gcp/requirements) first. The first OpenTofu apply alone takes 15 to 20 minutes, most of it the cluster.
+</Note>
+
+## At a glance
+
+| Part | Steps | Role |
+| --- | --- | --- |
+| [Get the release](#get-the-release) | 1 to 2 | |
+| [Infrastructure](#infrastructure) | 3 to 5 | B |
+| [Images and secrets](#images-and-secrets) | 6 to 8 | A |
+| [Platform chart](#platform-chart) | 9 to 14 | B |
+| [Zitadel](#zitadel) | 15 to 16 | B |
+| [Application chart](#application-chart) | 17 to 19 | B |
+
+See [Two roles](/self-hosted/gcp/overview#two-roles) for what Role A and Role B mean.
+
+## Get the release
+
+<Steps>
+  <Step title="Set the install variables" stepNumber={1}>
+    **Decision.** Fill in your own values. Every later step reads these.
+
+    ```bash
+    export JEDIFY_VERSION="2026.10.10"
+    export RELEASE_REGISTRY="<the release registry address Jedify gave you>"
+    export PROJECT_ID="your-project-id"
+    export REGION="us-central1"
+    export FIRESTORE_LOCATION="us-central1"   # permanent: see Requirements
+    export PREFIX="acme-jedify"               # name_prefix: see below
+    export APP_HOST="jedify.example.com"      # the web app, API and MCP server
+    export AUTH_HOST="auth.jedify.example.com" # Zitadel
+    export ADMIN_EMAIL="jedify-admin@example.com"
+    export ORG_NAME="Acme"                    # your organization's name in Zitadel
+    export OPERATOR_CIDR="203.0.113.0/24"     # where you run kubectl and helm from
+    ```
+
+    - `PREFIX` names every resource, including the Cloud Storage buckets `<prefix>-storage` and `<prefix>-tfstate`. Bucket names are unique across **all** of Google Cloud, so a generic prefix fails with a name-taken error that reads like a permissions problem. Use something specific to your organization: lowercase letters, digits and hyphens, starting with a letter, 2 to 21 characters.
+    - `ADMIN_EMAIL` must be a real address. Reserved domains such as `.test` or `.example` are rejected later by the application's own email validation.
+    - `ORG_NAME` is the organization your users belong to. Feature flags match it in lowercase, so pick the name you'll keep.
+
+    To verify, print them back and check none is empty:
+
+    ```bash
+    env | grep -E '^(JEDIFY_VERSION|RELEASE_REGISTRY|PROJECT_ID|REGION|FIRESTORE_LOCATION|PREFIX|APP_HOST|AUTH_HOST|ADMIN_EMAIL|ORG_NAME|OPERATOR_CIDR)='
+    ```
+  </Step>
+  <Step title="Pull the bundle and the charts" stepNumber={2}>
+    Sign in as the identity Jedify granted access to the release registry. Each of the first two commands opens a browser to sign in; the second sets the Application Default Credentials OpenTofu uses.
+
+    ```bash
+    gcloud auth login
+    gcloud auth application-default login
+    gcloud config set project "$PROJECT_ID"
+    ```
+
+    Then pull the release:
+
+    ```bash
+    export REG_HOST="${RELEASE_REGISTRY%%/*}"
+    gcloud auth print-access-token | helm registry login "$REG_HOST" --username oauth2accesstoken --password-stdin
+    gcloud auth print-access-token | oras login "$REG_HOST" --username oauth2accesstoken --password-stdin
+
+    mkdir -p jedify-release && cd jedify-release
+    oras pull "$RELEASE_REGISTRY/bundles/jedify-deploy:$JEDIFY_VERSION"
+    tar -xzf "jedify-deploy-$JEDIFY_VERSION.tar.gz"
+    cd "jedify-deploy-$JEDIFY_VERSION"
+    helm pull "oci://$RELEASE_REGISTRY/charts/jedify-infra" --version "$JEDIFY_VERSION"
+    helm pull "oci://$RELEASE_REGISTRY/charts/jedify-be" --version "$JEDIFY_VERSION"
+    export BUNDLE_DIR="$PWD"
+    ls
+    ```
+
+    Expected output:
+
+    ```text
+    README.md  jedify-be-2026.10.10.tgz  jedify-infra-2026.10.10.tgz  scripts  terraform  values
+    ```
+
+    Every later command runs from this directory, `$BUNDLE_DIR`. The charts carry all their dependencies, so installing them reaches no chart repository. A `401` from either login means your identity hasn't been granted read access to the release registry.
+  </Step>
+</Steps>
+
+## Infrastructure
+
+<Steps>
+  <Step title="Create the state bucket" stepNumber={3}>
+    OpenTofu's state lives in a bucket in your project, created once. Versioning turns a bad apply or a corrupted state file into a restore, and it only protects objects written after it's switched on, so switch it on now.
+
+    ```bash
+    gcloud services enable serviceusage.googleapis.com cloudresourcemanager.googleapis.com storage.googleapis.com \
+      --project "$PROJECT_ID"
+    gcloud storage buckets create "gs://${PREFIX}-tfstate" \
+      --project="$PROJECT_ID" --location="$REGION" --uniform-bucket-level-access
+    gcloud storage buckets update "gs://${PREFIX}-tfstate" --versioning
+    ```
+
+    To verify, check versioning is on. Expected output: `True`.
+
+    ```bash
+    gcloud storage buckets describe "gs://${PREFIX}-tfstate" --format='value(versioning_enabled)'
+    ```
+  </Step>
+  <Step title="Write terraform.tfvars" stepNumber={4}>
+    ```bash
+    cat > terraform/terraform.tfvars <<EOF
+    project_id         = "$PROJECT_ID"
+    region             = "$REGION"
+    firestore_location = "$FIRESTORE_LOCATION"
+    name_prefix        = "$PREFIX"
+
+    # Zitadel, the identity layer: its database, role, connection string and masterkey.
+    enable_zitadel = true
+
+    # Who may reach the Kubernetes API server.
+    master_authorized_networks = [
+      { cidr_block = "$OPERATOR_CIDR", display_name = "operators" },
+    ]
+    EOF
+    ```
+
+    **Decision.** Add any of these that apply. Each is described in the [OpenTofu reference](/self-hosted/gcp/reference/terraform), and `terraform/terraform.tfvars.example` shows them with comments.
+
+    | Add | When |
+    | --- | --- |
+    | `node_architecture = "amd64"` | You run amd64 nodes. See [Arm or amd64 nodes](/self-hosted/gcp/requirements#arm-or-amd64-nodes). |
+    | `existing_network = { ... }` and its toggles | You deploy into a network your network team runs |
+    | `datastore_connectivity = "psc"` | You use Private Service Connect instead of Private Services Access |
+    | `enable_private_endpoint = true`, `private_endpoint_global_access`, `private_endpoint_subnetwork` | The control plane must be reachable only from inside your network |
+    | `postgres_availability_type = "ZONAL"`, `redis_tier = "BASIC"` | A pilot, where cost matters more than surviving a zone outage |
+
+    To add more ranges to `master_authorized_networks`, add one entry per range.
+
+    To verify, print the file and check that every value was filled in:
+
+    ```bash
+    cat terraform/terraform.tfvars
+    ```
+  </Step>
+  <Step title="Apply OpenTofu" stepNumber={5}>
+    `tofu init` refuses to run without `-backend-config`. That's deliberate: without it, state would land on one workstation, with no locking between operators.
+
+    ```bash
+    tofu -chdir=terraform init -backend-config="bucket=${PREFIX}-tfstate" -backend-config="prefix=jedify"
+    tofu -chdir=terraform plan -out=jedify.tfplan
+    ```
+
+    Read the plan, then apply it. A saved plan contains the generated database passwords, so delete it afterwards.
+
+    ```bash
+    tofu -chdir=terraform apply jedify.tfplan
+    rm terraform/jedify.tfplan
+    ```
+
+    To verify, list the outputs and connect `kubectl` to the new cluster:
+
+    ```bash
+    tofu -chdir=terraform output
+    eval "$(tofu -chdir=terraform output -raw cluster_get_credentials_command)"
+    kubectl get crd gateways.gateway.networking.k8s.io httproutes.gateway.networking.k8s.io healthcheckpolicies.networking.gke.io
+    ```
+
+    Expected: the outputs include `artifact_registry_repository`, `mongo_uri_command`, `redis_host` and `zitadel_dsn_secret_name`, and `kubectl` lists all three CRDs. GKE ships and manages these CRDs; if they're missing, turn on the cluster's Gateway API:
+
+    ```bash
+    gcloud container clusters update "${PREFIX}-gke" --location "$REGION" --gateway-api=standard
+    ```
+
+    If the apply prints a warning about the cluster's GKE version and the Arm compute class, the control plane is older than `1.35.3-gke.1389000` and Arm pods won't schedule until it's upgraded.
+  </Step>
+</Steps>
+
+## Images and secrets
+
+<Steps>
+  <Step title="Copy the images into your Artifact Registry" stepNumber={6}>
+    Your cluster's nodes pull images as their own identity, which can read your project's Artifact Registry but not Jedify's release registry. Copy Jedify's three images into the repository OpenTofu created:
+
+    ```bash
+    export IMAGES="$(tofu -chdir=terraform output -raw artifact_registry_repository)"
+    gcloud auth print-access-token | crane auth login "${IMAGES%%/*}" -u oauth2accesstoken --password-stdin
+    gcloud auth print-access-token | crane auth login "$REG_HOST" -u oauth2accesstoken --password-stdin
+
+    for img in jedify-be jedify-sandbox jedify-fe; do
+      crane copy "$RELEASE_REGISTRY/$img:$JEDIFY_VERSION" "$IMAGES/$img:$JEDIFY_VERSION"
+    done
+    ```
+
+    `crane copy` copies the whole multi-architecture index. If you use `skopeo` instead, pass `--all`: a single-architecture copy fails on the other kind of node with `no match for platform in manifest`.
+
+    To verify, list the platforms each copy holds. Expected: `linux/amd64` and `linux/arm64` for every image.
+
+    ```bash
+    for img in jedify-be jedify-sandbox jedify-fe; do
+      echo "$img: $(crane manifest "$IMAGES/$img:$JEDIFY_VERSION" \
+        | jq -r '[.manifests[]?.platform | select(.os != "unknown") | "\(.os)/\(.architecture)"] | join(" ")')"
+    done
+    ```
+
+    <Note>
+    The platform chart's other images come from `ghcr.io` and `docker.io`. If your cluster can't reach them, copy those too before step 12: see [Airgapped installations](/self-hosted/gcp/airgapped#mirror-every-image).
+    </Note>
+  </Step>
+  <Step title="Create the application configuration secret" stepNumber={7}>
+    One Secret Manager object holds the application's configuration as a JSON object. Every key becomes an environment variable in every application component. This is the one place a person handles a credential.
+
+    ```bash
+    jq -n \
+      --arg creds_key "$(openssl rand -base64 32 | tr '+/' '-_')" \
+      --arg component_token "$(openssl rand -hex 32)" \
+      --arg proxy_key "sk-$(openssl rand -hex 32)" \
+      '{AUTH_PROVIDER: "zitadel",
+        CREDS_KEY: $creds_key,
+        COMPONENT_AUTH_TOKEN: $component_token,
+        LITELLM_PROXY_API_KEY: $proxy_key}' \
+    | gcloud secrets create "${PREFIX}-app-config" --project "$PROJECT_ID" \
+        --replication-policy=automatic --data-file=-
+    ```
+
+    | Key | What it does |
+    | --- | --- |
+    | `AUTH_PROVIDER` | Must be `zitadel`. The application's default is a hosted identity provider your installation can't reach. |
+    | `CREDS_KEY` | A Fernet key that encrypts the data-source credentials you save in Jedify. Keep it: a new key can't decrypt credentials saved under the old one. |
+    | `COMPONENT_AUTH_TOKEN` | Authenticates calls between the application's components. Without it they answer each other with `401`. |
+    | `LITELLM_PROXY_API_KEY` | The key the application sends to the model proxy, and the proxy's master key. Without it the proxy doesn't start. If you'll [use your own gateway](/self-hosted/gcp/model-gateway#use-your-own-gateway), put the key your gateway issued here instead. |
+
+    The Zitadel setup script adds more keys to this object later. The [secrets reference](/self-hosted/gcp/reference/secrets) lists every key.
+
+    To verify, list the keys (not the values). Expected: `AUTH_PROVIDER`, `COMPONENT_AUTH_TOKEN`, `CREDS_KEY`, `LITELLM_PROXY_API_KEY`.
+
+    ```bash
+    gcloud secrets versions access latest --secret "${PREFIX}-app-config" --project "$PROJECT_ID" | jq -r 'keys[]'
+    ```
+  </Step>
+  <Step title="Create the realtime credentials secret" stepNumber={8}>
+    Realtime runs in the cluster, and its credentials are a second Secret Manager object with three keys. The platform chart hands them to sockudo and to the application from this one object, so the two can't drift apart.
+
+    ```bash
+    jq -n \
+      --arg app_id "$(( (RANDOM << 15) | RANDOM ))" \
+      --arg app_key "$(openssl rand -hex 16)" \
+      --arg app_secret "$(openssl rand -hex 32)" \
+      '{app_id: $app_id, app_key: $app_key, app_secret: $app_secret}' \
+    | gcloud secrets create "${PREFIX}-sockudo-app" --project "$PROJECT_ID" \
+        --replication-policy=automatic --data-file=-
+    ```
+
+    <Warning>
+    `app_id` **must be numeric**. sockudo accepts any string, but the application's realtime client rejects a non-numeric id when it starts, and that crashes every application component, not only the parts that publish events.
+    </Warning>
+
+    To verify, check `app_id` is digits only. Expected output: `true`.
+
+    ```bash
+    gcloud secrets versions access latest --secret "${PREFIX}-sockudo-app" --project "$PROJECT_ID" \
+      | jq '.app_id | test("^[0-9]+$")'
+    ```
+  </Step>
+</Steps>
+
+## Platform chart
+
+<Steps>
+  <Step title="Fill in the platform values" stepNumber={9}>
+    `values/jedify-infra.yaml` is the starting point. Fill each empty value from OpenTofu's outputs and your variables:
+
+    ```bash
+    export TF_PROJECT_ID="$(tofu -chdir=terraform output -raw project_id)"
+    export TF_ESO_SA="$(tofu -chdir=terraform output -raw external_secrets_service_account_email)"
+    export TF_LITELLM_SA="$(tofu -chdir=terraform output -raw litellm_service_account_email)"
+    export TF_POSTGRES_SECRET="$(tofu -chdir=terraform output -raw postgres_secret_name)"
+    export TF_REDIS_HOST="$(tofu -chdir=terraform output -raw redis_host)"
+    export TF_ZITADEL_DSN="$(tofu -chdir=terraform output -raw zitadel_dsn_secret_name)"
+    export TF_ZITADEL_MASTERKEY="$(tofu -chdir=terraform output -raw zitadel_masterkey_secret_name)"
+    export APP_CONFIG_SECRET="${PREFIX}-app-config" SOCKUDO_SECRET="${PREFIX}-sockudo-app"
+
+    yq -i '
+      .gcp.projectId = strenv(TF_PROJECT_ID) |
+      .gcp.externalSecretsServiceAccount = strenv(TF_ESO_SA) |
+      .gcp.litellmServiceAccount = strenv(TF_LITELLM_SA) |
+      .appSecrets.smKey = strenv(APP_CONFIG_SECRET) |
+      .appSecrets.postgresSecretName = strenv(TF_POSTGRES_SECRET) |
+      .sockudoApp.smKey = strenv(SOCKUDO_SECRET) |
+      .sockudo.redis.host = strenv(TF_REDIS_HOST) |
+      .gateway.host = strenv(APP_HOST) |
+      .zitadel.enabled = true |
+      .zitadel.zitadel.configmapConfig.ExternalDomain = strenv(AUTH_HOST) |
+      .zitadel.zitadel.configmapConfig.FirstInstance.Org.Human.EmailAddress = strenv(ADMIN_EMAIL) |
+      .zitadelSecrets.dsnSmKey = strenv(TF_ZITADEL_DSN) |
+      .zitadelSecrets.masterkeySmKey = strenv(TF_ZITADEL_MASTERKEY) |
+      .frontend.image.repository = strenv(IMAGES) + "/jedify-fe"
+    ' values/jedify-infra.yaml
+    ```
+
+    Leave `frontend.image.tag` empty: it then follows the chart's version. Leave `frontend.zitadel` empty for now; step 16 fills it.
+
+    To verify, print what you set. Expected: no empty value, and `zitadel.enabled` is `true`.
+
+    ```bash
+    yq '{"gcp": .gcp, "appSecrets": .appSecrets, "sockudoApp": .sockudoApp.smKey,
+         "redis": .sockudo.redis.host, "host": .gateway.host, "zitadel": .zitadel.enabled,
+         "zitadelHost": .zitadel.zitadel.configmapConfig.ExternalDomain, "zitadelSecrets": .zitadelSecrets,
+         "frontendImage": .frontend.image.repository}' values/jedify-infra.yaml
+    ```
+  </Step>
+  <Step title="Set the Gateway, TLS, egress and architecture choices" stepNumber={10}>
+    **Decision.** The defaults are an internal Gateway (`gke-l7-rilb`) that serves your own certificate from the Secret `jedify-tls`, egress masquerade off, and Arm nodes. Open each item below that differs from your choices in [Requirements](/self-hosted/gcp/requirements), and run only those commands.
+
+    <AccordionGroup>
+      <Accordion title="If you reserved an address for the Gateway">
+        ```bash
+        export GATEWAY_ADDRESS="${PREFIX}-gateway"
+        yq -i '.gateway.addressName = strenv(GATEWAY_ADDRESS)' values/jedify-infra.yaml
+        ```
+      </Accordion>
+      <Accordion title="If you use an internet-facing Gateway with a Certificate Manager map">
+        Set `CERT_MAP` to your map's name. A Google-managed certificate attaches only to the global class.
+
+        ```bash
+        export CERT_MAP="your-certificate-map"
+        yq -i '.gateway.className = "gke-l7-global-external-managed" | .gateway.certMap = strenv(CERT_MAP)' \
+          values/jedify-infra.yaml
+        ```
+      </Accordion>
+      <Accordion title="If you use a regional internet-facing Gateway">
+        ```bash
+        yq -i '.gateway.className = "gke-l7-regional-external-managed"' values/jedify-infra.yaml
+        ```
+      </Accordion>
+      <Accordion title="If pod addresses must never leave the VPC">
+        ```bash
+        yq -i '.egressMasquerade.enabled = true' values/jedify-infra.yaml
+        ```
+      </Accordion>
+      <Accordion title="If you run amd64 nodes">
+        Each values file has one `nodeSelector` that every component reuses. Switch both:
+
+        ```bash
+        yq -i 'del(.nodeSelector."cloud.google.com/compute-class") | .nodeSelector."kubernetes.io/arch" = "amd64"' \
+          values/jedify-infra.yaml
+        yq -i 'del(.componentsDefaults.nodeSelector."cloud.google.com/compute-class") | .componentsDefaults.nodeSelector."kubernetes.io/arch" = "amd64"' \
+          values/jedify-be.yaml
+        ```
+
+        Edit the files, not the command line: the components reuse these blocks through YAML aliases, which are resolved when the file is read, so `--set nodeSelector...` changes nothing. You also need `node_architecture = "amd64"` in `terraform.tfvars` (step 4).
+      </Accordion>
+    </AccordionGroup>
+
+    To verify, print the choices:
+
+    ```bash
+    yq '.gateway.className, .gateway.addressName, .gateway.certMap, .tls, .egressMasquerade.enabled, .nodeSelector' \
+      values/jedify-infra.yaml
+    yq '.componentsDefaults.nodeSelector' values/jedify-be.yaml
+    ```
+  </Step>
+  <Step title="Create the TLS Secret" stepNumber={11}>
+    Skip this step if you set `gateway.certMap`, or if cert-manager will issue the certificate.
+
+    Otherwise, put your certificate (with its chain) and key into a Kubernetes TLS Secret named `jedify-tls` in the `jedify` namespace. It must cover both hostnames:
+
+    ```bash
+    kubectl create namespace jedify
+    kubectl -n jedify create secret tls jedify-tls --cert=jedify-fullchain.pem --key=jedify-key.pem
+    ```
+
+    To verify, check the Secret's type and the names the certificate covers. Expected: `kubernetes.io/tls`, and both `$APP_HOST` and `$AUTH_HOST` (or a wildcard that matches both).
+
+    ```bash
+    kubectl -n jedify get secret jedify-tls -o jsonpath='{.type}{"\n"}'
+    openssl x509 -in jedify-fullchain.pem -noout -text | grep -A1 'Subject Alternative Name'
+    ```
+
+    Until this Secret exists, GKE doesn't program the Gateway.
+  </Step>
+  <Step title="Install the platform chart: first pass" stepNumber={12}>
+    A first install is two passes with the same values. This pass installs External Secrets and its CRDs. Zitadel can't be part of it: its setup jobs need secrets that External Secrets syncs, and the chart refuses a first install with Zitadel on rather than letting it hang.
+
+    ```bash
+    helm install jedify-infra "./jedify-infra-$JEDIFY_VERSION.tgz" \
+      --namespace jedify --create-namespace \
+      -f values/jedify-infra.yaml --set zitadel.enabled=false
+    kubectl -n jedify rollout status deploy -l app.kubernetes.io/name=external-secrets --timeout=10m
+    kubectl get crd externalsecrets.external-secrets.io clustersecretstores.external-secrets.io
+    ```
+
+    Expected: Helm's notes end with a banner telling you to run `helm upgrade` with the same values, the rollout completes, and both CRDs exist. The LiteLLM proxy and sockudo wait in `CreateContainerConfigError` until the second pass creates their secrets. That's expected.
+  </Step>
+  <Step title="Install the platform chart: second pass" stepNumber={13}>
+    The second pass creates the secret wiring and installs Zitadel. Zitadel migrates its database in a setup job, which can take several minutes on a new cluster.
+
+    ```bash
+    helm upgrade jedify-infra "./jedify-infra-$JEDIFY_VERSION.tgz" \
+      --namespace jedify -f values/jedify-infra.yaml --wait --timeout 20m
+    ```
+
+    Every later upgrade of this chart is this command alone.
+
+    To verify, check the secret store, the synced secrets and the workloads:
+
+    ```bash
+    kubectl get clustersecretstore
+    kubectl get externalsecret -A
+    kubectl -n jedify get deploy
+    ```
+
+    Expected: `gcp-secretmanager` is ready; `app-secrets` (in `jedify-be`), `litellm-master-key`, `sockudo-app`, `zitadel-db`, `zitadel-masterkey` and `zitadel-bootstrap-admin` all show `SecretSynced`; and every Deployment in `jedify` is ready. An ExternalSecret that isn't ready names what it couldn't read: usually a Secret Manager object that doesn't exist, or a name that doesn't match.
+  </Step>
+  <Step title="Point DNS at the Gateway" stepNumber={14}>
+    GKE gives the Gateway an address once it's programmed, which can take several minutes:
+
+    ```bash
+    kubectl -n jedify get gateway jedify-gateway
+    export GATEWAY_IP="$(kubectl -n jedify get gateway jedify-gateway -o jsonpath='{.status.addresses[0].value}')"
+    echo "$GATEWAY_IP"
+    ```
+
+    Expected: `PROGRAMMED` is `True` and the `ADDRESS` column holds an IP. If it stays empty, see [the Gateway isn't programmed](/self-hosted/gcp/troubleshooting#gateway-and-tls).
+
+    **Decision, outside the cluster.** In your DNS, create `A` records for `$APP_HOST` and `$AUTH_HOST` pointing at `$GATEWAY_IP`. With the internal Gateway, put them in a zone your users resolve on your network.
+
+    To verify, from a machine on that network:
+
+    ```bash
+    dig +short "$APP_HOST"
+    dig +short "$AUTH_HOST"
+    curl -sS -o /dev/null -w '%{http_code}\n' "https://$AUTH_HOST/debug/healthz"
+    ```
+
+    Expected: both names return `$GATEWAY_IP`, and Zitadel answers `200`. If your certificate comes from a private certificate authority your workstation doesn't trust, add `--cacert` with that authority's certificate to the `curl` command.
+  </Step>
+</Steps>
+
+## Zitadel
+
+<Steps>
+  <Step title="Run the Zitadel setup script" stepNumber={15}>
+    The chart installs Zitadel and its instance administrator. `scripts/zitadel-setup.sh` does the rest, in one run that is safe to repeat:
+
+    - the organization your users belong to, and the `jedify` project with the role keys the application expects: `Tenant Admin`, `Data expert` and `User`;
+    - the web app's sign-in application, and the MCP server's;
+    - a login policy with self-registration off;
+    - every Zitadel setting the application reads, written into your application configuration secret.
+
+    It reaches Zitadel through a `kubectl` port-forward, so it needs no DNS. It needs `kubectl`, `gcloud`, `jq`, `yq`, `curl` and `openssl`, and a `gcloud` identity that can read and add versions to `${PREFIX}-app-config`.
+
+    ```bash
+    ./scripts/zitadel-setup.sh --org-name "$ORG_NAME"
+    ```
+
+    <Warning>
+    Pass the same `--org-name` on every run, including the `grant` command later. The script finds the organization by name, so a different name creates a second organization.
+    </Warning>
+
+    You don't need your identity provider yet. Run the script again with its `--oidc-*` options when your provider's application exists: see [Connect your identity provider](/self-hosted/gcp/identity#connect-your-identity-provider).
+
+    Expected: the script ends with `==> done` and prints a `frontend.zitadel` block. To verify, list the keys now in the secret:
+
+    ```bash
+    gcloud secrets versions access latest --secret "${PREFIX}-app-config" --project "$PROJECT_ID" | jq -r 'keys[]'
+    ```
+
+    Expected, alongside the four keys from step 7: `MCP_SERVER_URL`, `ZITADEL_ALLOW_INSECURE_HTTP`, `ZITADEL_API_URL`, `ZITADEL_AUDIENCES`, `ZITADEL_FE_CLIENT_ID`, `ZITADEL_HOST_HEADER`, `ZITADEL_ISSUER`, `ZITADEL_MCP_CLIENT_ID`, `ZITADEL_MCP_CLIENT_SECRET`, `ZITADEL_MCP_JWT_SIGNING_KEY`, `ZITADEL_ORG_ID` and `ZITADEL_PROJECT_ID`.
+  </Step>
+  <Step title="Point the web app at your organization" stepNumber={16}>
+    The web app needs three identifiers the script just created. Read them from the secret, set them, and upgrade the platform chart:
+
+    ```bash
+    read -r FE_CLIENT_ID ZITADEL_PROJECT ZITADEL_ORG < <(
+      gcloud secrets versions access latest --secret "${PREFIX}-app-config" --project "$PROJECT_ID" \
+        | jq -r '[.ZITADEL_FE_CLIENT_ID, .ZITADEL_PROJECT_ID, .ZITADEL_ORG_ID] | @tsv')
+    export FE_CLIENT_ID ZITADEL_PROJECT ZITADEL_ORG
+
+    yq -i '
+      .frontend.zitadel.clientId = strenv(FE_CLIENT_ID) |
+      .frontend.zitadel.projectId = strenv(ZITADEL_PROJECT) |
+      .frontend.zitadel.orgId = strenv(ZITADEL_ORG)
+    ' values/jedify-infra.yaml
+
+    helm upgrade jedify-infra "./jedify-infra-$JEDIFY_VERSION.tgz" \
+      --namespace jedify -f values/jedify-infra.yaml --wait --timeout 20m
+    ```
+
+    `orgId` pins sign-in to your organization: Zitadel then refuses users from any other organization. See [One organization](/self-hosted/gcp/identity#one-organization).
+
+    To verify, read the web app's sign-in settings and load the page:
+
+    ```bash
+    kubectl -n jedify get deploy jedify-infra-frontend \
+      -o jsonpath='{range .spec.template.spec.containers[0].env[*]}{.name}={.value}{"\n"}{end}' | grep '^VITE_ZITADEL'
+    curl -sS -o /dev/null -w '%{http_code}\n' "https://$APP_HOST/"
+    ```
+
+    Expected: `VITE_ZITADEL_CLIENT_ID`, `VITE_ZITADEL_PROJECT_ID` and `VITE_ZITADEL_ORG_ID` hold values, `VITE_ZITADEL_ISSUER` is `https://` followed by your Zitadel host, and the page answers `200`.
+  </Step>
+</Steps>
+
+## Application chart
+
+<Steps>
+  <Step title="Fill in the application values" stepNumber={17}>
+    `values/jedify-be.yaml` carries the application's non-secret settings as plain environment variables. Fill them from OpenTofu's outputs:
+
+    ```bash
+    export TF_APP_SA="$(tofu -chdir=terraform output -raw service_account_email)"
+    export TF_MONGO_URI="$(eval "$(tofu -chdir=terraform output -raw mongo_uri_command)" | tr -d '[:space:]')"
+    export TF_MONGO_DB="$(tofu -chdir=terraform output -raw firestore_database_name)"
+    export TF_BUCKET="$(tofu -chdir=terraform output -raw storage_bucket)"
+    export APP_URL="https://$APP_HOST"
+
+    yq -i '
+      .gateway.host = strenv(APP_HOST) |
+      .serviceAccount.annotations."iam.gke.io/gcp-service-account" = strenv(TF_APP_SA) |
+      (.externalSecret.plainEnv[] | select(.name == "MONGO_URI")).value = strenv(TF_MONGO_URI) |
+      (.externalSecret.plainEnv[] | select(.name == "MONGO_DB")).value = strenv(TF_MONGO_DB) |
+      (.externalSecret.plainEnv[] | select(.name == "STORAGE_BUCKET_NAME")).value = strenv(TF_BUCKET) |
+      (.externalSecret.plainEnv[] | select(.name == "REDIS_HOST")).value = strenv(TF_REDIS_HOST) |
+      (.externalSecret.plainEnv[] | select(.name == "BE_URL")).value = strenv(APP_URL) |
+      (.externalSecret.plainEnv[] | select(.name == "FE_URL")).value = strenv(APP_URL) |
+      (.externalSecret.plainEnv[] | select(.name == "CORS_WHITELISTED_URLS")).value = strenv(APP_URL) |
+      .componentsDefaults.image.repository = strenv(IMAGES) + "/jedify-be" |
+      .sandboxPod.image.repository = strenv(IMAGES) + "/jedify-sandbox"
+    ' values/jedify-be.yaml
+    ```
+
+    `MONGO_URI` comes from a command, not a value, because Firestore reports its host only once the database exists. Use the printed URI as it is: it has no database path (the application refuses one), and it carries the parameters Firestore needs, including `authMechanism=MONGODB-OIDC` (the pods authenticate as their Google identity, with no password) and `maxIdleTimeMS=60000`.
+
+    Leave `ENV` at `production`. The application accepts only `local`, `ci`, `dev`, `staging` and `production`, and any other value stops the API from starting. The [values reference](/self-hosted/gcp/reference/values#application-environment) describes every variable in the file.
+
+    To verify, render the chart and read the settings back. Expected: every line holds a value, and `MONGO_URI` starts with `mongodb://` and ends with `authMechanism=MONGODB-OIDC`.
+
+    ```bash
+    helm template jedify-be "./jedify-be-$JEDIFY_VERSION.tgz" -n jedify-be -f values/jedify-be.yaml \
+      | grep -E 'name: (MONGO_URI|MONGO_DB|STORAGE_BUCKET_NAME|REDIS_HOST|BE_URL|FE_URL|CORS_WHITELISTED_URLS),' | sort -u
+    ```
+  </Step>
+  <Step title="Install the application" stepNumber={18}>
+    The application is one chart installed as **two releases**: the components, and the queue workers. Both use `values/jedify-be.yaml`; the workers release adds `values/jedify-be-workers.yaml`, which selects what it renders.
+
+    ```bash
+    helm install jedify-be "./jedify-be-$JEDIFY_VERSION.tgz" \
+      --namespace jedify-be --create-namespace -f values/jedify-be.yaml
+    helm install jedify-be-workers "./jedify-be-$JEDIFY_VERSION.tgz" \
+      --namespace jedify-be -f values/jedify-be.yaml -f values/jedify-be-workers.yaml
+    ```
+
+    <Warning>
+    Don't skip the workers release. Without it, grounding jobs are queued successfully and nothing ever runs them, so dimension lookups return nothing instead of an error.
+    </Warning>
+
+    The first start is slow: each new node pulls a large image, and the components can take several minutes to import. Wait for every rollout:
+
+    ```bash
+    for d in $(kubectl -n jedify-be get deploy -o name); do
+      kubectl -n jedify-be rollout status "$d" --timeout=15m
+    done
+    ```
+
+    Expected: every rollout reports `successfully rolled out`.
+  </Step>
+  <Step title="Verify the installation" stepNumber={19}>
+    ```bash
+    kubectl -n jedify-be get pods
+    kubectl -n jedify-be get httproute app-routes \
+      -o jsonpath='{range .status.parents[*].conditions[*]}{.type}={.status}{"\n"}{end}'
+    curl -sS -o /dev/null -w '%{http_code}\n' "https://$APP_HOST/api/readiness"
+    curl -sS "https://$APP_HOST/.well-known/oauth-authorization-server" | jq -r .issuer
+    kubectl -n jedify-be logs deploy/api | grep -m1 'auth provider'
+    ```
+
+    Expected:
+
+    - every pod is `Running` and ready, apart from CronJob pods, which show `Completed`;
+    - the route shows `Accepted=True` and `ResolvedRefs=True`;
+    - the API answers `200`;
+    - the MCP server's discovery document names an issuer on your application host;
+    - the API logs `auth provider: zitadel`.
+
+    Then check that the model proxy answers a real completion: see [Verify the models](/self-hosted/gcp/model-gateway#verify-the-models).
+  </Step>
+</Steps>
+
+## Next steps
+
+Your installation is running, but three things still stand between it and a working first question.
+
+<CardGroup cols={2}>
+  <Card title="Connect your identity provider" icon="id-badge" href="/self-hosted/gcp/identity#connect-your-identity-provider">
+    Add your provider as the sign-in button, then grant the first roles.
+  </Card>
+  <Card title="Model gateway" icon="microchip" href="/self-hosted/gcp/model-gateway">
+    Check every model name the application calls.
+  </Card>
+  <Card title="First run" icon="flag-checkered" href="/self-hosted/gcp/first-run">
+    The account record, CORS, your data warehouse and the first build.
+  </Card>
+  <Card title="Troubleshooting" icon="bug" href="/self-hosted/gcp/troubleshooting">
+    If a check above didn't pass.
+  </Card>
+</CardGroup>

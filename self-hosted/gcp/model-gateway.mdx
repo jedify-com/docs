@@ -1,0 +1,267 @@
+---
+title: "Model gateway"
+icon: "microchip"
+description: "How Jedify reaches its models: the default path through the in-cluster LiteLLM proxy to Vertex AI, the exact model names a gateway must serve, and using your own OpenAI-compatible gateway, including one behind a private certificate authority."
+---
+
+The application never calls a model provider directly. It sends every model call to one OpenAI-compatible endpoint, named by `LITELLM_PROXY_API_BASE` in `values/jedify-be.yaml`, and authenticates with `LITELLM_PROXY_API_KEY` from your application configuration secret.
+
+By default that endpoint is the LiteLLM proxy the platform chart installs, which forwards each call to Vertex AI in your project. You can point it at an OpenAI-compatible gateway you already run instead.
+
+<Warning>
+Never leave `LITELLM_PROXY_API_BASE` unset. Without it, the client library falls back to `https://api.openai.com/v1`: your prompts leave your project, under Jedify's model names, and nothing in any log says so. `LITELLM_PROXY_URL` in the same file isn't read by the application; keep it pointing at the same address so the two never disagree.
+</Warning>
+
+## The model names the application calls
+
+The application asks for models by fixed names. Whatever serves them, proxy or gateway, must answer to **exactly** these names. As of release 2026.10.10:
+
+| Name | Used for | Default Vertex AI model |
+| --- | --- | --- |
+| `claude-opus-4-8` | Heavy reasoning: answer composition, SQL generation, the agent loop | `gemini-2.5-pro` |
+| `claude-opus-4-7` | SQL generation in Analyst mode | `gemini-2.5-pro` |
+| `claude-sonnet-5` | Agent mode | `gemini-2.5-pro` |
+| `claude-sonnet-4-6` | Heavy reasoning | `gemini-2.5-pro` |
+| `claude-haiku-4-5` | Fast paths: classification, follow-up detection, small structured calls | `gemini-2.5-flash` |
+| `gpt-5.6-terra` | Fast paths | `gemini-2.5-flash` |
+| `gpt-5.6-sol` | Fast paths | `gemini-2.5-flash` |
+| `text-embedding-ada-002` | Embeddings, for grounding questions in your data | `gemini-embedding-001` |
+
+These are names, not vendors. In the default configuration every one of them is served by a Gemini model, so a name doesn't tell you which vendor answered.
+
+<Warning>
+A name that your proxy or gateway doesn't serve breaks **one feature**, and never looks like a missing model:
+
+- Without `claude-opus-4-7`, Analyst mode returns empty results while everything else works.
+- Without `claude-sonnet-5`, agent runs fail at once while ordinary questions work.
+- Without `text-embedding-ada-002`, every chat model works and only grounding fails, deep inside a question: the question fails with no explanation, and the logs show `No groundable columns found`.
+
+The one log line that names the cause is the refusal itself: `Invalid model name passed in model=<name>`.
+</Warning>
+
+### The embedding model is a one-time choice
+
+Embeddings belong to your account: building the model and answering questions read the same vectors. **Choose the model behind `text-embedding-ada-002` before your first build, and don't change it.** Changing it later means re-embedding everything with a full rebuild; otherwise your account holds vectors from two different models, and answers degrade without any error.
+
+The default, `gemini-embedding-001`, covers more than 100 languages.
+
+## Default: Vertex AI through the LiteLLM proxy
+
+The proxy runs in the `jedify` namespace as its own Google service account, which holds only `roles/aiplatform.user`. Its model list is `litellm.modelList` in the platform chart's values. The chart fills each entry's Vertex AI project from `gcp.projectId`, so most installations change nothing here.
+
+The proxy runs with two settings: `drop_params: true`, so a parameter a model doesn't support is dropped instead of failing the call, and `num_retries: 2`.
+
+### Check that each model is offered to your project
+
+A Vertex AI model is servable only where Google offers it to your project, and preview models are allowlisted project by project. A name that works in one project can return `404` in the next, same region and all. The defaults use generally available models in `us-central1`. Check each one before the first question:
+
+```bash
+for model in gemini-2.5-pro gemini-2.5-flash; do
+  echo "== $model"
+  curl -sS -X POST \
+    -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+    -H "Content-Type: application/json" \
+    -d '{"contents":[{"role":"user","parts":[{"text":"hi"}]}]}' \
+    "https://us-central1-aiplatform.googleapis.com/v1/projects/$PROJECT_ID/locations/us-central1/publishers/google/models/$model:generateContent" \
+    | jq -r '.candidates[0].content.parts[0].text // .error.message'
+done
+```
+
+Expected: a short reply for each model. An error message such as `not found` means that model isn't offered to your project in that location. Model availability changes over time, so check again when you change models or Google retires one.
+
+### Choose the location
+
+**Decision.** The defaults call Vertex AI in `us-central1`. If your data must stay in another region, set `vertex_location` on every entry to a location where each model is offered.
+
+- **Embeddings need a regional location, never `global`.** Pods reach Google APIs through Private Google Access's restricted addresses, which don't serve the global Vertex AI endpoint for embeddings. The call fails with `The service you are trying to access is not available on Google's Restricted VIPs`.
+- **Chat models may use `global`.** Some preview models are offered only there, and chat completions at `global` work over the same path.
+
+### Change the model list
+
+`litellm.modelList` is a list, so a list in your values **replaces** the chart's whole list. Restate all eight names. The chart fills in your project on every entry, so you set only the model and the location. For example, to keep the default models in `europe-west4`, add this block to the end of `values/jedify-infra.yaml`, once (YAML keeps only the last of two blocks with the same key):
+
+```yaml
+litellm:
+  modelList:
+    - model_name: claude-opus-4-8
+      litellm_params: &pro
+        model: vertex_ai/gemini-2.5-pro
+        vertex_location: europe-west4
+    - model_name: claude-opus-4-7
+      litellm_params: *pro
+    - model_name: claude-sonnet-5
+      litellm_params: *pro
+    - model_name: claude-sonnet-4-6
+      litellm_params: *pro
+    - model_name: claude-haiku-4-5
+      litellm_params: &flash
+        model: vertex_ai/gemini-2.5-flash
+        vertex_location: europe-west4
+    - model_name: gpt-5.6-terra
+      litellm_params: *flash
+    - model_name: gpt-5.6-sol
+      litellm_params: *flash
+    - model_name: text-embedding-ada-002
+      litellm_params:
+        model: vertex_ai/gemini-embedding-001
+        vertex_location: europe-west4
+```
+
+Then upgrade the platform chart:
+
+```bash
+helm upgrade jedify-infra "./jedify-infra-$JEDIFY_VERSION.tgz" \
+  --namespace jedify -f values/jedify-infra.yaml --wait --timeout 20m
+```
+
+Reloader restarts the proxy when its model list changes, because the proxy reads the list only when it starts. Then [verify the models](#verify-the-models). If a model you just added still answers `Invalid model name`, restart the proxy yourself:
+
+```bash
+kubectl -n jedify rollout restart deploy/jedify-infra-litellm
+kubectl -n jedify rollout status deploy/jedify-infra-litellm
+```
+
+<Note>
+If you turn on Model Armor screening (`model_armor_mode` in OpenTofu), it covers Gemini models on Vertex AI only. A model served any other way, including through your own gateway, isn't screened.
+</Note>
+
+## Verify the models
+
+Run a real completion for every name, from inside an application pod, through the application's own configuration. This tests what the application uses: the address, the key, DNS, and the certificates the pod trusts. It doesn't print any secret.
+
+```bash
+kubectl -n jedify-be exec -i deploy/api -- python - <<'PY'
+import json, os, urllib.error, urllib.request
+
+base = os.environ["LITELLM_PROXY_API_BASE"].rstrip("/")
+headers = {"Authorization": "Bearer " + os.environ["LITELLM_PROXY_API_KEY"],
+           "Content-Type": "application/json"}
+
+def call(path, body):
+    request = urllib.request.Request(base + path, data=json.dumps(body).encode(), headers=headers)
+    try:
+        with urllib.request.urlopen(request, timeout=120) as response:
+            return json.load(response)
+    except urllib.error.HTTPError as error:
+        return {"error": f"{error.code} {error.read().decode()[:300]}"}
+
+for name in ["claude-opus-4-8", "claude-opus-4-7", "claude-sonnet-5", "claude-sonnet-4-6",
+             "claude-haiku-4-5", "gpt-5.6-terra", "gpt-5.6-sol"]:
+    result = call("/v1/chat/completions",
+                  {"model": name, "messages": [{"role": "user", "content": "Reply with OK"}]})
+    print(f"{name:24}", result.get("error") or result["choices"][0]["message"]["content"])
+
+result = call("/v1/embeddings", {"model": "text-embedding-ada-002", "input": "hello"})
+print(f"{'text-embedding-ada-002':24}",
+      result.get("error") or f"{len(result['data'][0]['embedding'])} dimensions")
+PY
+```
+
+Expected: every chat name prints a short reply, and the embedding prints a number of dimensions. Any other line names the problem.
+
+Don't use `/v1/models` as the check. Every name in the proxy's list is an alias, so the proxy lists all of them whether or not the model behind each one exists. Only a real completion proves a name works.
+
+## Use your own gateway
+
+You can replace the bundled proxy with an OpenAI-compatible gateway you already run. The gateway must:
+
+- answer `POST /v1/chat/completions`, including streamed responses, and `POST /v1/embeddings`;
+- serve **every** name in [the model names the application calls](#the-model-names-the-application-calls), spelled exactly;
+- accept or ignore parameters a model doesn't support, the way the bundled proxy's `drop_params` does, instead of rejecting the call;
+- accept the key it issued you as a bearer token;
+- present a certificate the application trusts: one from a public certificate authority, or from your own after you [trust your certificate authority](#a-gateway-behind-a-private-certificate-authority);
+- be reachable from the cluster. With [egress masquerade](/self-hosted/gcp/requirements#egress-masquerade) on, the gateway and any firewall in front of it see your **node subnet's** addresses, not the pod range: allow that range.
+
+<Steps>
+  <Step title="Store your gateway's key">
+    Replace `LITELLM_PROXY_API_KEY` in your application configuration secret with the key your gateway issued. This adds a new version and keeps every other key:
+
+    ```bash
+    read -rs GATEWAY_KEY   # paste the key, then press Enter
+    gcloud secrets versions access latest --secret "${PREFIX}-app-config" --project "$PROJECT_ID" \
+      | jq --arg key "$GATEWAY_KEY" '.LITELLM_PROXY_API_KEY = $key' \
+      | gcloud secrets versions add "${PREFIX}-app-config" --project "$PROJECT_ID" --data-file=-
+    unset GATEWAY_KEY
+    ```
+
+    To verify, list the key names. Expected: the same keys as before.
+
+    ```bash
+    gcloud secrets versions access latest --secret "${PREFIX}-app-config" --project "$PROJECT_ID" | jq -r 'keys[]'
+    ```
+  </Step>
+  <Step title="Point the application at your gateway">
+    Set `GATEWAY_URL` to your gateway's base URL, with no trailing slash and no `/v1`: the client library appends the path itself.
+
+    ```bash
+    export GATEWAY_URL="https://llm-gateway.example.com"
+    yq -i '(.externalSecret.plainEnv[] | select(.name == "LITELLM_PROXY_API_BASE" or .name == "LITELLM_PROXY_URL")).value = strenv(GATEWAY_URL)' \
+      values/jedify-be.yaml
+    ```
+
+    To verify, read both back. Expected: both show your gateway's URL.
+
+    ```bash
+    yq '.externalSecret.plainEnv[] | select(.name == "LITELLM_PROXY_API_BASE" or .name == "LITELLM_PROXY_URL")' values/jedify-be.yaml
+    ```
+  </Step>
+  <Step title="Apply the change and verify">
+    External Secrets refreshes the application's secret every hour. Force it now, then upgrade both application releases:
+
+    ```bash
+    kubectl -n jedify-be annotate externalsecret app-secrets force-sync="$(date +%s)" --overwrite
+    helm upgrade jedify-be "./jedify-be-$JEDIFY_VERSION.tgz" \
+      --namespace jedify-be -f values/jedify-be.yaml
+    helm upgrade jedify-be-workers "./jedify-be-$JEDIFY_VERSION.tgz" \
+      --namespace jedify-be -f values/jedify-be.yaml -f values/jedify-be-workers.yaml
+    ```
+
+    Then run [Verify the models](#verify-the-models). Expected: every name answers through your gateway.
+  </Step>
+  <Step title="Turn off the bundled proxy">
+    Once every name answers through your gateway, remove the bundled proxy:
+
+    ```bash
+    yq -i '.["litellm-helm"].enabled = false' values/jedify-infra.yaml
+    helm upgrade jedify-infra "./jedify-infra-$JEDIFY_VERSION.tgz" \
+      --namespace jedify -f values/jedify-infra.yaml --wait --timeout 20m
+    ```
+
+    To verify, check that the proxy is gone. Expected: `NotFound`.
+
+    ```bash
+    kubectl -n jedify get deploy jedify-infra-litellm
+    ```
+  </Step>
+</Steps>
+
+## A gateway behind a private certificate authority
+
+The application's image trusts the public certificate authorities only. A gateway (or a data warehouse, or any other endpoint the application calls) whose certificate comes from your own certificate authority fails every call with `CERTIFICATE_VERIFY_FAILED`.
+
+Turn on `componentsDefaults.trustExtraCA` and add your authority's certificate to the application configuration secret as `EXTRA_CA_PEM_B64`: the PEM file, base64-encoded on one line. One PEM file can hold several certificates; include the intermediates if your server doesn't send its own chain.
+
+```bash
+export EXTRA_CA="$(base64 < your-ca.pem | tr -d '\n')"
+gcloud secrets versions access latest --secret "${PREFIX}-app-config" --project "$PROJECT_ID" \
+  | jq --arg ca "$EXTRA_CA" '.EXTRA_CA_PEM_B64 = $ca' \
+  | gcloud secrets versions add "${PREFIX}-app-config" --project "$PROJECT_ID" --data-file=-
+
+yq -i '.componentsDefaults.trustExtraCA = true' values/jedify-be.yaml
+
+kubectl -n jedify-be annotate externalsecret app-secrets force-sync="$(date +%s)" --overwrite
+helm upgrade jedify-be "./jedify-be-$JEDIFY_VERSION.tgz" \
+  --namespace jedify-be -f values/jedify-be.yaml
+helm upgrade jedify-be-workers "./jedify-be-$JEDIFY_VERSION.tgz" \
+  --namespace jedify-be -f values/jedify-be.yaml -f values/jedify-be-workers.yaml
+```
+
+Every application pod then starts with an init container, `ca-bundle`, that writes the public authorities plus yours into `/trust/bundle.pem`, and the process reads it through `SSL_CERT_FILE` and `REQUESTS_CA_BUNDLE`. Because the public authorities are in the same file, your identity provider, your warehouse and Google's APIs keep working beside the private endpoint.
+
+Set the switch and the key together. With the switch on and the key missing, the init container refuses to start the pod rather than run it without your certificate authority. A changed certificate takes effect when the pods restart.
+
+To verify, read the init container's log: it prints how many certificates the bundle holds. Then [verify the models](#verify-the-models) again.
+
+```bash
+kubectl -n jedify-be logs deploy/api -c ca-bundle
+```

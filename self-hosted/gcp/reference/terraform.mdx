@@ -1,0 +1,160 @@
+---
+title: "OpenTofu reference"
+sidebarTitle: "OpenTofu"
+icon: "cubes"
+description: "What the OpenTofu configuration creates, every variable with its default, every output, and how to remove an installation safely."
+---
+
+The release bundle's `terraform/` directory holds the configuration. It runs with OpenTofu or Terraform 1.7 or later, with the `google` provider pinned to `8.1.0` and `random` to `3.7.2`, so a plan made months from now matches the one you reviewed. State lives in a Cloud Storage bucket in your project: see [Create the state bucket](/self-hosted/gcp/install).
+
+## What it creates
+
+| Resource | Name | Notes |
+| --- | --- | --- |
+| VPC, node subnet, proxy-only subnet, Cloud Router and Cloud NAT | `<prefix>-vpc`, `<prefix>-subnet`, `<prefix>-proxy-only`, `<prefix>-router`, `<prefix>-nat` | Only when OpenTofu creates the network |
+| Private Services Access range | `<prefix>-private-services` | Only with `datastore_connectivity = "psa"` on a network OpenTofu creates |
+| Private DNS zones and a route | `<prefix>-googleapis`, `<prefix>-pkg-dev`, `<prefix>-firestore-goog`, `<prefix>-restricted-vip` | Keep Google API traffic inside Google's network. See [Airgapped installations](/self-hosted/gcp/airgapped#google-apis-without-the-internet). |
+| GKE Autopilot cluster | `<prefix>-gke` | Private nodes, Workload Identity, the `REGULAR` release channel |
+| Firestore database | `<prefix>-db` | Enterprise edition with MongoDB compatibility. Its location can't change. |
+| Cloud SQL for PostgreSQL 16 | `<prefix>-pg` | Private address only; automatic backups with point-in-time recovery, starting at 03:00; `max_connections` 200. Databases `grounding_index` and `jedify_queues`, user `jedify`, and with Zitadel a `zitadel` database and user. |
+| Memorystore | `<prefix>-redis` (Redis 7.2), or `<prefix>-valkey` (Valkey 8.0) with Private Service Connect | Transit encryption off by default: see `redis_transit_encryption` |
+| Cloud Storage bucket | `<prefix>-storage` | Uniform access, no object versioning. A bucket holding objects isn't deleted by a destroy. |
+| Artifact Registry repository | `<prefix>-images` | Docker images |
+| Service accounts | `<prefix>-app`, `<prefix>-eso`, `<prefix>-litellm` | With their roles and Workload Identity bindings. See [Identities and permissions](/self-hosted/gcp/overview#identities-and-permissions). |
+| Secret Manager secrets | `<prefix>-postgres-connection-string`, and with Zitadel `<prefix>-zitadel-dsn` and `<prefix>-zitadel-masterkey` | Generated values, never printed |
+
+No service-account key exists anywhere. The pods authenticate to Firestore, Cloud Storage, Vertex AI, Artifact Registry and Secret Manager as Google service accounts. Cloud SQL is the exception: the application connects with a password, which OpenTofu generates and stores in Secret Manager, and no person handles.
+
+## Variables
+
+### Required
+
+| Variable | Type | Meaning |
+| --- | --- | --- |
+| `project_id` | string | The project everything is created in. It must exist and have billing enabled. |
+| `region` | string | The region for the cluster, the datastores, the bucket and Artifact Registry, for example `europe-west1`. On Arm, one of the regions with Autopilot Arm nodes. |
+| `firestore_location` | string | Firestore's location: a region such as `europe-west1`, or a multi-region such as `eur3` or `nam5`. **Can't be changed after creation.** |
+
+### Naming and identities
+
+| Variable | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `name_prefix` | string | `jedify` | Prefixes every resource name, including the bucket, whose name must be unique across all of Google Cloud. Lowercase letters, digits and hyphens, starting with a letter, 2 to 21 characters. |
+| `labels` | map | `{app = "jedify", managed-by = "opentofu"}` | Labels on every resource that supports them |
+| `node_architecture` | string | `arm64` | `arm64` or `amd64`. It creates nothing; it decides which region list the plan checks `region` against. Must match the values files' `nodeSelector`. |
+| `kubernetes_namespace` | string | `jedify-be` | The application's namespace. Workload Identity binds it literally. |
+| `kubernetes_service_account` | string | `jedify-be` | The application's ServiceAccount. Must match `serviceAccount.name` in `values/jedify-be.yaml`. |
+| `infra_namespace` | string | `jedify` | The platform chart's namespace. Both its Workload Identity ServiceAccounts live there. |
+| `external_secrets_service_account` | string | `external-secrets` | Must match `external-secrets.serviceAccount.name` in the platform values |
+| `litellm_service_account` | string | `litellm` | Must match `litellm-helm.serviceAccount.name` in the platform values |
+| `enable_zitadel` | bool | `false` | Creates Zitadel's database, user, connection string and masterkey. Set `true`: the installation's sign-in runs through Zitadel. |
+
+### Network
+
+| Variable | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `existing_network` | object | `null` | Deploy into a network that already exists: `project` (the Shared VPC host; omit for your own project), `network`, `subnetwork`, `pods_range_name`, and optionally `services_range_name` and `psc_subnetwork`. See [Network](/self-hosted/gcp/requirements#network). |
+| `subnet_cidrs` | object | `nodes` `10.20.0.0/20`, `pods` `10.21.0.0/16`, `services` `10.22.0.0/20`, `proxy_only` `10.23.0.0/26` | The ranges OpenTofu creates. Ignored with `existing_network`, except `proxy_only` when it creates that subnet. Secondary ranges can't be resized once the cluster uses them. |
+| `create_proxy_only_subnet` | bool | On for a network OpenTofu creates, off with `existing_network` | The region's proxy-only subnet. A VPC holds one per region, shared by every regional L7 load balancer. |
+| `create_private_services_access` | bool | Same | The peered range Cloud SQL and Memorystore take addresses from |
+| `private_services_prefix_length` | number | `16` | The size of that range |
+| `enable_cloud_nat` | bool | Same | Cloud NAT for the nodes' egress. Leave it off where egress leaves through a central firewall instead. |
+| `enable_private_google_access_dns` | bool | Same | The private DNS zones and route for Google APIs |
+| `datastore_connectivity` | string | `psa` | `psa` or `psc`. Switching an existing installation replaces both datastores. |
+| `create_memorystore_connection_policy` | bool | On for a network OpenTofu creates, off with `existing_network` | With `psc`: the Service Connection Policy for the `gcp-memorystore` class |
+| `cloudsql_psc_endpoint` | string | `forwarding_rule` | With `psc`: `forwarding_rule` (OpenTofu creates the endpoint; on a Shared VPC it needs `compute.networks.use` on the host VPC) or `connection_policy` (Cloud SQL creates it through the network's policy). Switching moves the database to a new address. |
+| `create_cloudsql_connection_policy` | bool | On for a network OpenTofu creates, off with `existing_network` | With `connection_policy`: the Service Connection Policy for the `google-cloud-sql` class |
+| `valkey_node_type` | string | `SHARED_CORE_NANO` | With `psc`: the Valkey node type, about 1.4 GB |
+
+### Control plane
+
+| Variable | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `master_authorized_networks` | list | `[]` | Ranges allowed to reach the Kubernetes API, as `{cidr_block, display_name}`. With the public endpoint, empty means every address on the internet. With a private endpoint, empty means only the cluster's own nodes and pods. |
+| `enable_private_endpoint` | bool | `false` | Make the API reachable only from inside the network. Turns authorized networks on. |
+| `private_endpoint_global_access` | bool | `false` | Let clients that enter the network in another region reach the private endpoint |
+| `private_endpoint_subnetwork` | string | `null` | A subnet for the private endpoint's address, instead of the peered `/28` |
+| `master_ipv4_cidr_block` | string | `172.16.0.0/28` | The control plane's `/28`. Must not overlap anything your network routes. |
+
+### Datastores
+
+| Variable | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `postgres_tier` | string | `db-custom-2-7680` | Cloud SQL's machine type. The default is a production floor. |
+| `postgres_edition` | string | `ENTERPRISE` | `ENTERPRISE` takes `db-custom-*` tiers; `ENTERPRISE_PLUS` takes only `db-perf-optimized-N-*` |
+| `postgres_availability_type` | string | `REGIONAL` | `REGIONAL` keeps a standby in a second zone with automatic failover; `ZONAL` roughly halves the cost |
+| `redis_tier` | string | `STANDARD_HA` | `STANDARD_HA` keeps a replica with automatic failover; `BASIC` is one node. The cache holds cache and queue state, not your records. |
+| `redis_memory_gb` | number | `1` | Memorystore for Redis size |
+| `redis_transit_encryption` | string | `DISABLED` | Keep `DISABLED`. `SERVER_AUTHENTICATION` moves the endpoint to port 6378, which neither the application nor realtime can reach today. With `DISABLED`, Redis traffic crosses your VPC unencrypted. |
+
+### Safety
+
+| Variable | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `deletion_protection` | bool | `true` | Guards the cluster, the Firestore database and the Cloud SQL instance against a destroy, and against a plan that would replace them. See [Remove the installation](#remove-the-installation). |
+
+### Model Armor
+
+Optional screening of Vertex AI traffic, applied as a project floor setting. Model Armor is a separately purchased Google Cloud service: enabling its API without the entitlement fails the apply with `Error 403: Write access to project '<project>' was denied`. It covers Gemini models on Vertex AI only.
+
+| Variable | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `model_armor_mode` | string | `off` | `off`, `inspect_only` or `inspect_and_block`. Start with `inspect_only` and read what it would block before you block anything: blocking surfaces as a model error, not as a policy. |
+| `model_armor_location` | string | `global` | Where the floor setting resource lives |
+| `model_armor_confidence` | string | `MEDIUM_AND_ABOVE` | `LOW_AND_ABOVE`, `MEDIUM_AND_ABOVE` or `HIGH`: the confidence at which the prompt-injection filter acts |
+
+## Outputs
+
+| Output | Use |
+| --- | --- |
+| `project_id` | `gcp.projectId` in the platform values |
+| `cluster_name` | The GKE cluster's name |
+| `cluster_get_credentials_command` | The command that points `kubectl` at the cluster |
+| `artifact_registry_repository` | Where to copy images, for example `<region>-docker.pkg.dev/<project>/<prefix>-images` |
+| `external_secrets_service_account_email` | `gcp.externalSecretsServiceAccount` |
+| `litellm_service_account_email` | `gcp.litellmServiceAccount` |
+| `service_account_email` | The application's `serviceAccount.annotations."iam.gke.io/gcp-service-account"` |
+| `postgres_secret_name` | `appSecrets.postgresSecretName` |
+| `redis_host` | `sockudo.redis.host` and `REDIS_HOST` |
+| `firestore_database_name` | `MONGO_DB` |
+| `mongo_uri_command` | A command that prints `MONGO_URI`: `eval "$(tofu output -raw mongo_uri_command)"`. A command, because Firestore reports its host only once the database exists. |
+| `storage_bucket` | `STORAGE_BUCKET_NAME` |
+| `zitadel_dsn_secret_name` | `zitadelSecrets.dsnSmKey`. Empty without Zitadel. |
+| `zitadel_masterkey_secret_name` | `zitadelSecrets.masterkeySmKey`. Empty without Zitadel. |
+
+## Remove the installation
+
+<Warning>
+Removing the installation deletes your data: the Firestore database, the Cloud SQL databases and, if it's empty, the bucket. Back up anything you need first.
+</Warning>
+
+`deletion_protection = true` stops a destroy from removing the cluster, the Firestore database and the Cloud SQL instance. But **a destroy isn't transactional**: with protection on, it first removes everything it can, including the databases **inside** the Cloud SQL instance, its user and the network, and only then refuses the protected resources. Read a refused destroy as "the protected resources survived", not as "nothing happened". Protection guards those resources; it doesn't guard the data inside them.
+
+To remove an installation on purpose:
+
+<Steps>
+  <Step title="Uninstall the charts">
+    Remove the releases first, so GKE deletes the load balancer it created for the Gateway.
+
+    ```bash
+    helm -n jedify-be uninstall jedify-be-workers jedify-be
+    helm -n jedify uninstall jedify-infra
+    ```
+
+    To verify, check the Gateway is gone. Expected: `No resources found`.
+
+    ```bash
+    kubectl get gateway -A
+    ```
+  </Step>
+  <Step title="Lift the protection, then destroy">
+    ```bash
+    tofu -chdir=terraform apply -var deletion_protection=false
+    tofu -chdir=terraform destroy -var deletion_protection=false
+    ```
+
+    A bucket that still holds objects fails the destroy instead of being emptied: check its contents first. The enabled APIs stay enabled, because disabling an API affects the whole project.
+
+    Firestore holds a deleted database's name for about five minutes. If you create the installation again in that window, the apply fails with `Database ID '<name>' is not available` and the time left; wait, and apply again.
+  </Step>
+</Steps>
