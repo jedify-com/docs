@@ -37,7 +37,8 @@
                 "group": "Agent Mode",
                 "pages": [
                   "agent-mode",
-                  "skills"
+                  "skills",
+                  "personal-memory"
                 ],
                 "icon": "robot"
               },
