@@ -1,0 +1,34 @@
+---
+title: "Ask Your Data Agents"
+---
+
+Your team's Data Agents are available in Claude. Claude can list them and ask them questions for you, and each agent answers with its own instructions and data scope.
+
+## Tools
+
+| Tool | What it does |
+| --- | --- |
+| `list_agents` | Lists your account's active Data Agents with each agent's name, description, sample questions, and ID. Claude can filter the list by name or description. |
+| `ask_an_agent` | Sends a question to an agent. Returns an `inquiry_id` for that question and a `session_id` for the conversation with the agent. |
+
+{/* TODO: add list_agents illustration (TWC) */}
+
+{/* TODO: add ask_an_agent illustration (TWC) */}
+
+Agents can take a few minutes to answer. Claude waits for the result and shows it to you when it's ready.
+
+## How to use them
+
+1. Ask Claude: "Which Jedify agents do I have?".
+2. Pick one and ask: "Use agent X and send me a new analysis".
+
+Follow-up questions in the same Claude chat continue the same conversation with the agent.
+
+## Getting an earlier answer
+
+In a new Claude chat, what happens when you ask for an agent's latest answer depends on whether you give Claude an `inquiry_id`:
+
+1. **With an `inquiry_id`:** Claude fetches the results of that question.
+2. **Without one:** Claude runs the agent again from scratch.
+
+To find an answer again later, keep its `inquiry_id`.

@@ -333,7 +333,11 @@
         ]
       },
       {
-        "tab": "Using Jedify from MCP"
+        "tab": "Using Jedify from MCP",
+        "pages": [
+          "manage-dimensions",
+          "ask-your-data-agents"
+        ]
       }
     ]
   },

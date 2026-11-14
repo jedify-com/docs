@@ -1,0 +1,32 @@
+---
+title: "Manage Dimensions"
+---
+
+In [Editor mode](/mcp/modes), you can manage [Semantic Dimensions](/semantic-fusion/understanding/semantic-dimensions) by asking Claude in plain language.
+
+## What you can do
+
+| Action | Example prompt |
+| --- | --- |
+| **Create** a dimension from a source column | "Create a dimension called Region from the `customers.region` column." |
+| **Edit** a dimension's name, definition, SQL query, refresh interval, or linked columns | "Rename the Region dimension to Sales Region and update its definition." |
+| **Delete** a dimension | "Delete the Legacy Segment dimension." |
+| **Link or unlink** a dimension on a specific entity | "Remove the Region dimension from the Orders entity." |
+
+When you edit, anything you don't mention stays as it is. Deleting a dimension removes it from every entity that uses it. Unlinking removes it from one entity only.
+
+## Review before changes go live
+
+Changes from Claude don't go live right away. A Tenant Admin or Data Expert reviews and publishes them in Jedify:
+
+1. Open **Dimensions**. A banner says _There are changes to Dimensions - please review_.
+2. Click **Dimensions Changes**, then **Review**.
+3. Click **Approve changes** (or **Decline**), then **Publish**.
+
+Linking or unlinking a dimension on an entity is an entity change, so it shows up under **Semantic Changes** instead.
+
+<Note>
+  On accounts with [Context Graph Versioning](/semantic-fusion/versioning/overview), dimension changes are usually part of your pending change, and Claude publishes them when you confirm. If a change still shows under **Dimensions Changes**, review it there.
+</Note>
+
+See the [Editor tools reference](/mcp/editor/tools-reference) for the operations Claude uses.
