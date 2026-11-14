@@ -31,24 +31,6 @@
             ]
           },
           {
-            "group": "Using Jedify",
-            "pages": [
-              {
-                "group": "Agent Mode",
-                "pages": [
-                  "agent-mode",
-                  "skills",
-                  "personal-memory"
-                ],
-                "icon": "robot"
-              },
-              "using-jedify/ask-jedify",
-              "using-jedify/smart-scenarios",
-              "using-jedify/prompt-history",
-              "admin-mode"
-            ]
-          },
-          {
             "group": "Dashboards",
             "pages": [
               "using-jedify/homepage-dashboard",
@@ -62,6 +44,24 @@
               "using-jedify/disclaimer"
             ]
           }
+        ]
+      },
+      {
+        "tab": "Using Jedify",
+        "pages": [
+          {
+            "group": "Agent Mode",
+            "icon": "robot",
+            "pages": [
+              "agent-mode",
+              "skills",
+              "personal-memory"
+            ]
+          },
+          "using-jedify/ask-jedify",
+          "using-jedify/smart-scenarios",
+          "using-jedify/prompt-history",
+          "admin-mode"
         ]
       },
       {
@@ -331,6 +331,9 @@
             ]
           }
         ]
+      },
+      {
+        "tab": "Using Jedify from MCP"
       }
     ]
   },
