@@ -38,7 +38,8 @@
                 "pages": [
                   "agent-mode",
                   "skills"
-                ]
+                ],
+                "icon": "robot"
               },
               "using-jedify/ask-jedify",
               "using-jedify/smart-scenarios",
