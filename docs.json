@@ -59,7 +59,6 @@
             ]
           },
           "using-jedify/ask-jedify",
-          "using-jedify/smart-scenarios",
           "using-jedify/prompt-history",
           "admin-mode"
         ]
@@ -174,7 +173,8 @@
               {
                 "group": "Editor mode",
                 "pages": [
-                  "mcp/editor/tools-reference"
+                  "mcp/editor/tools-reference",
+                  "manage-dimensions"
                 ]
               },
               {
@@ -186,7 +186,8 @@
                   "mcp/builder/examples"
                 ]
               },
-              "mcp/troubleshooting"
+              "mcp/troubleshooting",
+              "ask-your-data-agents"
             ]
           },
           {
@@ -330,13 +331,6 @@
               "changelog"
             ]
           }
-        ]
-      },
-      {
-        "tab": "Using Jedify from MCP",
-        "pages": [
-          "manage-dimensions",
-          "ask-your-data-agents"
         ]
       }
     ]
