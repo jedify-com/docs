@@ -44,7 +44,8 @@
               },
               "using-jedify/ask-jedify",
               "using-jedify/smart-scenarios",
-              "using-jedify/prompt-history"
+              "using-jedify/prompt-history",
+              "admin-mode"
             ]
           },
           {

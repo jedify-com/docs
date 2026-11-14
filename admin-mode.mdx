@@ -1,0 +1,48 @@
+---
+title: "Admin Mode"
+---
+
+Admin mode gives Tenant Admins analytics about how the workspace is used and governed. It also explains how Jedify features work.
+
+<Note>
+  Admin mode is available to **Tenant Admins** only. Data Experts and Users don't see it.
+</Note>
+
+## Start an Admin conversation
+
+In the prompt box on the **Home** page, open the mode menu and pick **Admin**. To switch an existing conversation to Admin mode, start a new session.
+
+## What you can ask about
+
+| Topic | What you get |
+| --- | --- |
+| **Usage and credits** | Usage and credit consumption: totals compared with the previous period, trends by month, week, or day, prompts per user, and how often each semantic function is used. Credits cover the current calendar month. |
+| **Question themes** | The main topics people ask about. Themes are never linked to the user who asked. |
+| **Audit trail** | Who changed the semantic layer or access settings, and when. |
+| **Lookups** | Users, Data Agents, metrics, API keys, IdP groups, the insight library, semantic functions, dimensions, and semantic knowledge. |
+| **How Jedify works** | Explanations of Jedify features, with links to this documentation. |
+
+For example:
+
+1. "How many credits did we use this month?".
+2. "What are the top question themes in the last 30 days?".
+3. "Who changed the semantic layer last week?".
+4. "List all users and their roles".
+
+Answers appear as tables and charts in the chat. Unless you name a time range, Admin mode looks at the last 30 days. You can ask for any range of up to one year.
+
+## Read-only
+
+Admin mode can report on anything in your account, but it can't change anything: not the semantic layer, not access settings, nothing else. If you ask for a change, it tells you where in Jedify to make it.
+
+## Semantic changes: summary, not detail
+
+Admin mode can tell you who changed which entity and when. It doesn't show what changed inside an entity (for example, which fields were edited). For that level of detail, use [Context Graph Versioning](/semantic-fusion/versioning/overview).
+
+## Admin mode in Claude
+
+Tenant Admins can also use Admin mode from Claude or any other MCP client connected to Jedify. Ask Claude something like:
+
+> "Show me a list of all users, their roles, and how many prompts each submitted this week."
+
+Claude finds Admin mode in your list of agents and asks it for you. Other users don't see it in Claude either.
