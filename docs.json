@@ -186,8 +186,7 @@
                   "mcp/builder/examples"
                 ]
               },
-              "mcp/troubleshooting",
-              "ask-your-data-agents"
+              "mcp/troubleshooting"
             ]
           },
           {
@@ -331,6 +330,13 @@
               "changelog"
             ]
           }
+        ]
+      },
+      {
+        "tab": "Data Agents",
+        "pages": [
+          "data-agents",
+          "ask-your-data-agents"
         ]
       }
     ]

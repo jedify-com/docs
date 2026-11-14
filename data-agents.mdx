@@ -1,0 +1,97 @@
+---
+title: "Data Agents"
+---
+
+## Introduction
+
+A Data Agent is an AI analyst that works on your company's data. You don't just ask it one question. You give it a job, like "send me a summary of our bookings every month." It plans the work, asks many questions of your data, finds what changed and why, and sends you the answer.
+
+There are two ways to use an agent:
+
+1. **Scheduled agents** run on a schedule, for example at the end of every month, and send you the report.
+2. **On-demand agents** run when something specific happens. For example, when a campaign ends, give the agent the campaign's ID in the chat and ask for a summary of the results.
+
+You can chat with any agent at any time. Scheduled agents bring the answers to you. On-demand agents are there when you bring the question.
+
+Building an agent takes three steps: **build**, **activate**, and **monitor and improve**.
+
+## Build an agent
+
+Start with the agent's main job. For example: a monthly summary of bookings.
+
+1. Go to **Agents** and click **New agent**.
+2. Describe in plain language what the agent should do and deliver. Not sure what to build? Just say hi, and the builder suggests a few agents based on your data.
+
+For example:
+
+> "You are a monthly bookings agent. Each run, summarize closed-won bookings and ARR for the most recently completed month. Compare with the prior month and the same month last year."
+
+More ideas:
+
+- **Pipeline health** for revenue teams: runs every Monday, finds deals that have been open longer than usual, and shows which deal types and sales reps have the most stuck deals.
+- **Renewal risk** for customer success: looks at usage trends and upcoming renewals together to find customers at risk.
+
+The builder then shows its plan: how the agent will work and which data it will use.
+
+### Preview the report
+
+Before you activate a scheduled agent, the builder runs a preview so you can see the report you will get. If it's not right, say so in the chat, for example "shorter", and you get a new preview. Each preview is saved as a new version.
+
+## Activate
+
+When the preview looks right, click **Activate**. An agent stays in **Draft** until you activate it. You can **Deactivate** it at any time, and it becomes **Inactive**.
+
+## Automations
+
+Automations decide when a scheduled agent runs and where its report goes. In the agent's settings, click **Add automation**.
+
+### Schedule
+
+Pick **Hourly**, **Daily**, **Weekly**, or **Monthly**, and a time. For Weekly, pick the day of the week. For Monthly, pick the day of the month or **Last day**.
+
+### Recipients
+
+1. **Email:** choose who in your account gets the report.
+2. **Slack:** paste the IDs of the Slack channels that get the report. Before that:
+   1. Your Jedify admin connects Slack to Jedify.
+   2. Add the Jedify app to each channel, public or private. Jedify can post only to channels it has been added to.
+
+Email and Slack are optional. Without them, scheduled runs still happen and you find the reports in the app.
+
+### Paused automations
+
+While an agent is in **Draft** or **Inactive**, its automations are paused: the Automations toggle is off and the section shows **Paused**. Hover over it for the explanation. Activate the agent to resume.
+
+## Security
+
+1. **Who can build agents:** only Tenant Admins and Data Experts can create, edit, activate, or run agents. Admins control this through users' roles in Jedify. Everyone else can find active agents and chat with them.
+2. **Data access:** if an agent uses data that is blocked for a group, users in that group don't see the agent.
+3. **Permissions when chatting:** when you chat with an agent, it uses your own data permissions.
+4. **Scheduled reports:** they run with the permissions of the agent's creator. Email recipients get the report only if they have access to the agent's data. Everyone in a Slack channel sees the full report, so choose channels whose members should see that data.
+
+Admins set access rules in the Jedify app. See [Role-based access control](/settings/rbac).
+
+## Monitor and improve
+
+### Talk to the report
+
+Every run is saved in the agent's **Artifacts** tab, including scheduled runs and the runs you start with **Run now**. Jedify gives each run an informative title, so you can find the one you need.
+
+A scheduled report is not a static document. Open any run and keep the conversation going: ask why something happened, split the result by segment, or dig into something it found.
+
+When a number changes, the agent can look into it and find the likely reasons. A sales manager can ask "Why did enterprise bookings drop this quarter?" or "Which reps have the most stuck deals?" and get an answer from real data right away, without waiting for RevOps.
+
+Your other conversations with the agent are in the **Chats** tab.
+
+### Improve the agent
+
+To improve an agent, open its **Build** tab and chat with the builder. You can change what it focuses on, how it does the analysis, and what the output looks like. The builder shows the updated plan and suggests a new preview before the change goes live.
+
+## Agents where you already work
+
+Your team doesn't have to work inside the Jedify app to use agents.
+
+1. **Slack and email:** reports go straight to the people and channels you choose.
+2. **Claude and other MCP clients:** users can list your active agents, pick one, and ask it questions. The agent answers with the same focus and data it has in Jedify. See [Ask Your Data Agents](/ask-your-data-agents).
+
+The analysis you build in Jedify becomes available in the tools people already use.
