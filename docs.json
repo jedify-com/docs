@@ -33,7 +33,13 @@
           {
             "group": "Using Jedify",
             "pages": [
-              "agent-mode",
+              {
+                "group": "Agent Mode",
+                "pages": [
+                  "agent-mode",
+                  "skills"
+                ]
+              },
               "using-jedify/ask-jedify",
               "using-jedify/smart-scenarios",
               "using-jedify/prompt-history"
