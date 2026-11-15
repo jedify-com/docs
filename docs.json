@@ -44,11 +44,9 @@
             ]
           },
           "using-jedify/prompt-history",
-          "admin-mode",
           {
             "group": "Modes",
             "pages": [
-              "using-jedify/ask-jedify",
               {
                 "group": "Agent Mode",
                 "icon": "robot",
@@ -58,7 +56,9 @@
                   "personal-memory"
                 ]
               },
-              "using-jedify/deep-research-agent"
+              "using-jedify/ask-jedify",
+              "using-jedify/deep-research-agent",
+              "admin-mode"
             ]
           }
         ]
