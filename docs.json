@@ -20,7 +20,7 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "Getting Started",
+        "tab": "Using Jedify",
         "icon": "rocket",
         "pages": [
           {
@@ -30,20 +30,6 @@
               "getting-started/introduction"
             ]
           },
-          {
-            "group": "Dashboards",
-            "pages": [
-              "using-jedify/homepage-dashboard",
-              "using-jedify/analytics-dashboard"
-            ]
-          },
-          {
-            "group": "Advanced",
-            "pages": [
-              "using-jedify/disclaimer"
-            ]
-          },
-          "using-jedify/prompt-history",
           {
             "group": "Modes",
             "pages": [
@@ -60,7 +46,21 @@
               "using-jedify/deep-research-agent",
               "admin-mode"
             ]
-          }
+          },
+          {
+            "group": "Dashboards",
+            "pages": [
+              "using-jedify/homepage-dashboard",
+              "using-jedify/analytics-dashboard"
+            ]
+          },
+          {
+            "group": "Advanced",
+            "pages": [
+              "using-jedify/disclaimer"
+            ]
+          },
+          "using-jedify/prompt-history"
         ]
       },
       {
