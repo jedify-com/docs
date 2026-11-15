@@ -43,12 +43,7 @@
               "using-jedify/deep-research-agent",
               "using-jedify/disclaimer"
             ]
-          }
-        ]
-      },
-      {
-        "tab": "Using Jedify",
-        "pages": [
+          },
           {
             "group": "Agent Mode",
             "icon": "robot",
@@ -57,7 +52,12 @@
               "skills",
               "personal-memory"
             ]
-          },
+          }
+        ]
+      },
+      {
+        "tab": "Using Jedify",
+        "pages": [
           "using-jedify/ask-jedify",
           "using-jedify/prompt-history",
           "admin-mode"
