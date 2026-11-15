@@ -337,7 +337,8 @@
         "pages": [
           "data-agents",
           "ask-your-data-agents"
-        ]
+        ],
+        "icon": "user-robot"
       }
     ]
   },
