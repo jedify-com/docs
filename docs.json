@@ -61,7 +61,8 @@
           "using-jedify/ask-jedify",
           "using-jedify/prompt-history",
           "admin-mode"
-        ]
+        ],
+        "icon": "snapchat"
       },
       {
         "tab": "Semantic Fusion™",
