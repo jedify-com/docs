@@ -22,7 +22,7 @@
       {
         "tab": "Getting Started",
         "icon": "rocket",
-        "groups": [
+        "pages": [
           {
             "group": "Getting Started",
             "pages": [
@@ -52,16 +52,14 @@
               "skills",
               "personal-memory"
             ]
-          }
+          },
+          "using-jedify/ask-jedify",
+          "using-jedify/prompt-history",
+          "admin-mode"
         ]
       },
       {
         "tab": "Using Jedify",
-        "pages": [
-          "using-jedify/ask-jedify",
-          "using-jedify/prompt-history",
-          "admin-mode"
-        ],
         "icon": "snapchat"
       },
       {
