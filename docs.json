@@ -40,22 +40,27 @@
           {
             "group": "Advanced",
             "pages": [
-              "using-jedify/deep-research-agent",
               "using-jedify/disclaimer"
             ]
           },
-          {
-            "group": "Agent Mode",
-            "icon": "robot",
-            "pages": [
-              "agent-mode",
-              "skills",
-              "personal-memory"
-            ]
-          },
-          "using-jedify/ask-jedify",
           "using-jedify/prompt-history",
-          "admin-mode"
+          "admin-mode",
+          {
+            "group": "Modes",
+            "pages": [
+              "using-jedify/ask-jedify",
+              {
+                "group": "Agent Mode",
+                "icon": "robot",
+                "pages": [
+                  "agent-mode",
+                  "skills",
+                  "personal-memory"
+                ]
+              },
+              "using-jedify/deep-research-agent"
+            ]
+          }
         ]
       },
       {
