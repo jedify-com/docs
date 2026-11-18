@@ -44,9 +44,11 @@ Muting applies to channels and group DMs. In a DM, Jedify always answers.
 ### Asking About the Conversation
 
 
-When **Thread Context** is on, Jedify reads the messages before your mention:
+Before it answers a mention in a channel or group DM, Jedify reads the messages that came before it:
 
 - **In a thread:** the earlier messages in that thread.
 - **At the top of a channel or group DM:** the recent messages in the channel (by default, up to 10 messages from the last 30 minutes).
 
-After a discussion, you can write just `@Jedify` or `@Jedify what do you think?`, and Jedify turns the conversation into a complete question before it answers. A Jedify admin turns this on in the Slack settings. See [Installation](/settings/slack/installation).
+After a discussion, you can write just `@Jedify` or `@Jedify what do you think?`, and Jedify turns the conversation into a complete question before it answers. In a DM with Jedify, a mention with no text gets a prompt to ask your question.
+
+If your workspace connected Jedify before it could read message history, Jedify answers the mention as typed. Reconnect from **Integrations** to fix this. See [Installation](/settings/slack/installation).
