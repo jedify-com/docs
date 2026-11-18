@@ -56,6 +56,8 @@ Pick **Hourly**, **Daily**, **Weekly**, or **Monthly**, and a time. For Weekly, 
    1. Your Jedify admin connects Slack to Jedify.
    2. Add the Jedify app to each channel, public or private. Jedify can post only to channels it has been added to.
 
+   When you save, Jedify checks each channel. If it can't post to one (the channel doesn't exist, is archived, or doesn't have the Jedify app), the save is refused and the automation settings mark that channel with the fix.
+
 Email and Slack are optional. Without them, scheduled runs still happen and you find the reports in the app.
 
 ### Paused automations
