@@ -186,7 +186,8 @@
                   "mcp/builder/examples"
                 ]
               },
-              "mcp/troubleshooting"
+              "mcp/troubleshooting",
+              "editor-agent"
             ]
           },
           {
