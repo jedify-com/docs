@@ -2,17 +2,17 @@
 title: "Editor Agent"
 ---
 
-**Edit your context graph with the Jedify Editor agent in Claude**
+# **Edit your context graph with the Jedify Editor agent in Claude**
 
 Connect Claude to Jedify once, then describe the change you want in plain language. The Editor agent writes and validates every change. Nothing is saved without your approval, and nothing goes live until you publish it.
 
 Available to Tenant Admins and Data Experts.
 
-**1. Connect the Jedify MCP**
+## **1. Connect the Jedify MCP**
 
 Connect Claude to your Jedify context graph.
 
-**2. Ask the Editor agent for a change**
+## **2. Ask the Editor agent for a change**
 
 You can use the Editor agent in two ways:
 
@@ -25,22 +25,22 @@ You can use the Editor agent in two ways:
 
 Before deleting an entity, the agent tells you what depends on it: questions, relations and dimensions.
 
-**3. Review and approve**
+## **3. Review and approve**
 
 The agent shows you each change before it saves anything. Reply “yes” to save it to your draft, or tell it what to change.
 
 Your draft is visible to you and to your account's other Admins and Data Experts. Business users only see what is published.
 
-**4. Publish**
+## **4. Publish**
 
 When the draft looks right, tell Claude “publish it”, or publish it yourself in the “Semantic changes” queue in the Jedify app. The change goes live for everyone in your organization.
 
-**Undo and roll back**
+## **Undo and roll back**
 
 - "Undo that" reverses a published change. The agent shows you the reversal first, and like any other change it goes live only when you publish.
 - "Discard it" drops your saved changes that aren't published yet.
 
-**Good to know**
+## **Good to know**
 
 - **Keep each editing task in one Claude chat.** If you start a new chat, proposals you haven’t saved are lost. Changes you already saved stay in the “Semantic changes” queue.
 - **No skill files needed.** The Editor agent replaces the `qlh-annotator` and `sl-edit` skills. If you uploaded them to Claude before, you can remove them.
