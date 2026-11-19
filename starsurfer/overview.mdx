@@ -1,0 +1,54 @@
+---
+title: "Starsurfer for Claude"
+icon: "water"
+description: "Copy data from business systems like NetSuite into your data warehouse, such as Snowflake. Set up and run every copy by talking to Claude."
+---
+
+Starsurfer copies data from your business systems into your data warehouse, and you run it by talking to Claude. Tell Claude what to copy, from where, into which table and how often. Claude looks at the source with Starsurfer, proposes the mapping, and sets up the copy once you say yes. Each copy is called a wave, so that's the word Claude uses.
+
+## Who can use it
+
+Starsurfer is part of Jedify. It works for companies where Jedify has turned it on, and for those companies' admins. To get it for your company, [contact Jedify](https://jedify.com/contact/).
+
+## Before you start
+
+In the Jedify app, under **Settings → Data connectors**, add the source to copy from and the warehouse to copy into. Today the source can be NetSuite or Snowflake, and the warehouse is Snowflake.
+
+## Connect it to Claude
+
+1. In Claude, open **Settings → Connectors**, search for **Starsurfer**, and click **Connect**. On Claude Team and Enterprise, a workspace admin enables it once for the whole organization.
+2. Sign in with your Jedify account.
+
+If Starsurfer isn't in the list yet, choose **Add custom connector** and paste `https://starsurfer.jedify.com/mcp`.
+
+In Claude Code:
+
+```bash
+claude mcp add --transport http starsurfer https://starsurfer.jedify.com/mcp
+```
+
+## Things to ask
+
+- "What can Starsurfer copy from our NetSuite?"
+- "Copy our NetSuite customers into our warehouse every morning, only what changed since the last run."
+- "Show me the transactions copy's columns, and rename amount to total_amount."
+- "How did last night's runs go? Explain any that failed."
+- "After each invoices copy, build a table of daily totals by customer."
+- "Bring back yesterday's version of the vendors copy."
+
+## Good to know
+
+- Before Claude creates, changes, runs or deletes a copy, it tells you what will happen and waits for your yes.
+- Starsurfer checks each copy against the source and your warehouse before saving it, and says what to fix when something won't work.
+- A copy can replace its table, add rows, update rows by key, or keep a history of every change.
+- Every change is kept as a version you can bring back.
+- When a run fails, its note says what went wrong, what it means for the table, and what to do next.
+- Starsurfer only reads your sources. It writes only to the schemas your warehouse connection's role allows.
+
+## Your data
+
+Copied data lands in your own warehouse. Starsurfer keeps each copy's recipe, its versions, and a record of each run. See [Jedify's privacy policy](https://media2.jedify.com/privacy-policy.html).
+
+## Help
+
+Write to [support@jedify.com](mailto:support@jedify.com).
