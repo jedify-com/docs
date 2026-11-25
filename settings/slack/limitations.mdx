@@ -15,8 +15,9 @@ icon: "circle-exclamation"
 
 
 - Text-based responses only (no embedded charts)
-- Message length limited by Slack’s constraints
-- Requires @mention except in direct messages
+- Message length limited by Slack’s constraints: a very long answer is cut short, and the link to Jedify has the full answer
+- Requires @mention to start a conversation, except in direct messages
+- An answer can't be stopped from Slack once it has started
 
 
 ### Best Practices
@@ -25,4 +26,5 @@ icon: "circle-exclamation"
 - Be specific in your questions for best results
 - Use threads to keep related queries together
 - Provide context when asking follow-up questions
-- Always @mention Jedify except in direct messages
+- @mention Jedify to start a conversation in a channel or group DM; in its threads, just reply
+- Mute a thread when your team wants to discuss without Jedify answering

@@ -3,24 +3,36 @@ title: "How It Works"
 icon: "gears"
 ---
 
-## Research Agent Integration
+## Agent Mode in Slack
 
 
-When you ask a question in Slack, Jedify uses the **same research agent** that powers the main platform to:
+When you ask a question in Slack, Jedify answers with the same [Agent mode](/agent-mode) that powers the main platform. It:
 
 
-1. Understand your natural language query
-2. Analyze your connected data sources
-3. Generate comprehensive insights
-4. Return the results directly in Slack
+1. Understands your natural language question
+2. Picks the data it needs from your connected data sources
+3. Runs the queries and analyzes the results
+4. Returns the answer directly in Slack
 
 
-This ensures you get the same quality of analysis whether you’re using the web platform or Slack.
+This ensures you get the same quality of analysis whether you're using the web platform or Slack.
+
+
+## Live Progress
+
+
+While Jedify works, the answer streams into the thread. Each step it takes, such as finding the data or running a query, shows as a task that updates from in progress to complete. The answer text appears as it is written, and the finished answer ends with a link to the conversation in Jedify and the feedback buttons.
+
+
+## Clarifying Questions
+
+
+When a question can be read more than one way, Jedify asks before it answers. It posts a card with the options to choose from, and a text box when you can answer in your own words. Pick an answer and click **Submit**, or reply in the thread. Jedify then continues the same analysis, and the card shows the answer and who gave it.
 
 
 ## Session Continuity
 
 
-- **Thread conversations:** All follow-up questions within a Jedify thread maintain session context
-- **Platform transition: **Use the provided share link to continue your analysis in the Jedify platform with full visualization capabilities
+- **Thread conversations:** All follow-up questions within a Jedify thread keep the session's context. In channels and group DMs, Jedify answers replies in its threads without a mention. See [Communication Patterns](/settings/slack/communication-patterns).
+- **Platform transition:** Use the provided link to continue your analysis in the Jedify platform with full visualization capabilities
 - **Context preservation:** Your analysis session seamlessly transfers between Slack and the main platform
